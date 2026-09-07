@@ -18,23 +18,23 @@
     </div>
 
     <!-- Header Card -->
-    <div class="glass-card p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl relative overflow-hidden">
+    <div class="glass-card p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-5 sm:space-y-6 shadow-2xl relative overflow-hidden">
         <div class="absolute -top-12 -right-12 w-52 h-52 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div class="space-y-2 z-10">
-                <div class="flex items-center space-x-3">
-                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">{{ $committee->name }}</h1>
-                    <span class="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
+            <div class="space-y-1.5 sm:space-y-2 z-10 w-full md:w-auto">
+                <div class="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-y-1">
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">{{ $committee->name }}</h1>
+                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                         {{ $committee->total_members }} Members
                     </span>
                 </div>
-                <p class="text-xs sm:text-sm text-slate-400">
+                <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
                     Live auction bidding board. Submit your bid — all members see bids in real-time. Once organizer approves a bid, that round is locked.
                 </p>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-slate-800 z-10 relative">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-slate-800 z-10 relative">
             <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
                 <span class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Chit Value</span>
                 <span class="text-lg font-black text-white font-mono">₹{{ number_format($committee->total_amount, 2) }}</span>

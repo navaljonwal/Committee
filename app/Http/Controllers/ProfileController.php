@@ -10,11 +10,12 @@ use Illuminate\Validation\Rules\Password;
 class ProfileController extends Controller
 {
     /**
-     * Show the profile edit form.
+     * Show the profile edit form (Admin only).
      */
     public function edit()
     {
         $user = Auth::user();
+        abort_if(!$user->isAdmin(), 403, 'Unauthorized. Only administrators can access profile and password settings.');
         return view('profile.edit', compact('user'));
     }
 
@@ -24,6 +25,7 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
+        abort_if(!$user->isAdmin(), 403, 'Unauthorized.');
 
         $validated = $request->validate([
             'name'  => ['required', 'string', 'max:255'],
@@ -49,10 +51,13 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update user password.
+     * Update user password (Admin only).
      */
     public function updatePassword(Request $request)
     {
+        $user = Auth::user();
+        abort_if(!$user->isAdmin(), 403, 'Unauthorized.');
+
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
             'password'         => ['required', 'string', 'min:6', 'confirmed'],

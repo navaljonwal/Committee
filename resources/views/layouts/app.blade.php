@@ -200,23 +200,40 @@
             <div class="flex items-center space-x-2 sm:space-x-3">
                 @auth
                     <div class="flex items-center space-x-2 sm:space-x-3 bg-slate-900/90 px-2.5 sm:px-3.5 py-1.5 rounded-2xl border border-white/[0.09] shadow-sm">
-                        <a href="{{ route('profile.edit') }}" title="Account Profile & Settings" class="flex items-center space-x-2 group">
-                            <div class="relative">
-                                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-bold text-xs uppercase shadow-sm group-hover:border-emerald-400 transition-colors">
-                                    {{ substr(Auth::user()->name, 0, 2) }}
+                        @if(Auth::user()->isAdmin())
+                            <a href="{{ route('profile.edit') }}" title="Account Profile & Settings" class="flex items-center space-x-2 group">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-bold text-xs uppercase shadow-sm group-hover:border-emerald-400 transition-colors">
+                                        {{ substr(Auth::user()->name, 0, 2) }}
+                                    </div>
+                                    <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#090d16]"></span>
                                 </div>
-                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#090d16]"></span>
+                                <div class="hidden sm:block text-left">
+                                    <span class="block text-xs font-bold text-white leading-tight group-hover:text-emerald-400 transition-colors">{{ Auth::user()->name }}</span>
+                                    <span class="block text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
+                                        Organizer Admin
+                                    </span>
+                                </div>
+                            </a>
+                            <a href="{{ route('profile.edit') }}" title="Change Email & Password" class="p-1.5 text-slate-400 hover:text-emerald-400 transition-colors rounded-xl hover:bg-slate-800/80 {{ request()->routeIs('profile.*') ? 'text-emerald-400 bg-slate-800/80' : '' }}">
+                                <i class="fa-solid fa-gear text-sm"></i>
+                            </a>
+                        @else
+                            <div class="flex items-center space-x-2">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                                        {{ substr(Auth::user()->name, 0, 2) }}
+                                    </div>
+                                    <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#090d16]"></span>
+                                </div>
+                                <div class="hidden sm:block text-left">
+                                    <span class="block text-xs font-bold text-white leading-tight">{{ Auth::user()->name }}</span>
+                                    <span class="block text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
+                                        Committee Member
+                                    </span>
+                                </div>
                             </div>
-                            <div class="hidden sm:block text-left">
-                                <span class="block text-xs font-bold text-white leading-tight group-hover:text-emerald-400 transition-colors">{{ Auth::user()->name }}</span>
-                                <span class="block text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
-                                    {{ Auth::user()->role === 'admin' ? 'Organizer Admin' : 'Committee Member' }}
-                                </span>
-                            </div>
-                        </a>
-                        <a href="{{ route('profile.edit') }}" title="Change Email & Password" class="p-1.5 text-slate-400 hover:text-emerald-400 transition-colors rounded-xl hover:bg-slate-800/80 {{ request()->routeIs('profile.*') ? 'text-emerald-400 bg-slate-800/80' : '' }}">
-                            <i class="fa-solid fa-gear text-sm"></i>
-                        </a>
+                        @endif
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
                             <button type="submit" title="Logout" class="p-1.5 text-slate-400 hover:text-rose-400 transition-colors rounded-xl hover:bg-slate-800/80">
@@ -253,16 +270,16 @@
                         <i class="fa-solid fa-users w-4 text-center {{ request()->routeIs('members.index') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
                         <span>Members Directory</span>
                     </a>
+                    <a href="{{ route('profile.edit') }}" class="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2.5 {{ request()->routeIs('profile.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-300 hover:bg-slate-800/60' }}">
+                        <i class="fa-solid fa-user-gear w-4 text-center {{ request()->routeIs('profile.*') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
+                        <span>Profile &amp; Password Settings</span>
+                    </a>
                 @else
                     <a href="{{ route('member.dashboard') }}" class="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2.5 {{ request()->routeIs('member.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-300 hover:bg-slate-800/60' }}">
                         <i class="fa-solid fa-layer-group w-4 text-center {{ request()->routeIs('member.*') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
                         <span>My Committees</span>
                     </a>
                 @endif
-                <a href="{{ route('profile.edit') }}" class="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2.5 {{ request()->routeIs('profile.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-300 hover:bg-slate-800/60' }}">
-                    <i class="fa-solid fa-user-gear w-4 text-center {{ request()->routeIs('profile.*') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
-                    <span>Profile &amp; Security Settings</span>
-                </a>
                 <form method="POST" action="{{ route('logout') }}" class="pt-2 border-t border-slate-800/80">
                     @csrf
                     <button type="submit" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2.5 text-rose-400 hover:bg-rose-500/10 transition-colors text-left">
@@ -562,14 +579,17 @@
                         <span class="text-[10px] tracking-tight">Settings</span>
                     </a>
                 @else
-                    <a href="{{ route('member.dashboard') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('member.*') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
+                    <a href="{{ route('member.dashboard') }}" class="col-span-2 flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('member.*') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
                         <i class="fa-solid fa-layer-group text-lg mb-0.5 {{ request()->routeIs('member.*') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">My Chits</span>
+                        <span class="text-[11px] tracking-tight">My Committees</span>
                     </a>
-                    <a href="{{ route('profile.edit') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('profile.*') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
-                        <i class="fa-solid fa-user-gear text-lg mb-0.5 {{ request()->routeIs('profile.*') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">Profile</span>
-                    </a>
+                    <form method="POST" action="{{ route('logout') }}" class="col-span-2">
+                        @csrf
+                        <button type="submit" class="w-full flex flex-col items-center py-1 px-1 rounded-xl transition-all text-slate-400 hover:text-rose-400">
+                            <i class="fa-solid fa-right-from-bracket text-lg mb-0.5 text-rose-400"></i>
+                            <span class="text-[11px] tracking-tight text-rose-300">Log Out</span>
+                        </button>
+                    </form>
                 @endif
             </div>
         </nav>
