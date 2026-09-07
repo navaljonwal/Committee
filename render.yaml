@@ -6,17 +6,21 @@ services:
     plan: free
     region: oregon
     envVars:
+      - key: APP_NAME
+        value: "ChitFund Pro"
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
-              value: "true"
+        value: "true"
       - key: APP_KEY
-              value: base64:dGhpc2lzYTNydHdvd2J5dGVzZW5jcnlwdGlvbmtleQ==
+        value: base64:GzW9WCh4BHyq8L3dpvZeFYB2swWpTfUQJ9j6DRPZv04=
+      - key: APP_URL
+        value: https://chitfund-pro.onrender.com
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE
         value: /var/www/html/database/database.sqlite
       - key: SESSION_DRIVER
-        value: cookie
+        value: file
       - key: CACHE_STORE
-        value: array
+        value: file
