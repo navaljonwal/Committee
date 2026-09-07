@@ -7,21 +7,22 @@
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-extrabold text-white flex items-center gap-3">
+            <h1 class="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-3">
                 <i class="fa-solid fa-users text-emerald-400"></i>
                 <span>Member Directory</span>
             </h1>
-            <p class="text-slate-400 text-sm mt-1">Manage committee participants, login credentials, contact details, and payment histories.</p>
+            <p class="text-slate-400 text-xs sm:text-sm mt-1">Manage committee participants, login credentials, contact details, and payment histories.</p>
         </div>
-        <button onclick="document.getElementById('addMemberModal').classList.remove('hidden')" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
-            <i class="fa-solid fa-user-plus"></i> Add New Member
+        <button onclick="document.getElementById('addMemberModal').classList.remove('hidden')" class="w-full sm:w-auto justify-center px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Add New Member</span>
         </button>
     </div>
 
     <!-- Members Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         @forelse($members as $m)
-            <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 hover:border-slate-700 transition-all group">
+            <div class="glass-card p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4 hover:border-slate-700 transition-all group">
                 <div class="flex items-start justify-between">
                     <div class="flex items-center space-x-3">
                         <div class="w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 flex items-center justify-center font-bold text-lg group-hover:scale-105 transition-transform">

@@ -6,57 +6,57 @@
 <div class="space-y-8">
 
     <!-- Committee Header & Summary -->
-    <div class="glass-card p-6 md:p-8 rounded-3xl border border-slate-800 space-y-7 relative overflow-hidden shadow-2xl">
+    <div class="glass-card p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-6 sm:space-y-7 relative overflow-hidden shadow-2xl">
         <!-- Ambient Glowing Background Accents -->
         <div class="absolute -right-16 -top-16 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute right-1/3 -bottom-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
-            <div class="space-y-3">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 sm:gap-6 relative z-10">
+            <div class="space-y-2 sm:space-y-3">
                 <!-- Breadcrumbs & Status -->
-                <div class="flex items-center space-x-3 flex-wrap gap-y-2">
+                <div class="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-y-1.5 text-xs">
                     <a href="{{ route('committees.index') }}" class="text-xs font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5">
                         <i class="fa-solid fa-arrow-left text-[10px]"></i> Committees
                     </a>
                     <span class="text-slate-600">/</span>
-                    <span class="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm shadow-emerald-500/10">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm shadow-emerald-500/10">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         {{ $committee->status }} CHIT
                     </span>
-                    <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
-                        <i class="fa-regular fa-clock text-[11px] text-slate-500"></i> Created {{ $committee->created_at ? $committee->created_at->format('d M Y') : '' }}
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-400 flex items-center gap-1">
+                        <i class="fa-regular fa-clock text-[10px] text-slate-500"></i> Created {{ $committee->created_at ? $committee->created_at->format('d M Y') : '' }}
                     </span>
                 </div>
 
-                <h1 class="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight">
+                <h1 class="text-xl sm:text-2xl md:text-4xl font-black text-white tracking-tight leading-tight">
                     {{ $committee->name }}
                 </h1>
-                <p class="text-slate-400 text-xs md:text-sm max-w-2xl leading-relaxed">
+                <p class="text-slate-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
                     Dynamic chit fund schedule with standard formula calculation, member auction bidding, and 1-click round locking.
                 </p>
             </div>
 
             <!-- Header Action Buttons -->
-            <div class="no-print flex flex-wrap items-center gap-2.5">
+            <div class="no-print grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
                 @if($committee->status !== 'completed')
-                    <button type="button" onclick="document.getElementById('committeeDateModal').classList.remove('hidden')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 transition-all flex items-center gap-2 shadow-sm">
+                    <button type="button" onclick="document.getElementById('committeeDateModal').classList.remove('hidden')" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 transition-all flex items-center justify-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-calendar-days text-cyan-400"></i>
                         <span>Dates</span>
                     </button>
-                    <a href="{{ route('committees.edit', $committee) }}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 hover:border-amber-500/50 transition-all flex items-center gap-2 shadow-sm">
+                    <a href="{{ route('committees.edit', $committee) }}" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 hover:border-amber-500/50 transition-all flex items-center justify-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-pen-to-square text-amber-400"></i>
                         <span>Edit</span>
                     </a>
                 @endif
-                <a href="{{ route('committees.printView', $committee) }}" target="_blank" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-all flex items-center gap-2 shadow-sm">
+                <a href="{{ route('committees.printView', $committee) }}" target="_blank" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-all flex items-center justify-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-print text-blue-400"></i>
                     <span>Print</span>
                 </a>
-                <a href="{{ route('committees.exportCsv', $committee) }}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 transition-all flex items-center gap-2 shadow-sm">
+                <a href="{{ route('committees.exportCsv', $committee) }}" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 transition-all flex items-center justify-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-file-excel text-emerald-400"></i>
                     <span>Export</span>
                 </a>
-                <button onclick="document.getElementById('memberModal').classList.remove('hidden')" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 hover:border-purple-500/60 transition-all flex items-center gap-2 shadow-sm">
+                <button onclick="document.getElementById('memberModal').classList.remove('hidden')" class="col-span-2 sm:col-span-1 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 hover:border-purple-500/60 transition-all flex items-center justify-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-user-group text-purple-400"></i>
                     <span>Members ({{ $members->count() }}/{{ $committee->total_members }})</span>
                 </button>
@@ -213,10 +213,16 @@
                     <i class="fa-solid fa-star text-[10px] mr-1"></i> Month 2 = Special 0% Deduction Round
                 </span>
             </div>
+        <!-- Mobile Swipe Helper Indicator -->
+        <div class="md:hidden px-4 py-2 bg-slate-900/90 border-b border-slate-800 text-xs flex items-center justify-between text-slate-400">
+            <span class="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
+                <i class="fa-solid fa-arrows-left-right text-[10px]"></i> Swipe horizontally to view full table
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">{{ $schedules->count() }} Kishts Total</span>
         </div>
 
         <!-- High-Contrast Schedule Table -->
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto -mx-1 sm:mx-0">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-950 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-800">

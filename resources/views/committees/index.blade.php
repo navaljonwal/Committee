@@ -5,63 +5,63 @@
 @section('content')
 <div class="space-y-8">
     <!-- Header Hero Banner -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-800/90 via-slate-800/60 to-emerald-950/40 p-6 md:p-8 rounded-2xl border border-slate-700/60 shadow-xl relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-800/90 via-slate-800/60 to-emerald-950/40 p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border border-slate-700/60 shadow-xl relative overflow-hidden">
         <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="space-y-2 z-10">
-            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center flex-wrap gap-2 sm:gap-3">
                 <span>Private Committee Dashboard</span>
-                <span class="text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Active Engine</span>
+                <span class="text-[10px] sm:text-xs px-2.5 py-0.5 sm:py-1 rounded-full font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Active Engine</span>
             </h1>
-            <p class="text-sm text-slate-400 max-w-2xl">
+            <p class="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
                 Manage your Chit Fund (BC) schedules dynamically. Input any pool amount, set members count, deduction rate, and calculate monthly net payout and installments instantly.
             </p>
         </div>
-        <div class="flex items-center space-x-3 z-10 shrink-0">
-            <a href="{{ route('committees.create') }}" class="px-5 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2 hover:scale-[1.02]">
+        <div class="flex items-center space-x-3 z-10 shrink-0 w-full sm:w-auto">
+            <a href="{{ route('committees.create') }}" class="w-full sm:w-auto justify-center px-5 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2 hover:scale-[1.02]">
                 <i class="fa-solid fa-plus text-base"></i>
                 <span>Create New Committee</span>
             </a>
         </div>
     </div>
 
-    <!-- Quick Stats Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="glass-card p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-blue-500/5">
+    <!-- Quick Stats Grid (2 columns on mobile, 4 on desktop) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        <div class="glass-card p-3.5 sm:p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-blue-500/5">
             <div>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Committees</span>
-                <div class="text-2xl md:text-3xl font-black text-white mt-1">{{ number_format($stats['total_committees']) }}</div>
+                <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block truncate">Committees</span>
+                <div class="text-xl sm:text-2xl md:text-3xl font-black text-white mt-0.5 sm:mt-1">{{ number_format($stats['total_committees']) }}</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center text-xl shadow-md">
+            <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center text-sm sm:text-xl shadow-md shrink-0">
                 <i class="fa-solid fa-layer-group"></i>
             </div>
         </div>
 
-        <div class="glass-card p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-emerald-500/5">
+        <div class="glass-card p-3.5 sm:p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-emerald-500/5">
             <div>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Committees</span>
-                <div class="text-2xl md:text-3xl font-black text-emerald-400 mt-1">{{ number_format($stats['active_committees']) }}</div>
+                <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block truncate">Active Chits</span>
+                <div class="text-xl sm:text-2xl md:text-3xl font-black text-emerald-400 mt-0.5 sm:mt-1">{{ number_format($stats['active_committees']) }}</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shadow-md">
+            <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm sm:text-xl shadow-md shrink-0">
                 <i class="fa-solid fa-circle-play"></i>
             </div>
         </div>
 
-        <div class="glass-card p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-amber-500/5">
+        <div class="glass-card p-3.5 sm:p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-amber-500/5">
             <div>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Pool Value</span>
-                <div class="text-2xl md:text-3xl font-black text-amber-300 font-mono mt-1">₹{{ number_format($stats['total_pool_value'], 0) }}</div>
+                <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block truncate">Total Pool</span>
+                <div class="text-lg sm:text-2xl md:text-3xl font-black text-amber-300 font-mono mt-0.5 sm:mt-1">₹{{ number_format($stats['total_pool_value'], 0) }}</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl shadow-md">
+            <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-sm sm:text-xl shadow-md shrink-0">
                 <i class="fa-solid fa-vault"></i>
             </div>
         </div>
 
-        <div class="glass-card p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-purple-500/5">
+        <div class="glass-card p-3.5 sm:p-5 rounded-2xl flex items-center justify-between border border-slate-800 glass-card-hover shadow-lg shadow-purple-500/5">
             <div>
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Members</span>
-                <div class="text-2xl md:text-3xl font-black text-purple-300 mt-1">{{ number_format($stats['total_members']) }}</div>
+                <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block truncate">Members</span>
+                <div class="text-xl sm:text-2xl md:text-3xl font-black text-purple-300 mt-0.5 sm:mt-1">{{ number_format($stats['total_members']) }}</div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center text-xl shadow-md">
+            <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center text-sm sm:text-xl shadow-md shrink-0">
                 <i class="fa-solid fa-users"></i>
             </div>
         </div>
