@@ -103,7 +103,9 @@
                                         {{ $committee->status }}
                                     </span>
                                     <h3 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
-                                        {{ $committee->name }}
+                                        <a href="{{ route('committees.show', $committee) }}" class="hover:underline">
+                                            {{ $committee->name }}
+                                        </a>
                                     </h3>
                                 </div>
                                 <div class="text-right">

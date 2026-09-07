@@ -24,6 +24,9 @@ echo "APP_ENV=production" >> /var/www/html/.env
 sed -i '/^APP_DEBUG=/d' /var/www/html/.env
 echo "APP_DEBUG=false" >> /var/www/html/.env
 
+sed -i '/^APP_URL=/d' /var/www/html/.env
+echo "APP_URL=https://chitfund-pro.onrender.com" >> /var/www/html/.env
+
 sed -i '/^DB_CONNECTION=/d' /var/www/html/.env
 echo "DB_CONNECTION=sqlite" >> /var/www/html/.env
 
