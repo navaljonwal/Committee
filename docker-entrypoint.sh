@@ -28,7 +28,18 @@ TARGET_APP_URL="${APP_URL:-https://chitfund-pro.onrender.com}"
 sed -i '/^APP_URL=/d' /var/www/html/.env
 echo "APP_URL=${TARGET_APP_URL}" >> /var/www/html/.env
 
-TARGET_DB_CONN="${DB_CONNECTION:-sqlite}"
+# Auto-detect database connection from DB_CONNECTION, DATABASE_URL, or DB_HOST
+TARGET_DB_CONN="${DB_CONNECTION:-}"
+if [ -z "$TARGET_DB_CONN" ]; then
+    if [ -n "$DATABASE_URL" ] || [ -n "$DB_URL" ]; then
+        TARGET_DB_CONN="pgsql"
+    elif [ -n "$DB_HOST" ]; then
+        TARGET_DB_CONN="pgsql"
+    else
+        TARGET_DB_CONN="sqlite"
+    fi
+fi
+
 sed -i '/^DB_CONNECTION=/d' /var/www/html/.env
 echo "DB_CONNECTION=${TARGET_DB_CONN}" >> /var/www/html/.env
 
@@ -39,9 +50,16 @@ if [ "$TARGET_DB_CONN" = "pgsql" ] || [ "$TARGET_DB_CONN" = "mysql" ]; then
     [ -n "$DB_DATABASE" ] && sed -i '/^DB_DATABASE=/d' /var/www/html/.env && echo "DB_DATABASE=${DB_DATABASE}" >> /var/www/html/.env
     [ -n "$DB_USERNAME" ] && sed -i '/^DB_USERNAME=/d' /var/www/html/.env && echo "DB_USERNAME=${DB_USERNAME}" >> /var/www/html/.env
     [ -n "$DB_PASSWORD" ] && sed -i '/^DB_PASSWORD=/d' /var/www/html/.env && echo "DB_PASSWORD=${DB_PASSWORD}" >> /var/www/html/.env
-    [ -n "$DB_URL" ] && sed -i '/^DB_URL=/d' /var/www/html/.env && echo "DB_URL=${DB_URL}" >> /var/www/html/.env
 
-    TARGET_SSL="${DB_SSLMODE:-require}"
+    URL="${DATABASE_URL:-$DB_URL}"
+    if [ -n "$URL" ]; then
+        sed -i '/^DB_URL=/d' /var/www/html/.env
+        echo "DB_URL=${URL}" >> /var/www/html/.env
+        sed -i '/^DATABASE_URL=/d' /var/www/html/.env
+        echo "DATABASE_URL=${URL}" >> /var/www/html/.env
+    fi
+
+    TARGET_SSL="${DB_SSLMODE:-prefer}"
     sed -i '/^DB_SSLMODE=/d' /var/www/html/.env
     echo "DB_SSLMODE=${TARGET_SSL}" >> /var/www/html/.env
 else
