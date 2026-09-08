@@ -58,6 +58,9 @@ class MemberPortalController extends Controller
             'members',
         ])->findOrFail($committeeId);
 
+        // Pre-associate committee on schedules to prevent lazy loading queries
+        $committee->schedules->each(fn ($s) => $s->setRelation('committee', $committee));
+
         // Ensure member belongs to this committee
         if (!$committee->members->contains('id', $member->id)) {
             return redirect()->route('member.dashboard')->with('error', 'You are not enrolled in this committee.');

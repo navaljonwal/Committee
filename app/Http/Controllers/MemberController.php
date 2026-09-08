@@ -61,6 +61,7 @@ class MemberController extends Controller
             'role' => 'member',
         ]);
 
+        \Illuminate\Support\Facades\Cache::forget('all_members_list');
         $msg = 'Member & login account created! Password: ' . $rawPassword;
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -117,6 +118,7 @@ class MemberController extends Controller
             $user->update($updateData);
         }
 
+        Cache::forget('all_members_list');
         $msg = 'Member details & login credentials updated!';
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -135,7 +137,7 @@ class MemberController extends Controller
         $member = Member::findOrFail($id);
         User::where('member_id', $member->id)->delete();
         $member->delete();
-
+        \Illuminate\Support\Facades\Cache::forget('all_members_list');
         $msg = 'Member and login account deleted!';
 
         if ($request->wantsJson() || $request->ajax()) {

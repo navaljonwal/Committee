@@ -71,7 +71,7 @@ class CommitteeSchedule extends Model
      */
     public function getFormulaDeductionAttribute()
     {
-        $committee = $this->committee;
+        $committee = $this->relationLoaded('committee') ? $this->getRelation('committee') : $this->committee;
         if (!$committee) return 0;
 
         $V = (float) $committee->total_amount;

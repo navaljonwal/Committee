@@ -166,9 +166,12 @@ class CommitteeController extends Controller
             'members'
         ])->findOrFail($id);
 
+        // Pre-associate committee on schedules to prevent lazy loading queries
+        $committee->schedules->each(fn ($s) => $s->setRelation('committee', $committee));
+
         $schedules = $committee->schedules;
         $members = $committee->members;
-        $allMembers = Member::orderBy('name', 'asc')->get();
+        $allMembers = \Illuminate\Support\Facades\Cache::remember('all_members_list', 120, fn() => Member::orderBy('name', 'asc')->get());
 
         // Calculate Grand Totals
         $grandTotalDeductions = $schedules->sum('deduction_amount');
