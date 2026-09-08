@@ -64,26 +64,6 @@
                 </button>
             </form>
         </div>
-
-        <!-- Default Credentials Helper Card -->
-        <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/50 space-y-3">
-            <div class="flex items-center space-x-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-                <i class="fa-solid fa-key"></i>
-                <span>Default Login Credentials</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <span class="block text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Admin / Organizer</span>
-                    <span class="block text-slate-300 font-mono mt-1">admin@kameti.com</span>
-                    <span class="block text-slate-400 text-[11px]">Pass: <code class="text-amber-400 font-mono">admin123</code></span>
-                </div>
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                    <span class="block text-[10px] font-semibold text-teal-400 uppercase tracking-wider">Committee Member</span>
-                    <span class="block text-slate-300 font-mono mt-1">Member Phone</span>
-                    <span class="block text-slate-400 text-[11px]">Pass: <code class="text-amber-400 font-mono">member123</code></span>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 @endsection
