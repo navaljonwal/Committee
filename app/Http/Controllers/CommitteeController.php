@@ -159,23 +159,27 @@ class CommitteeController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $cacheKey = "committee_rendered_html_{$id}";
+        $numericId = is_numeric($id) ? (int)$id : \App\Services\IdEncoder::decode($id);
+        $cacheKey = "committee_rendered_html_{$numericId}";
+
+        $hasFlash = $request->hasSession() && ($request->session()->has('success') || $request->session()->has('error'));
 
         // If cached and no flash messages, return cached HTML instantly with current CSRF token!
-        if (!$request->session()->has('success') && !$request->session()->has('error') && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+        if (!$hasFlash && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
             $html = \Illuminate\Support\Facades\Cache::get($cacheKey);
-            $token = csrf_token();
-            $html = preg_replace('/<meta name="csrf-token" content="[^"]*">/', '<meta name="csrf-token" content="' . $token . '">', $html);
-            $html = preg_replace('/<input type="hidden" name="_token" value="[^"]*">/', '<input type="hidden" name="_token" value="' . $token . '">', $html);
+            $token = $request->hasSession() ? csrf_token() : '';
+            if ($token) {
+                $html = preg_replace('/<meta name="csrf-token" content="[^"]*">/', '<meta name="csrf-token" content="' . $token . '">', $html);
+                $html = preg_replace('/<input type="hidden" name="_token" value="[^"]*">/', '<input type="hidden" name="_token" value="' . $token . '">', $html);
+            }
             return response($html);
         }
 
         $committee = Committee::with([
             'schedules.winner',
             'schedules.bids.member',
-            'schedules.payments.member',
             'members'
-        ])->findOrFail($id);
+        ])->findOrFail($numericId);
 
         // Pre-associate committee on schedules to prevent lazy loading queries
         $committee->schedules->each(fn ($s) => $s->setRelation('committee', $committee));
@@ -183,6 +187,13 @@ class CommitteeController extends Controller
         $schedules = $committee->schedules;
         $members = $committee->members;
         $allMembers = \Illuminate\Support\Facades\Cache::remember('all_members_list', 120, fn() => Member::orderBy('name', 'asc')->get());
+
+        // Fast aggregated payment statistics for schedule table (1 single query instead of hundreds of model hydrations)
+        $paymentStats = \App\Models\CommitteeMemberPayment::whereIn('schedule_id', $schedules->pluck('id'))
+            ->selectRaw("schedule_id, count(*) as total, SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count, SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_count")
+            ->groupBy('schedule_id')
+            ->get()
+            ->keyBy('schedule_id');
 
         // Calculate Grand Totals
         $grandTotalDeductions = $schedules->sum('deduction_amount');
@@ -194,6 +205,7 @@ class CommitteeController extends Controller
             'schedules',
             'members',
             'allMembers',
+            'paymentStats',
             'grandTotalDeductions',
             'grandTotalNetPayout',
             'grandTotalKistPerMember'

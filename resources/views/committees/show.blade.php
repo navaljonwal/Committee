@@ -315,14 +315,10 @@
                             <!-- Payment Collection Status -->
                             <td class="py-4 px-4 text-center">
                                 @php
-                                    $totalPayments = $s->payments->count();
-                                    $paidPayments = $s->payments->where('payment_status', 'paid')->count();
-                                    $pendingPayments = $s->payments->where('payment_status', 'pending');
-                                    $pendingCount = $pendingPayments->count();
-                                    $pendingMemberNames = $pendingPayments->map(fn($p) => $p->member ? $p->member->name : 'Unknown')->take(2)->implode(', ');
-                                    if ($pendingCount > 2) {
-                                        $pendingMemberNames .= ' +' . ($pendingCount - 2) . ' more';
-                                    }
+                                    $stat = $paymentStats[$s->id] ?? null;
+                                    $totalPayments = $stat ? (int)$stat->total : 0;
+                                    $paidPayments = $stat ? (int)$stat->paid_count : 0;
+                                    $pendingCount = $stat ? (int)$stat->pending_count : 0;
                                 @endphp
 
                                 @if($totalPayments === 0)
@@ -335,17 +331,15 @@
                                         <span>All Paid ({{ $paidPayments }}/{{ $paidPayments }})</span>
                                     </a>
                                 @else
-                                    <a href="{{ route('payments.schedule', $s) }}" class="inline-flex flex-col items-center px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 transition-all shadow-sm" title="Pending: {{ $pendingMemberNames }}">
+                                    <a href="{{ route('payments.schedule', $s) }}" class="inline-flex flex-col items-center px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 transition-all shadow-sm" title="{{ $pendingCount }} members pending payment">
                                         <div class="flex items-center space-x-1.5 text-xs font-bold text-rose-300">
                                             <i class="fa-solid fa-clock text-rose-400 text-[10px]"></i>
                                             <span>{{ $pendingCount }} Pending</span>
                                             <span class="text-[10px] text-slate-400 font-mono">({{ $paidPayments }}/{{ $totalPayments }})</span>
                                         </div>
-                                        @if($pendingMemberNames)
-                                            <span class="text-[9px] text-rose-400/90 font-medium truncate max-w-[130px] block mt-0.5">
-                                                {{ $pendingMemberNames }}
-                                            </span>
-                                        @endif
+                                        <span class="text-[9px] text-rose-400/90 font-medium truncate max-w-[130px] block mt-0.5">
+                                            Collect Dues
+                                        </span>
                                     </a>
                                 @endif
                             </td>
@@ -650,23 +644,27 @@
                 @endphp
                 @foreach($allMembers as $index => $m)
                     @php
-                        $attached = isset($attachedMap[$m->id]);
-                        $seatsCount = $attached ? ($memberSeatsMap[$m->id] ?? 1) : 1;
+                        $mId = is_object($m) ? $m->id : (is_array($m) ? ($m['id'] ?? null) : null);
+                        if (!$mId) continue;
+                        $mName = is_object($m) ? $m->name : ($m['name'] ?? 'Member');
+                        $mPhone = is_object($m) ? $m->phone : ($m['phone'] ?? '');
+                        $attached = isset($attachedMap[$mId]);
+                        $seatsCount = $attached ? ($memberSeatsMap[$mId] ?? 1) : 1;
                     @endphp
                     <div class="flex items-center justify-between text-xs text-slate-300 hover:text-white p-1.5 rounded hover:bg-slate-800/40">
                         <label class="flex items-center space-x-2.5 cursor-pointer select-none">
                             <span class="text-[10px] font-mono text-slate-500 w-5 text-right">{{ $index + 1 }}.</span>
-                            <input type="checkbox" name="members[]" value="{{ $m->id }}"
+                            <input type="checkbox" name="members[]" value="{{ $mId }}"
                                    {{ $attached ? 'checked' : '' }}
                                    {{ $committee->status === 'completed' ? 'disabled' : '' }}
                                    class="assign-member-cb rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500">
-                            <span class="font-medium text-white">{{ $m->name }}</span>
-                            <span class="text-slate-400 text-[11px] font-mono">{{ $m->phone ? "($m->phone)" : '' }}</span>
+                            <span class="font-medium text-white">{{ $mName }}</span>
+                            <span class="text-slate-400 text-[11px] font-mono">{{ $mPhone ? "($mPhone)" : '' }}</span>
                         </label>
                         <div class="flex items-center gap-1.5">
                             <span class="text-[10px] text-slate-400 font-semibold uppercase">Seats:</span>
-                            <input type="number" name="seats[{{ $m->id }}]" value="{{ $seatsCount }}" min="1" max="{{ $committee->total_members }}"
-                                   data-member-id="{{ $m->id }}"
+                            <input type="number" name="seats[{{ $mId }}]" value="{{ $seatsCount }}" min="1" max="{{ $committee->total_members }}"
+                                   data-member-id="{{ $mId }}"
                                    {{ $committee->status === 'completed' ? 'disabled' : '' }}
                                    class="assign-member-seats w-14 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-amber-300 font-bold text-center text-xs focus:outline-none focus:border-amber-400">
                         </div>

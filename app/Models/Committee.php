@@ -31,7 +31,9 @@ class Committee extends Model
     public static function clearCache($committeeId): void
     {
         if ($committeeId) {
-            \Illuminate\Support\Facades\Cache::forget("committee_rendered_html_{$committeeId}");
+            $numericId = is_numeric($committeeId) ? (int)$committeeId : \App\Services\IdEncoder::decode($committeeId);
+            \Illuminate\Support\Facades\Cache::forget("committee_rendered_html_{$numericId}");
+            \Illuminate\Support\Facades\Cache::forget("committee_rendered_html_" . \App\Services\IdEncoder::encode($numericId));
         }
     }
 
