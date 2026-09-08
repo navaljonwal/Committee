@@ -22,6 +22,18 @@ class MemberBid extends Model
         'bid_amount' => 'decimal:2',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function ($b) {
+            $committeeId = $b->schedule?->committee_id;
+            if ($committeeId) Committee::clearCache($committeeId);
+        });
+        static::deleted(function ($b) {
+            $committeeId = $b->schedule?->committee_id;
+            if ($committeeId) Committee::clearCache($committeeId);
+        });
+    }
+
     public function schedule()
     {
         return $this->belongsTo(CommitteeSchedule::class, 'schedule_id');

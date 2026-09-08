@@ -28,6 +28,18 @@ class CommitteeMemberPayment extends Model
         'payment_date' => 'date',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function ($p) {
+            $committeeId = $p->schedule?->committee_id;
+            if ($committeeId) Committee::clearCache($committeeId);
+        });
+        static::deleted(function ($p) {
+            $committeeId = $p->schedule?->committee_id;
+            if ($committeeId) Committee::clearCache($committeeId);
+        });
+    }
+
     public function schedule()
     {
         return $this->belongsTo(CommitteeSchedule::class, 'schedule_id');

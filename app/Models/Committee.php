@@ -28,6 +28,19 @@ class Committee extends Model
         'start_date' => 'date',
     ];
 
+    public static function clearCache($committeeId): void
+    {
+        if ($committeeId) {
+            \Illuminate\Support\Facades\Cache::forget("committee_rendered_html_{$committeeId}");
+        }
+    }
+
+    protected static function booted()
+    {
+        static::saved(fn($c) => static::clearCache($c->id));
+        static::deleted(fn($c) => static::clearCache($c->id));
+    }
+
     public function schedules()
     {
         return $this->hasMany(CommitteeSchedule::class)->orderBy('month_no', 'asc');

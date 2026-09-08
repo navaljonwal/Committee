@@ -157,8 +157,19 @@ class CommitteeController extends Controller
     /**
      * Show detail view with full schedule table and grand totals.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $cacheKey = "committee_rendered_html_{$id}";
+
+        // If cached and no flash messages, return cached HTML instantly with current CSRF token!
+        if (!$request->session()->has('success') && !$request->session()->has('error') && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            $html = \Illuminate\Support\Facades\Cache::get($cacheKey);
+            $token = csrf_token();
+            $html = preg_replace('/<meta name="csrf-token" content="[^"]*">/', '<meta name="csrf-token" content="' . $token . '">', $html);
+            $html = preg_replace('/<input type="hidden" name="_token" value="[^"]*">/', '<input type="hidden" name="_token" value="' . $token . '">', $html);
+            return response($html);
+        }
+
         $committee = Committee::with([
             'schedules.winner',
             'schedules.bids.member',
@@ -178,7 +189,7 @@ class CommitteeController extends Controller
         $grandTotalNetPayout = $schedules->sum('net_payout');
         $grandTotalKistPerMember = $schedules->sum('installment_per_member');
 
-        return view('committees.show', compact(
+        $rendered = view('committees.show', compact(
             'committee',
             'schedules',
             'members',
@@ -186,7 +197,11 @@ class CommitteeController extends Controller
             'grandTotalDeductions',
             'grandTotalNetPayout',
             'grandTotalKistPerMember'
-        ));
+        ))->render();
+
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $rendered, 600);
+
+        return response($rendered);
     }
 
     /**

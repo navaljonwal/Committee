@@ -46,6 +46,12 @@ class CommitteeSchedule extends Model
         'payout_cash_notes' => 'array',
     ];
 
+    protected static function booted()
+    {
+        static::saved(fn($s) => Committee::clearCache($s->committee_id));
+        static::deleted(fn($s) => Committee::clearCache($s->committee_id));
+    }
+
     public function committee()
     {
         return $this->belongsTo(Committee::class);
