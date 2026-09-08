@@ -159,13 +159,12 @@ class CommitteeController extends Controller
      */
     public function show($id)
     {
-        $committee = Committee::with(['schedules.winner', 'schedules.bids.member', 'members'])
-            ->findOrFail($id);
-
-        $activeMemberIds = $committee->members->pluck('id');
-        $committee->load(['schedules.payments' => function ($query) use ($activeMemberIds) {
-            $query->whereIn('member_id', $activeMemberIds);
-        }, 'schedules.payments.member']);
+        $committee = Committee::with([
+            'schedules.winner',
+            'schedules.bids.member',
+            'schedules.payments.member',
+            'members'
+        ])->findOrFail($id);
 
         $schedules = $committee->schedules;
         $members = $committee->members;

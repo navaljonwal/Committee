@@ -644,10 +644,14 @@
         <form action="{{ route('committees.updateMembers', $committee) }}" method="POST" data-ajax="true" class="space-y-4">
             @csrf
             <div class="max-h-60 overflow-y-auto space-y-1.5 p-3 bg-slate-950/60 rounded-xl border border-slate-800" id="assignMemberContainer">
+                @php
+                    $memberSeatsMap = $members->pluck('pivot.seats', 'id')->toArray();
+                    $attachedMap = $members->pluck('id')->flip()->toArray();
+                @endphp
                 @foreach($allMembers as $index => $m)
                     @php
-                        $attached = $members->contains('id', $m->id);
-                        $seatsCount = $attached ? $committee->getMemberSeatsCount($m->id) : 1;
+                        $attached = isset($attachedMap[$m->id]);
+                        $seatsCount = $attached ? ($memberSeatsMap[$m->id] ?? 1) : 1;
                     @endphp
                     <div class="flex items-center justify-between text-xs text-slate-300 hover:text-white p-1.5 rounded hover:bg-slate-800/40">
                         <label class="flex items-center space-x-2.5 cursor-pointer select-none">
