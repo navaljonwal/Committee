@@ -14,36 +14,53 @@ if [ ! -f /var/www/html/.env ]; then
     fi
 fi
 
-# Ensure correct production config and 32-byte APP_KEY in .env
+TARGET_APP_KEY="${APP_KEY:-$VALID_KEY}"
 sed -i '/^APP_KEY=/d' /var/www/html/.env
-echo "APP_KEY=${VALID_KEY}" >> /var/www/html/.env
+echo "APP_KEY=${TARGET_APP_KEY}" >> /var/www/html/.env
 
 sed -i '/^APP_ENV=/d' /var/www/html/.env
-echo "APP_ENV=production" >> /var/www/html/.env
+echo "APP_ENV=${APP_ENV:-production}" >> /var/www/html/.env
 
 sed -i '/^APP_DEBUG=/d' /var/www/html/.env
-echo "APP_DEBUG=false" >> /var/www/html/.env
+echo "APP_DEBUG=${APP_DEBUG:-false}" >> /var/www/html/.env
 
+TARGET_APP_URL="${APP_URL:-https://chitfund-pro.onrender.com}"
 sed -i '/^APP_URL=/d' /var/www/html/.env
-echo "APP_URL=https://chitfund-pro.onrender.com" >> /var/www/html/.env
+echo "APP_URL=${TARGET_APP_URL}" >> /var/www/html/.env
 
+TARGET_DB_CONN="${DB_CONNECTION:-sqlite}"
 sed -i '/^DB_CONNECTION=/d' /var/www/html/.env
-echo "DB_CONNECTION=sqlite" >> /var/www/html/.env
+echo "DB_CONNECTION=${TARGET_DB_CONN}" >> /var/www/html/.env
 
-sed -i '/^DB_DATABASE=/d' /var/www/html/.env
-echo "DB_DATABASE=/var/www/html/database/database.sqlite" >> /var/www/html/.env
+if [ "$TARGET_DB_CONN" = "pgsql" ] || [ "$TARGET_DB_CONN" = "mysql" ]; then
+    echo "Configuring external database connection: ${TARGET_DB_CONN}"
+    [ -n "$DB_HOST" ] && sed -i '/^DB_HOST=/d' /var/www/html/.env && echo "DB_HOST=${DB_HOST}" >> /var/www/html/.env
+    [ -n "$DB_PORT" ] && sed -i '/^DB_PORT=/d' /var/www/html/.env && echo "DB_PORT=${DB_PORT}" >> /var/www/html/.env
+    [ -n "$DB_DATABASE" ] && sed -i '/^DB_DATABASE=/d' /var/www/html/.env && echo "DB_DATABASE=${DB_DATABASE}" >> /var/www/html/.env
+    [ -n "$DB_USERNAME" ] && sed -i '/^DB_USERNAME=/d' /var/www/html/.env && echo "DB_USERNAME=${DB_USERNAME}" >> /var/www/html/.env
+    [ -n "$DB_PASSWORD" ] && sed -i '/^DB_PASSWORD=/d' /var/www/html/.env && echo "DB_PASSWORD=${DB_PASSWORD}" >> /var/www/html/.env
+    [ -n "$DB_URL" ] && sed -i '/^DB_URL=/d' /var/www/html/.env && echo "DB_URL=${DB_URL}" >> /var/www/html/.env
+
+    TARGET_SSL="${DB_SSLMODE:-require}"
+    sed -i '/^DB_SSLMODE=/d' /var/www/html/.env
+    echo "DB_SSLMODE=${TARGET_SSL}" >> /var/www/html/.env
+else
+    TARGET_DB_FILE="${DB_DATABASE:-/var/www/html/database/database.sqlite}"
+    sed -i '/^DB_DATABASE=/d' /var/www/html/.env
+    echo "DB_DATABASE=${TARGET_DB_FILE}" >> /var/www/html/.env
+
+    # Ensure SQLite directory and file exist
+    mkdir -p "$(dirname "$TARGET_DB_FILE")"
+    if [ ! -f "$TARGET_DB_FILE" ]; then
+        touch "$TARGET_DB_FILE"
+    fi
+fi
 
 sed -i '/^SESSION_DRIVER=/d' /var/www/html/.env
-echo "SESSION_DRIVER=file" >> /var/www/html/.env
+echo "SESSION_DRIVER=${SESSION_DRIVER:-file}" >> /var/www/html/.env
 
 sed -i '/^CACHE_STORE=/d' /var/www/html/.env
-echo "CACHE_STORE=file" >> /var/www/html/.env
-
-# Ensure SQLite file exists
-mkdir -p /var/www/html/database
-if [ ! -f /var/www/html/database/database.sqlite ]; then
-    touch /var/www/html/database/database.sqlite
-fi
+echo "CACHE_STORE=${CACHE_STORE:-file}" >> /var/www/html/.env
 
 # Ensure storage directories exist
 mkdir -p /var/www/html/storage/framework/cache/data
@@ -51,6 +68,7 @@ mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/framework/views
 mkdir -p /var/www/html/storage/logs
 mkdir -p /var/www/html/bootstrap/cache
+mkdir -p /var/www/html/database
 
 # Ensure full write permissions for Apache
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database /var/www/html/.env
@@ -61,12 +79,13 @@ chmod 666 /var/www/html/.env
 php artisan config:clear
 php artisan cache:clear
 
-# Run database migrations and seed default admin user
+# Run database migrations
 echo "Running database migrations..."
 php artisan migrate --force
 
-echo "Seeding database with default admin and sample data..."
-php artisan db:seed --force
+# Ensure admin user exists (idempotent, does not overwrite real data)
+echo "Ensuring admin user exists..."
+php artisan db:seed --class=Database\\Seeders\\AdminUserSeeder --force
 
 # Cache valid config, routes, and views
 php artisan config:cache
