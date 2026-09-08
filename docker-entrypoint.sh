@@ -96,8 +96,10 @@ chmod 666 /var/www/html/.env
 # Discover packages with runtime environment
 php artisan package:discover --ansi || true
 
-# Clear stale cached configs and re-cache
+# Clear stale cached configs, views, and routes
 php artisan config:clear
+php artisan route:clear
+php artisan view:clear
 php artisan cache:clear
 
 # Run database migrations
