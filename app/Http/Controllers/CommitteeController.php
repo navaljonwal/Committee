@@ -160,20 +160,6 @@ class CommitteeController extends Controller
     public function show(Request $request, $id)
     {
         $numericId = is_numeric($id) ? (int)$id : \App\Services\IdEncoder::decode($id);
-        $cacheKey = "committee_rendered_html_{$numericId}";
-
-        $hasFlash = $request->hasSession() && ($request->session()->has('success') || $request->session()->has('error'));
-
-        // If cached and no flash messages, return cached HTML instantly with current CSRF token!
-        if (!$hasFlash && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
-            $html = \Illuminate\Support\Facades\Cache::get($cacheKey);
-            $token = $request->hasSession() ? csrf_token() : '';
-            if ($token) {
-                $html = preg_replace('/<meta name="csrf-token" content="[^"]*">/', '<meta name="csrf-token" content="' . $token . '">', $html);
-                $html = preg_replace('/<input type="hidden" name="_token" value="[^"]*">/', '<input type="hidden" name="_token" value="' . $token . '">', $html);
-            }
-            return response($html);
-        }
 
         $committee = Committee::with([
             'schedules.winner',
@@ -186,7 +172,7 @@ class CommitteeController extends Controller
 
         $schedules = $committee->schedules;
         $members = $committee->members;
-        $allMembers = \Illuminate\Support\Facades\Cache::remember('all_members_list', 120, fn() => Member::orderBy('name', 'asc')->get());
+        $allMembers = Member::orderBy('name', 'asc')->get();
 
         // Fast aggregated payment statistics for schedule table (1 single query instead of hundreds of model hydrations)
         $paymentStats = \App\Models\CommitteeMemberPayment::whereIn('schedule_id', $schedules->pluck('id'))
@@ -200,7 +186,7 @@ class CommitteeController extends Controller
         $grandTotalNetPayout = $schedules->sum('net_payout');
         $grandTotalKistPerMember = $schedules->sum('installment_per_member');
 
-        $rendered = view('committees.show', compact(
+        return view('committees.show', compact(
             'committee',
             'schedules',
             'members',
@@ -209,11 +195,7 @@ class CommitteeController extends Controller
             'grandTotalDeductions',
             'grandTotalNetPayout',
             'grandTotalKistPerMember'
-        ))->render();
-
-        \Illuminate\Support\Facades\Cache::put($cacheKey, $rendered, 600);
-
-        return response($rendered);
+        ));
     }
 
     /**
