@@ -590,9 +590,9 @@
     let _schedulesState = {
         @foreach($committee->schedules as $s)
             @php
-                $rTop = ($allBids->get($s->id) ?? collect())->sortByDesc('bid_amount')->first();
+                $rTop = (($allBidsBySchedule ?? collect())->get($s->id) ?? collect())->sortByDesc('bid_amount')->first();
                 $rTopAmt = $rTop ? (float) $rTop->bid_amount : 0;
-                $myAmt = $myBids->has($s->id) ? (float) $myBids->get($s->id)->bid_amount : 0;
+                $myAmt = ($myBids ?? collect())->has($s->id) ? (float) $myBids->get($s->id)->bid_amount : 0;
                 $bDeduct = (float) ($s->deduction_amount ?? 0);
             @endphp
             {{ $s->id }}: {
@@ -600,7 +600,7 @@
                 topBid: {{ $rTopAmt }},
                 baseDeduction: {{ $bDeduct }},
                 myBid: {{ $myAmt }},
-                remarks: {!! json_encode($myBids->get($s->id)->remarks ?? '') !!}
+                remarks: {!! json_encode(($myBids ?? collect())->get($s->id)->remarks ?? '') !!}
             },
         @endforeach
     };
