@@ -5,15 +5,16 @@
 @section('content')
 <div class="space-y-5 sm:space-y-8" id="committeePortalRoot">
 
-    <!-- Back Navigation -->
-    <div class="flex items-center justify-between flex-wrap gap-2">
-        <a href="{{ route('member.dashboard') }}" class="inline-flex items-center text-xs font-semibold text-slate-400 hover:text-emerald-400 transition-colors">
-            <i class="fa-solid fa-arrow-left mr-2"></i> Back to My Committees
+    <!-- Back Navigation & Live Status Bar -->
+    <div class="flex items-center justify-between gap-2 p-2 sm:p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 shadow-md">
+        <a href="{{ route('member.dashboard') }}" class="inline-flex items-center text-xs font-bold text-slate-300 hover:text-emerald-400 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60">
+            <i class="fa-solid fa-arrow-left mr-2 text-emerald-400"></i>
+            <span>All Committees</span>
         </a>
         <!-- Real-time status indicator -->
-        <div id="liveStatusBadge" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+        <div id="liveStatusBadge" class="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
-            <span id="liveStatusText">Live Bids — Updating</span>
+            <span id="liveStatusText">Live Updates</span>
         </div>
     </div>
 
