@@ -234,41 +234,41 @@
             </div>
         </div>
 
-        <!-- TOP Mobile Navigation Bar (Always Visible at Top of Screen on Phone View) -->
+        <!-- TOP Navigation Bar (Always Visible at Top of Screen on ALL Devices & Screen Sizes) -->
         @auth
-            <nav class="md:hidden border-t border-white/[0.08] bg-[#0b101d]/95 backdrop-blur-xl px-2.5 py-1.5 shadow-md">
-                <div class="flex items-center justify-between gap-1.5 max-w-lg mx-auto">
+            <nav class="border-t border-white/[0.08] bg-[#0b101d]/95 backdrop-blur-xl px-2.5 sm:px-6 lg:px-8 py-2 shadow-md">
+                <div class="max-w-7xl mx-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-3 overflow-x-auto scrollbar-none">
                     @if(Auth::user()->isAdmin())
-                        <a href="{{ route('committees.index') }}" class="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold tracking-tight transition-all text-center {{ request()->routeIs('committees.index') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
+                        <a href="{{ route('committees.index') }}" class="flex-1 sm:flex-initial min-w-[70px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight transition-all text-center {{ request()->routeIs('committees.index') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
                             <i class="fa-solid fa-chart-pie text-xs {{ request()->routeIs('committees.index') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
                             <span>Dashboard</span>
                         </a>
-                        <a href="{{ route('committees.create') }}" class="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold tracking-tight transition-all text-center {{ request()->routeIs('committees.create') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
+                        <a href="{{ route('committees.create') }}" class="flex-1 sm:flex-initial min-w-[70px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight transition-all text-center {{ request()->routeIs('committees.create') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
                             <i class="fa-solid fa-circle-plus text-xs {{ request()->routeIs('committees.create') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
                             <span>New Chit</span>
                         </a>
-                        <a href="{{ route('members.index') }}" class="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold tracking-tight transition-all text-center {{ request()->routeIs('members.index') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
+                        <a href="{{ route('members.index') }}" class="flex-1 sm:flex-initial min-w-[70px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight transition-all text-center {{ request()->routeIs('members.index') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
                             <i class="fa-solid fa-users text-xs {{ request()->routeIs('members.index') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
                             <span>Members</span>
                         </a>
-                        <a href="{{ route('profile.edit') }}" class="flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-[11px] font-bold tracking-tight transition-all text-center {{ request()->routeIs('profile.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
+                        <a href="{{ route('profile.edit') }}" class="flex-1 sm:flex-initial min-w-[70px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight transition-all text-center {{ request()->routeIs('profile.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
                             <i class="fa-solid fa-user-gear text-xs {{ request()->routeIs('profile.*') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
-                            <span class="hidden xs:inline">Settings</span>
+                            <span>Settings</span>
                         </a>
                     @else
-                        <a href="{{ route('member.dashboard') }}" class="flex-1 min-w-[90px] flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-[11px] font-bold tracking-tight transition-all text-center {{ request()->routeIs('member.dashboard') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
+                        <a href="{{ route('member.dashboard') }}" class="flex-1 sm:flex-initial min-w-[90px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight transition-all text-center {{ request()->routeIs('member.dashboard') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
                             <i class="fa-solid fa-layer-group text-xs {{ request()->routeIs('member.dashboard') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
-                            <span>Committees</span>
+                            <span>All Committees</span>
                         </a>
                         @if(request()->routeIs('member.committees.show'))
-                            <div class="flex-1 min-w-[90px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold tracking-tight bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 shadow-sm">
+                            <div class="flex-1 sm:flex-initial min-w-[90px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 shadow-sm">
                                 <i class="fa-solid fa-gavel text-xs text-emerald-400 animate-pulse"></i>
-                                <span>Live Auction</span>
+                                <span>Live Auction Board</span>
                             </div>
                         @endif
-                        <a href="{{ route('profile.edit') }}" class="flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-[11px] font-bold tracking-tight transition-all text-center {{ request()->routeIs('profile.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
+                        <a href="{{ route('profile.edit') }}" class="flex-1 sm:flex-initial min-w-[80px] flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 px-2.5 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold tracking-tight transition-all text-center {{ request()->routeIs('profile.*') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-300 hover:text-white bg-slate-900/60 border border-white/[0.06]' }}">
                             <i class="fa-solid fa-user-gear text-xs {{ request()->routeIs('profile.*') ? 'text-emerald-400' : 'text-slate-400' }}"></i>
-                            <span class="hidden xs:inline">Profile</span>
+                            <span>Profile</span>
                         </a>
                     @endif
                 </div>
