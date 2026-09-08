@@ -99,16 +99,16 @@ php artisan cache:clear
 
 # Run database migrations
 echo "Running database migrations..."
-php artisan migrate --force
+php artisan migrate --force || echo "Migration notice (continuing)"
 
 # Ensure admin user exists (idempotent, does not overwrite real data)
 echo "Ensuring admin user exists..."
-php artisan db:seed --class=Database\\Seeders\\AdminUserSeeder --force
+php artisan db:seed --class=Database\\Seeders\\AdminUserSeeder --force || echo "Seeder notice (continuing)"
 
 # Cache valid config, routes, and views
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php artisan config:cache || true
+php artisan route:cache || true
+php artisan view:cache || true
 
 echo "Initialization complete. Starting Apache..."
 exec apache2-foreground

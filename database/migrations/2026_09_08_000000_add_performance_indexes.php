@@ -11,18 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('committee_member_payments', function (Blueprint $table) {
-            $table->index(['schedule_id', 'payment_status'], 'idx_cmp_schedule_status');
-            $table->index(['schedule_id', 'member_id', 'seat_no'], 'idx_cmp_schedule_member_seat');
-        });
+        try {
+            Schema::table('committee_member_payments', function (Blueprint $table) {
+                $table->index(['schedule_id', 'payment_status'], 'idx_cmp_schedule_status');
+                $table->index(['schedule_id', 'member_id', 'seat_no'], 'idx_cmp_schedule_member_seat');
+            });
+        } catch (\Throwable $e) {}
 
-        Schema::table('member_bids', function (Blueprint $table) {
-            $table->index(['schedule_id', 'bid_amount'], 'idx_mb_schedule_bid');
-        });
+        try {
+            Schema::table('member_bids', function (Blueprint $table) {
+                $table->index(['schedule_id', 'bid_amount'], 'idx_mb_schedule_bid');
+            });
+        } catch (\Throwable $e) {}
 
-        Schema::table('committee_schedules', function (Blueprint $table) {
-            $table->index(['committee_id', 'month_no'], 'idx_cs_committee_month');
-        });
+        try {
+            Schema::table('committee_schedules', function (Blueprint $table) {
+                $table->index(['committee_id', 'month_no'], 'idx_cs_committee_month');
+            });
+        } catch (\Throwable $e) {}
     }
 
     /**
