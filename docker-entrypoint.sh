@@ -59,7 +59,7 @@ if [ "$TARGET_DB_CONN" = "pgsql" ] || [ "$TARGET_DB_CONN" = "mysql" ]; then
         echo "DATABASE_URL=${URL}" >> /var/www/html/.env
     fi
 
-    TARGET_SSL="${DB_SSLMODE:-prefer}"
+    TARGET_SSL="${DB_SSLMODE:-require}"
     sed -i '/^DB_SSLMODE=/d' /var/www/html/.env
     echo "DB_SSLMODE=${TARGET_SSL}" >> /var/www/html/.env
 else

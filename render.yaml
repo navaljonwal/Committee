@@ -17,19 +17,21 @@ services:
       - key: APP_URL
         value: https://chitfund-pro.onrender.com
       - key: DB_CONNECTION
-        sync: false
+        value: pgsql
       - key: DB_HOST
-        sync: false
+        value: ep-odd-resonance-axbfdvp6-pooler.c-4.us-east-2.aws.neon.tech
       - key: DB_PORT
-        sync: false
+        value: "5432"
       - key: DB_DATABASE
-        sync: false
+        value: neondb
       - key: DB_USERNAME
-        sync: false
+        value: neondb_owner
       - key: DB_PASSWORD
-        sync: false
+        value: npg_LM9pzEqlxwI5
       - key: DB_SSLMODE
-        sync: false
+        value: require
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_LM9pzEqlxwI5@ep-odd-resonance-axbfdvp6-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require
       - key: SESSION_DRIVER
         value: file
       - key: CACHE_STORE
