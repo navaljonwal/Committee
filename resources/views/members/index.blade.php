@@ -136,7 +136,8 @@
 
             <div class="space-y-1.5">
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300">Custom Login Password (Optional)</label>
-                <input type="password" name="password" placeholder="Default: member123" class="w-full px-4 py-2.5 rounded-xl glass-input text-sm text-white focus:outline-none">
+                <input type="text" name="password" placeholder="Leave empty for auto: Name + Mobile last 4 digits" class="w-full px-4 py-2.5 rounded-xl glass-input text-sm text-white focus:outline-none">
+                <p class="text-[11px] text-slate-400"><i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1"></i>Khali chhodne par auto password banega: <span class="text-amber-300 font-mono font-bold">Name + Mobile ke 4 number</span> (jaise: <code class="text-emerald-400">rahul3210</code>)</p>
             </div>
 
             <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">

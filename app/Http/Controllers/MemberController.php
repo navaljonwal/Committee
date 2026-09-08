@@ -27,7 +27,21 @@ class MemberController extends Controller
             'password' => 'nullable|string|min:4',
         ]);
 
-        $rawPassword = !empty($validated['password']) ? $validated['password'] : 'member123';
+        if (!empty($validated['password'])) {
+            $rawPassword = $validated['password'];
+        } else {
+            // Auto default password: Name (first word) + mobile number ke last 4 digits (e.g. rahul3210)
+            $firstName = explode(' ', trim($validated['name']))[0] ?? 'member';
+            $cleanName = strtolower(preg_replace('/[^\p{L}\p{N}]/u', '', $firstName));
+            if (empty($cleanName)) {
+                $cleanName = 'member';
+            }
+
+            $cleanPhone = preg_replace('/[^0-9]/', '', $validated['phone'] ?? '');
+            $phoneDigits = strlen($cleanPhone) >= 4 ? substr($cleanPhone, -4) : '1234';
+
+            $rawPassword = $cleanName . $phoneDigits;
+        }
 
         $member = Member::create([
             'name' => $validated['name'],
