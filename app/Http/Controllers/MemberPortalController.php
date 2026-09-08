@@ -147,15 +147,21 @@ class MemberPortalController extends Controller
 
         // Calculate highest bid per schedule for instant UI sync
         $highestBids = [];
-        foreach ($allBids as $sid => $bidsList) {
-            $top = $bidsList->first();
-            if ($top) {
-                $highestBids[$sid] = [
-                    'amount' => $top['bid_amount'],
-                    'name'   => $top['name'],
-                    'id'     => $top['id'],
-                ];
-            }
+        foreach ($committee->schedules as $sched) {
+            $sid = $sched->id;
+            $bidsList = $allBids->get($sid);
+            $top = $bidsList ? $bidsList->first() : null;
+            $baseDeduct = (float) ($sched->deduction_amount ?? 0);
+            $topAmount = $top ? (float) $top['bid_amount'] : 0.0;
+            $minNextBid = $topAmount > 0 ? ($topAmount + 1) : max(0, $baseDeduct);
+
+            $highestBids[$sid] = [
+                'amount'         => $top ? (float) $top['bid_amount'] : null,
+                'name'           => $top ? $top['name'] : null,
+                'id'             => $top ? $top['id'] : null,
+                'base_deduction' => $baseDeduct,
+                'min_next_bid'   => $minNextBid,
+            ];
         }
 
         // Fetch lock status and date status for each schedule
@@ -257,19 +263,37 @@ class MemberPortalController extends Controller
             'remarks'    => 'nullable|string|max:255',
         ]);
 
-        $newBidAmount = (float) $validated['bid_amount'];
+        $newBidAmount  = (float) $validated['bid_amount'];
+        $baseDeduction = (float) ($schedule->deduction_amount ?? 0);
 
-        // ─── GUARD: Bid can only INCREASE — cannot submit a lower deduction than previous ───
+        // ─── STRICT AUCTION BID RULE: Must strictly exceed current highest bid across all members ───
+        $currentHighestBid = (float) (MemberBid::where('schedule_id', $scheduleId)->max('bid_amount') ?? 0);
+
+        // 1. If any member has already placed a bid, new bid must be strictly higher
+        if ($currentHighestBid > 0 && $newBidAmount <= $currentHighestBid) {
+            $minRequired = $currentHighestBid + 1;
+            $err = 'Current highest bid is ₹' . number_format($currentHighestBid, 0) .
+                   '. You cannot bid ₹' . number_format($newBidAmount, 0) .
+                   '. Your bid must be strictly higher (at least ₹' . number_format($minRequired, 0) . ').';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $err], 422);
+            }
+            return redirect()->back()->with('error', $err);
+        }
+
+        // 2. If no bids have been placed yet, first bid cannot be less than the starting base deduction
+        if ($currentHighestBid == 0 && $baseDeduction > 0 && $newBidAmount < $baseDeduction) {
+            $err = 'Starting bid for Month ' . $schedule->month_no .
+                   ' cannot be less than ₹' . number_format($baseDeduction, 0) . '.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $err], 422);
+            }
+            return redirect()->back()->with('error', $err);
+        }
+
         $existingBid = MemberBid::where('schedule_id', $scheduleId)
             ->where('member_id', $member->id)
             ->first();
-
-        if ($existingBid && $newBidAmount < (float) $existingBid->bid_amount) {
-            return redirect()->back()->with('error',
-                'You cannot lower your bid. Your current bid is ₹' . number_format($existingBid->bid_amount, 2) .
-                '. You can only increase it to a higher amount.'
-            );
-        }
 
         MemberBid::updateOrCreate(
             ['schedule_id' => $scheduleId, 'member_id' => $member->id],

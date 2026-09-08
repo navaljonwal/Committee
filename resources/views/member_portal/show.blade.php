@@ -329,15 +329,23 @@
                                 </span>
                             @else
                                 {{-- TODAY IS DRAW DATE: Bidding enabled! --}}
+                                @php
+                                    $roundTopBid = $roundBids->sortByDesc('bid_amount')->first();
+                                    $topBidAmt = $roundTopBid ? (float)$roundTopBid->bid_amount : 0;
+                                    $myBidAmt = $myBids->has($schedule->id) ? (float)$myBids->get($schedule->id)->bid_amount : 0;
+                                    $baseDeduct = (float)$schedule->deduction_amount;
+                                @endphp
                                 @if($myBids->has($schedule->id))
                                     <button type="button"
-                                        onclick="event.stopPropagation(); openBidModal({{ $schedule->id }}, {{ $schedule->month_no }}, {{ $committee->total_amount }}, {{ $myBids->get($schedule->id)->bid_amount }}, '{{ addslashes($myBids->get($schedule->id)->remarks ?? '') }}')"
+                                        id="bid-btn-{{ $schedule->id }}"
+                                        onclick="event.stopPropagation(); openBidModal({{ $schedule->id }}, {{ $schedule->month_no }}, {{ $committee->total_amount }}, {{ $topBidAmt }}, {{ $baseDeduct }}, {{ $myBidAmt }}, '{{ addslashes($myBids->get($schedule->id)->remarks ?? '') }}')"
                                         class="w-full sm:w-auto px-4 py-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all text-center flex items-center justify-center">
-                                        <i class="fa-solid fa-pen-to-square mr-1.5"></i> Edit Bid (₹{{ number_format($myBids->get($schedule->id)->bid_amount, 0) }})
+                                        <i class="fa-solid fa-arrow-trend-up mr-1.5"></i> Raise Bid (My: ₹{{ number_format($myBidAmt, 0) }})
                                     </button>
                                 @else
                                     <button type="button"
-                                        onclick="event.stopPropagation(); openBidModal({{ $schedule->id }}, {{ $schedule->month_no }}, {{ $committee->total_amount }}, {{ $schedule->deduction_amount }}, '')"
+                                        id="bid-btn-{{ $schedule->id }}"
+                                        onclick="event.stopPropagation(); openBidModal({{ $schedule->id }}, {{ $schedule->month_no }}, {{ $committee->total_amount }}, {{ $topBidAmt }}, {{ $baseDeduct }}, 0, '')"
                                         class="w-full sm:w-auto px-4 py-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 transition-all shadow-md shadow-emerald-500/20 text-center flex items-center justify-center">
                                         <i class="fa-solid fa-gavel mr-1.5"></i> Place Bid
                                     </button>
@@ -465,14 +473,23 @@
             </button>
         </div>
 
-        <!-- Current Bid Info (shown only when editing) -->
-        <div id="currentBidInfo" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-            <div class="flex items-center space-x-2 text-xs">
-                <i class="fa-solid fa-triangle-exclamation text-amber-400 shrink-0"></i>
-                <span class="text-amber-300 font-semibold">
-                    Your current bid: <span id="currentBidDisplay" class="font-mono font-black text-amber-200">₹0</span>
-                    &nbsp;—&nbsp; You can only <strong>increase</strong> this amount.
+        <!-- Live Auction Rules Card -->
+        <div id="auctionRulesCard" class="p-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/30 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400 font-semibold flex items-center gap-1.5">
+                    <i class="fa-solid fa-crown text-amber-400"></i> Current Highest Bid:
                 </span>
+                <span id="currentTopBidDisplay" class="font-mono font-black text-amber-300 text-sm">No Bids Yet</span>
+            </div>
+            <div class="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800">
+                <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-trend-up"></i> Min Next Allowed Bid:
+                </span>
+                <span id="currentMinRequiredDisplay" class="font-mono font-black text-emerald-300 text-sm">₹0</span>
+            </div>
+            <div id="myPreviousBidRow" class="hidden flex items-center justify-between text-[11px] pt-1 border-t border-slate-800 text-slate-400">
+                <span>Your Current Bid:</span>
+                <span id="myPreviousBidDisplay" class="font-mono text-slate-300 font-bold">₹0</span>
             </div>
         </div>
 
@@ -483,22 +500,45 @@
             <input type="hidden" id="currentBidMin" value="0">  {{-- tracks minimum allowed bid --}}
 
             <div class="space-y-1.5 sm:space-y-2">
-                <label for="bid_amount" class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Offered Deduction Amount (₹)
-                </label>
+                <div class="flex items-center justify-between">
+                    <label for="bid_amount" class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                        Your Offered Deduction Amount (₹)
+                    </label>
+                    <span id="minBidBadge" class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                        Min: ₹0
+                    </span>
+                </div>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 font-bold">₹</span>
                     <input type="number" step="1" min="0" max="{{ $committee->total_amount }}"
                         name="bid_amount" id="bid_amount" required
                         oninput="calculateBidPreview(); validateBidAmount();"
-                        class="w-full glass-input pl-8 pr-4 py-2.5 rounded-xl text-sm font-mono font-bold text-amber-400">
+                        class="w-full glass-input pl-8 pr-4 py-2.5 rounded-xl text-sm font-mono font-bold text-amber-400"
+                        placeholder="Enter amount">
                 </div>
+                <!-- Quick Add Increment buttons -->
+                <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mr-1">Quick Add:</span>
+                    <button type="button" onclick="setBidToMin()" class="px-2 py-1 text-[11px] font-mono font-bold rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-colors">
+                        Min Allowed
+                    </button>
+                    <button type="button" onclick="addBidIncrement(500)" class="px-2 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition-colors">
+                        +₹500
+                    </button>
+                    <button type="button" onclick="addBidIncrement(1000)" class="px-2 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition-colors">
+                        +₹1,000
+                    </button>
+                    <button type="button" onclick="addBidIncrement(2000)" class="px-2 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition-colors">
+                        +₹2,000
+                    </button>
+                </div>
+
                 <!-- Validation hint -->
                 <div id="bidValidationHint" class="hidden flex items-center space-x-1.5 text-xs text-rose-400 font-semibold">
-                    <i class="fa-solid fa-circle-xmark"></i>
-                    <span id="bidValidationMsg">Bid must be higher than your current bid.</span>
+                    <i class="fa-solid fa-circle-xmark shrink-0"></i>
+                    <span id="bidValidationMsg">Bid must be higher than current highest bid.</span>
                 </div>
-                <p class="text-[11px] text-slate-400" id="bidHelpText">Enter the deduction amount you are willing to offer. Lower deduction = better payout for winner.</p>
+                <p class="text-[11px] text-slate-400" id="bidHelpText">Boli Rule: Nayi bid current highest bid se zyada honi chahiye (kam se kam ₹1 zyada).</p>
             </div>
 
             <!-- Live preview -->
@@ -540,31 +580,106 @@
 @section('scripts')
 <script>
     // ─────────────────────────────────────────────────
-    // BID MODAL — with min-increase enforcement
+    // SCHEDULES STATE & BIDDING SYSTEM
     // ─────────────────────────────────────────────────
-    let _currentMinBid = 0;  // tracks minimum allowed amount for this modal session
+    const committeeId = '{{ $committee->hash_id ?? $committee->id }}';
+    const myMemberId  = {{ $member->id }};
+    const alreadyWon  = {{ $alreadyWon ? 'true' : 'false' }};
+    const liveBidsUrl = '{{ route("member.committees.liveBids", $committee) }}';
 
-    function openBidModal(scheduleId, monthNo, totalAmount, currentBid, remarks) {
-        const isEdit = currentBid > 0 && remarks !== '__new__';
-        _currentMinBid = isEdit ? parseFloat(currentBid) : 0;
+    let _schedulesState = {
+        @foreach($committee->schedules as $s)
+            @php
+                $rTop = ($allBids->get($s->id) ?? collect())->sortByDesc('bid_amount')->first();
+                $rTopAmt = $rTop ? (float) $rTop->bid_amount : 0;
+                $myAmt = $myBids->has($s->id) ? (float) $myBids->get($s->id)->bid_amount : 0;
+                $bDeduct = (float) ($s->deduction_amount ?? 0);
+            @endphp
+            {{ $s->id }}: {
+                monthNo: {{ $s->month_no }},
+                topBid: {{ $rTopAmt }},
+                baseDeduction: {{ $bDeduct }},
+                myBid: {{ $myAmt }},
+                remarks: {!! json_encode($myBids->get($s->id)->remarks ?? '') !!}
+            },
+        @endforeach
+    };
 
-        document.getElementById('bidModalTitle').innerText  = isEdit ? 'Update Your Bid' : 'Place Your Auction Bid';
-        document.getElementById('bidModalSubtitle').innerText = 'Month ' + monthNo + ' Auction Round';
-        document.getElementById('bidForm').action = '/member/schedules/' + scheduleId + '/bid';
-        document.getElementById('currentBidMin').value = _currentMinBid;
-        document.getElementById('bid_amount').min   = _currentMinBid;
-        document.getElementById('bid_amount').value = currentBid || '';
-        document.getElementById('remarks').value    = (remarks === '__new__') ? '' : (remarks || '');
-        document.getElementById('bidSubmitLabel').innerText = isEdit ? 'Increase My Bid' : 'Submit My Bid';
+    let _activeScheduleId     = null;
+    let _currentTopBid        = 0;
+    let _currentBaseDeduction = 0;
+    let _myCurrentBid         = 0;
+    let _currentMinAllowedBid = 0;
 
-        // Show "must increase" notice if editing
-        const infoBox = document.getElementById('currentBidInfo');
-        if (isEdit && _currentMinBid > 0) {
-            document.getElementById('currentBidDisplay').innerText = '₹' + _currentMinBid.toLocaleString('en-IN');
-            infoBox.classList.remove('hidden');
-        } else {
-            infoBox.classList.add('hidden');
+    function formatINR(amount) {
+        return '₹' + Number(amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    }
+
+    // ─────────────────────────────────────────────────
+    // BID MODAL — Strict Auction Enforcement
+    // ─────────────────────────────────────────────────
+    function openBidModal(scheduleId, monthNo, totalAmount, topBidInRound, baseDeduction, myCurrentBid, remarks) {
+        _activeScheduleId = scheduleId;
+
+        if (_schedulesState && _schedulesState[scheduleId]) {
+            const s = _schedulesState[scheduleId];
+            if (s.topBid !== undefined) topBidInRound = s.topBid;
+            if (s.baseDeduction !== undefined) baseDeduction = s.baseDeduction;
+            if (s.myBid !== undefined) myCurrentBid = s.myBid;
+            if (!remarks && s.remarks) remarks = s.remarks;
         }
+
+        _currentTopBid        = parseFloat(topBidInRound) || 0;
+        _currentBaseDeduction = parseFloat(baseDeduction) || 0;
+        _myCurrentBid         = parseFloat(myCurrentBid) || 0;
+
+        // Strict Auction Rule:
+        // 1. If any bid already exists in round, next bid must be strictly higher (> topBid)
+        // 2. If no bids exist yet, starting bid cannot be less than base deduction
+        if (_currentTopBid > 0) {
+            _currentMinAllowedBid = _currentTopBid + 1;
+        } else {
+            _currentMinAllowedBid = _currentBaseDeduction > 0 ? _currentBaseDeduction : 1;
+        }
+
+        const isEdit = _myCurrentBid > 0 && remarks !== '__new__';
+
+        document.getElementById('bidModalTitle').innerText    = isEdit ? 'Raise Your Bid' : 'Place Your Auction Bid';
+        document.getElementById('bidModalSubtitle').innerText = 'Month ' + monthNo + ' Auction Round';
+        document.getElementById('bidForm').action             = '/member/schedules/' + scheduleId + '/bid';
+        document.getElementById('currentBidMin').value        = _currentMinAllowedBid;
+
+        // Current Top Bid Display
+        const topBidDisp = document.getElementById('currentTopBidDisplay');
+        if (_currentTopBid > 0) {
+            topBidDisp.innerText = formatINR(_currentTopBid);
+            topBidDisp.className = 'font-mono font-black text-amber-300 text-sm';
+        } else {
+            topBidDisp.innerText = 'No Bids Yet (Base: ' + formatINR(_currentBaseDeduction) + ')';
+            topBidDisp.className = 'font-mono font-semibold text-slate-400 text-xs';
+        }
+
+        // Min Required Display & Badge
+        document.getElementById('currentMinRequiredDisplay').innerText = formatINR(_currentMinAllowedBid);
+        document.getElementById('minBidBadge').innerText = 'Min: ' + formatINR(_currentMinAllowedBid);
+
+        // Previous Bid Row (if this member has already bid)
+        const myPrevRow = document.getElementById('myPreviousBidRow');
+        if (isEdit && _myCurrentBid > 0) {
+            document.getElementById('myPreviousBidDisplay').innerText = formatINR(_myCurrentBid);
+            myPrevRow.classList.remove('hidden');
+        } else {
+            myPrevRow.classList.add('hidden');
+        }
+
+        // Configure input field
+        const input = document.getElementById('bid_amount');
+        input.min   = _currentMinAllowedBid;
+        input.placeholder = 'At least ' + formatINR(_currentMinAllowedBid);
+        input.value = _currentMinAllowedBid > 0 ? _currentMinAllowedBid : '';
+
+        document.getElementById('remarks').value            = (remarks === '__new__') ? '' : (remarks || '');
+        document.getElementById('bidSubmitLabel').innerText = isEdit ? 'Submit Higher Bid' : 'Submit My Bid';
 
         validateBidAmount();
         calculateBidPreview();
@@ -572,28 +687,64 @@
     }
 
     function closeBidModal() {
+        _activeScheduleId = null;
         document.getElementById('bidModal').classList.add('hidden');
         document.getElementById('bidValidationHint').classList.add('hidden');
     }
 
-    function validateBidAmount() {
-        const input   = document.getElementById('bid_amount');
-        const hint    = document.getElementById('bidValidationHint');
-        const msg     = document.getElementById('bidValidationMsg');
-        const submitBtn = document.getElementById('bidSubmitBtn');
-        const val     = parseFloat(input.value) || 0;
-        const minBid  = parseFloat(document.getElementById('currentBidMin').value) || 0;
+    function setBidToMin() {
+        const input = document.getElementById('bid_amount');
+        input.value = _currentMinAllowedBid;
+        calculateBidPreview();
+        validateBidAmount();
+    }
 
-        if (minBid > 0 && val < minBid) {
-            msg.innerText = 'Bid must be at least ₹' + minBid.toLocaleString('en-IN') + ' (your current bid). You can only increase.';
+    function addBidIncrement(amount) {
+        const input = document.getElementById('bid_amount');
+        let currentVal = parseFloat(input.value) || _currentMinAllowedBid;
+        let baseVal = Math.max(currentVal, _currentMinAllowedBid);
+        input.value = Math.round(baseVal + amount);
+        calculateBidPreview();
+        validateBidAmount();
+    }
+
+    function validateBidAmount() {
+        const input     = document.getElementById('bid_amount');
+        const hint      = document.getElementById('bidValidationHint');
+        const msg       = document.getElementById('bidValidationMsg');
+        const submitBtn = document.getElementById('bidSubmitBtn');
+        const val       = parseFloat(input.value) || 0;
+
+        if (!val || val <= 0) {
+            msg.innerText = 'Please enter an offered deduction amount.';
             hint.classList.remove('hidden');
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            hint.classList.add('hidden');
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            return false;
         }
+
+        // Rule 1: If current top bid exists, new bid must be strictly greater than top bid
+        if (_currentTopBid > 0 && val <= _currentTopBid) {
+            msg.innerText = 'Current highest bid is ' + formatINR(_currentTopBid) + '. Your bid must be strictly higher (at least ' + formatINR(_currentTopBid + 1) + ').';
+            hint.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            return false;
+        }
+
+        // Rule 2: If no bids yet, cannot be lower than base deduction
+        if (_currentTopBid === 0 && _currentBaseDeduction > 0 && val < _currentBaseDeduction) {
+            msg.innerText = 'Starting bid cannot be less than starting base amount (' + formatINR(_currentBaseDeduction) + ').';
+            hint.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            return false;
+        }
+
+        hint.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        return true;
     }
 
     function calculateBidPreview() {
@@ -617,22 +768,13 @@
     }
 
     // ─────────────────────────────────────────────────
-    // REAL-TIME LIVE BIDS — Instant Polling (1.8s) & Live Sync
+    // REAL-TIME LIVE BIDS — Polling & Instant Sync
     // ─────────────────────────────────────────────────
-    const committeeId = '{{ $committee->hash_id ?? $committee->id }}';
-    const myMemberId  = {{ $member->id }};
-    const alreadyWon  = {{ $alreadyWon ? 'true' : 'false' }};
-    const liveBidsUrl = '{{ route("member.committees.liveBids", $committee) }}';
-
-    let _pollingActive  = true;
-    let _abortCtrl      = null;
-    let _prevBidHash    = {};   // track bid contents for change detection
-    let _prevTopBids    = {};   // track highest bid amount per round to detect new bids
+    let _pollingActive    = true;
+    let _abortCtrl        = null;
+    let _prevBidHash      = {};
+    let _prevTopBids      = {};
     let _consecutiveFails = 0;
-
-    function formatINR(amount) {
-        return '₹' + Number(amount).toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-    }
 
     function buildBidRowHTML(bid, idx) {
         const isMe = bid.member_id === myMemberId;
@@ -679,35 +821,56 @@
 
             if (!card) return;
 
-            const wasLocked  = card.dataset.isLocked === 'true';
+            const wasLocked   = card.dataset.isLocked === 'true';
             const isNowLocked = info.is_locked;
 
-            // ── Lock status changed → reload page once ──
+            // Lock status changed → reload page once
             if (wasLocked !== isNowLocked) {
                 pageNeedsReload = true;
             }
 
-            // ── Sort bids DESCENDING (highest boli first) ──
-            const bidArr = (bids[sid] || []).sort((a,b) => b.bid_amount - a.bid_amount);
+            // Sort bids DESCENDING (highest boli first)
+            const bidArr   = (bids[sid] || []).sort((a,b) => b.bid_amount - a.bid_amount);
+            const topBid   = bidArr[0];
+            const myBidObj = bidArr.find(b => b.member_id === myMemberId);
 
-            // ── Update bid count badges ──
+            // Update _schedulesState
+            if (!_schedulesState[sid]) _schedulesState[sid] = {};
+            _schedulesState[sid].topBid = topBid ? topBid.bid_amount : 0;
+            _schedulesState[sid].myBid  = myBidObj ? myBidObj.bid_amount : 0;
+            if (myBidObj && myBidObj.remarks) _schedulesState[sid].remarks = myBidObj.remarks;
+            if (data.highest_bids && data.highest_bids[sid]) {
+                _schedulesState[sid].baseDeduction = data.highest_bids[sid].base_deduction;
+            }
+
+            // Update action button on round card
+            const actionBtn = document.getElementById('bid-btn-' + sid);
+            if (actionBtn && !info.is_locked && !alreadyWon) {
+                const hasMyBid = myBidObj && myBidObj.bid_amount > 0;
+                if (hasMyBid) {
+                    actionBtn.className = 'w-full sm:w-auto px-4 py-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all text-center flex items-center justify-center';
+                    actionBtn.innerHTML = '<i class="fa-solid fa-arrow-trend-up mr-1.5"></i> Raise Bid (My: ' + formatINR(myBidObj.bid_amount) + ')';
+                } else {
+                    actionBtn.className = 'w-full sm:w-auto px-4 py-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 transition-all shadow-md shadow-emerald-500/20 text-center flex items-center justify-center';
+                    actionBtn.innerHTML = '<i class="fa-solid fa-gavel mr-1.5"></i> Place Bid';
+                }
+            }
+
+            // Update bid count badges
             document.querySelectorAll('.bid-count-' + sid).forEach(el => {
                 el.innerText = bidArr.length;
             });
 
-            // ── Update Top Boli Pill on Card Header ──
-            const topBid = bidArr[0]; // highest bid is index 0
+            // Update Top Boli Pill on Card Header
             const prevTopAmt = _prevTopBids[sid] || 0;
-
             if (topBid) {
                 if (topAmountEl) topAmountEl.innerText = formatINR(topBid.bid_amount);
                 if (topNameEl) topNameEl.innerText = '(by ' + (topBid.member_id === myMemberId ? 'You' : topBid.name) + ')';
                 if (topDotEl) { topDotEl.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400'; }
                 if (topPingEl) { topPingEl.classList.remove('hidden'); }
 
-                // ── Check if another member placed a brand new higher bid! ──
+                // Check if another member placed a brand new higher bid
                 if (prevTopAmt > 0 && topBid.bid_amount > prevTopAmt) {
-                    // Flash golden pulse on round card
                     card.classList.add('ring-2', 'ring-amber-400', 'shadow-amber-500/30');
                     if (topPill) topPill.classList.add('bg-amber-500/30', 'border-amber-400');
 
@@ -716,7 +879,6 @@
                         if (topPill) topPill.classList.remove('bg-amber-500/30', 'border-amber-400');
                     }, 3000);
 
-                    // Live Toast Notification
                     const bidderName = topBid.member_id === myMemberId ? 'Aap' : topBid.name;
                     showToast('🔥 Nayi Boli: ' + bidderName + ' ne Month ' + info.month_no + ' ke liye ' + formatINR(topBid.bid_amount) + ' ki bid lagayi!', 'success');
                 }
@@ -730,15 +892,14 @@
                 _prevTopBids[sid] = 0;
             }
 
-            // ── Update card header: My Bid amount shown in quick view ──
-            const myBidObj = bidArr.find(b => b.member_id === myMemberId);
+            // Update card header quick mybid
             const quickBidEl = document.getElementById('quick-mybid-' + sid);
             if (quickBidEl && myBidObj) {
                 quickBidEl.innerText = formatINR(myBidObj.bid_amount);
                 quickBidEl.closest('[id^="mybid-wrap"]') && quickBidEl.closest('[id^="mybid-wrap"]').classList.remove('hidden');
             }
 
-            // ── Rebuild bid list in real-time ──
+            // Rebuild bid list in real-time
             const newHash = bidArr.map(b => b.id + ':' + b.bid_amount + ':' + b.status).join('|');
             if (_prevBidHash[sid] !== newHash && bidList) {
                 _prevBidHash[sid] = newHash;
@@ -746,6 +907,35 @@
                     bidList.innerHTML = '<div class="text-center py-4 text-slate-500 text-xs italic">No bids placed yet for this round. Be the first!</div>';
                 } else {
                     bidList.innerHTML = bidArr.map((b, i) => buildBidRowHTML(b, i)).join('');
+                }
+            }
+
+            // If modal is actively open for this round, sync in real-time!
+            if (_activeScheduleId == sid) {
+                const latestTop = topBid ? topBid.bid_amount : 0;
+                if (latestTop !== _currentTopBid) {
+                    _currentTopBid = latestTop;
+                    _currentMinAllowedBid = _currentTopBid > 0 ? (_currentTopBid + 1) : (_currentBaseDeduction > 0 ? _currentBaseDeduction : 1);
+
+                    const topBidDisp = document.getElementById('currentTopBidDisplay');
+                    if (_currentTopBid > 0) {
+                        topBidDisp.innerText = formatINR(_currentTopBid);
+                        topBidDisp.className = 'font-mono font-black text-amber-300 text-sm';
+                    } else {
+                        topBidDisp.innerText = 'No Bids Yet (Base: ' + formatINR(_currentBaseDeduction) + ')';
+                        topBidDisp.className = 'font-mono font-semibold text-slate-400 text-xs';
+                    }
+
+                    document.getElementById('currentMinRequiredDisplay').innerText = formatINR(_currentMinAllowedBid);
+                    document.getElementById('minBidBadge').innerText = 'Min: ' + formatINR(_currentMinAllowedBid);
+                    document.getElementById('currentBidMin').value = _currentMinAllowedBid;
+
+                    const input = document.getElementById('bid_amount');
+                    input.min = _currentMinAllowedBid;
+                    input.placeholder = 'At least ' + formatINR(_currentMinAllowedBid);
+
+                    // Re-validate against new top bid
+                    validateBidAmount();
                 }
             }
         });
@@ -793,6 +983,10 @@
         e.preventDefault();
         e.stopPropagation();
 
+        if (!validateBidAmount()) {
+            return;
+        }
+
         const form = this;
         const submitBtn = document.getElementById('bidSubmitBtn');
         const origHtml = submitBtn.innerHTML;
@@ -816,10 +1010,16 @@
             if (res.ok && data.success) {
                 closeBidModal();
                 showToast(data.message || 'Bid submitted successfully!', 'success');
-                // Fetch live bids instantly (0ms delay)
                 fetchLiveBids();
             } else {
-                showToast(data.message || 'Could not submit bid. Please check amount.', 'error');
+                const errMsg = data.message || 'Could not submit bid. Please check amount.';
+                showToast(errMsg, 'error');
+                const hint = document.getElementById('bidValidationHint');
+                const msg  = document.getElementById('bidValidationMsg');
+                if (hint && msg) {
+                    msg.innerText = errMsg;
+                    hint.classList.remove('hidden');
+                }
             }
         } catch (err) {
             showToast('Network error while placing bid. Please try again.', 'error');
@@ -840,7 +1040,7 @@
             if (chev) { chev.style.transform = 'rotate(180deg)'; }
         }
 
-        // Initial fetch immediately, then every 3.2 seconds for real-time live bidding without overloading server
+        // Initial fetch immediately, then periodic polling
         fetchLiveBids();
         setInterval(fetchLiveBids, 3200);
 
