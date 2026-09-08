@@ -292,7 +292,7 @@
     </header>
 
     <!-- Main Content Body -->
-    <main class="flex-1 py-5 sm:py-8 px-3.5 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full pb-24 md:pb-8">
+    <main class="flex-1 py-5 sm:py-8 px-3.5 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full pb-8">
         <!-- Flash Messages -->
         @if(session('success'))
             <div class="no-print mb-6 p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between shadow-lg">
@@ -557,61 +557,7 @@
         }
     </script>
 
-    <!-- Mobile Bottom Navigation Bar (Phone App Feel) -->
-    @auth
-        <nav class="no-print md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/95 backdrop-blur-xl border-t border-white/[0.08] px-2 py-1.5 shadow-[0_-8px_30px_rgba(0,0,0,0.6)]">
-            <div class="grid grid-cols-4 gap-1 items-center max-w-md mx-auto">
-                @if(Auth::user()->isAdmin())
-                    <a href="{{ route('committees.index') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('committees.index') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
-                        <i class="fa-solid fa-chart-pie text-lg mb-0.5 {{ request()->routeIs('committees.index') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">Dashboard</span>
-                    </a>
-                    <a href="{{ route('committees.create') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('committees.create') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
-                        <i class="fa-solid fa-circle-plus text-lg mb-0.5 {{ request()->routeIs('committees.create') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">New Chit</span>
-                    </a>
-                    <a href="{{ route('members.index') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('members.index') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
-                        <i class="fa-solid fa-users text-lg mb-0.5 {{ request()->routeIs('members.index') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">Members</span>
-                    </a>
-                    <a href="{{ route('profile.edit') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('profile.*') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
-                        <i class="fa-solid fa-user-gear text-lg mb-0.5 {{ request()->routeIs('profile.*') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">Settings</span>
-                    </a>
-                @else
-                    <a href="{{ route('member.dashboard') }}" class="flex flex-col items-center py-1 px-1 rounded-xl transition-all {{ request()->routeIs('member.dashboard') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200' }}">
-                        <i class="fa-solid fa-layer-group text-base sm:text-lg mb-0.5 {{ request()->routeIs('member.dashboard') ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : '' }}"></i>
-                        <span class="text-[10px] tracking-tight">Committees</span>
-                    </a>
 
-                    @if(request()->routeIs('member.committees.show'))
-                        <div class="flex flex-col items-center py-1 px-1 rounded-xl text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20">
-                            <i class="fa-solid fa-gavel text-base sm:text-lg mb-0.5 text-emerald-400 animate-pulse"></i>
-                            <span class="text-[10px] tracking-tight">Live Chit</span>
-                        </div>
-                    @else
-                        <a href="{{ route('member.dashboard') }}" class="flex flex-col items-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200">
-                            <i class="fa-solid fa-trophy text-base sm:text-lg mb-0.5"></i>
-                            <span class="text-[10px] tracking-tight">My Wins</span>
-                        </a>
-                    @endif
-
-                    <button type="button" onclick="toggleMobileDrawer()" class="flex flex-col items-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200">
-                        <i class="fa-solid fa-bars text-base sm:text-lg mb-0.5"></i>
-                        <span class="text-[10px] tracking-tight">Menu</span>
-                    </button>
-
-                    <form method="POST" action="{{ route('logout') }}" class="flex flex-col items-center">
-                        @csrf
-                        <button type="submit" class="w-full flex flex-col items-center py-1 px-1 rounded-xl transition-all text-slate-400 hover:text-rose-400">
-                            <i class="fa-solid fa-right-from-bracket text-base sm:text-lg mb-0.5 text-rose-400"></i>
-                            <span class="text-[10px] tracking-tight text-rose-300">Log Out</span>
-                        </button>
-                    </form>
-                @endif
-            </div>
-        </nav>
-    @endauth
 
     @yield('scripts')
 </body>
