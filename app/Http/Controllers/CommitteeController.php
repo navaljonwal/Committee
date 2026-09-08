@@ -162,9 +162,6 @@ class CommitteeController extends Controller
         $committee = Committee::with(['schedules.winner', 'schedules.bids.member', 'members'])
             ->findOrFail($id);
 
-        // Sync member payments to clean up removed members automatically
-        $committee->syncMemberPayments();
-
         $activeMemberIds = $committee->members->pluck('id');
         $committee->load(['schedules.payments' => function ($query) use ($activeMemberIds) {
             $query->whereIn('member_id', $activeMemberIds);
@@ -228,12 +225,10 @@ class CommitteeController extends Controller
             'member_id' => $bid->member_id,
         ]);
 
-        // Sync payment records for this month
-        foreach ($schedule->payments as $payment) {
-            $payment->update([
-                'amount_paid' => $installmentPerMember,
-            ]);
-        }
+        // Sync payment records for this month with single bulk update
+        $schedule->payments()->update([
+            'amount_paid' => $installmentPerMember,
+        ]);
 
         $msg = 'Approved auction bid of ₹' . number_format($customDeduction, 2) . ' from ' . ($bid->member ? $bid->member->name : 'Member') . '!';
 
@@ -458,12 +453,10 @@ class CommitteeController extends Controller
             'installment_per_member' => $installmentPerMember,
         ]);
 
-        // Sync payment records for this month to reflect updated installment
-        foreach ($schedule->payments as $payment) {
-            $payment->update([
-                'amount_paid' => $installmentPerMember,
-            ]);
-        }
+        // Sync payment records for this month to reflect updated installment with single bulk update
+        $schedule->payments()->update([
+            'amount_paid' => $installmentPerMember,
+        ]);
 
         $msg = 'Custom auction bid updated for Month ' . $schedule->month_no . '. Installment per member recalculated to ₹' . number_format($installmentPerMember, 2);
 
@@ -513,11 +506,9 @@ class CommitteeController extends Controller
             'installment_per_member' => $installmentPerMember,
         ]);
 
-        foreach ($schedule->payments as $payment) {
-            $payment->update([
-                'amount_paid' => $installmentPerMember,
-            ]);
-        }
+        $schedule->payments()->update([
+            'amount_paid' => $installmentPerMember,
+        ]);
 
         $msg = 'Month ' . $schedule->month_no . ' locked at formula amount (₹' . number_format($formulaDeduction, 2) . '). Bidding closed.';
 

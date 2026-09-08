@@ -12,9 +12,6 @@ class PaymentController extends Controller
     {
         $schedule = CommitteeSchedule::with(['committee.members', 'winner'])->findOrFail($scheduleId);
 
-        // Sync member payments to clean up removed members & add new ones automatically
-        $schedule->committee->syncMemberPayments();
-
         // Load payments for currently attached committee members only, ordered by member and seat
         $activeMemberIds = $schedule->committee->members->pluck('id');
         $schedule->load(['payments' => function ($query) use ($activeMemberIds) {
@@ -105,9 +102,6 @@ class PaymentController extends Controller
             }
             return redirect()->back()->with('error', $err);
         }
-
-        // Sync member payments to clean up removed members
-        $schedule->committee->syncMemberPayments();
 
         $activeMemberIds = $schedule->committee->members->pluck('id');
 

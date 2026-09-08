@@ -148,40 +148,75 @@ class Committee extends Model
         $currentMemberIds = $currentMembers->pluck('id')->toArray();
         $schedules = $this->schedules;
 
+        if ($schedules->isEmpty() || empty($currentMemberIds)) {
+            return;
+        }
+
+        $scheduleIds = $schedules->pluck('id')->toArray();
+
+        // 1. Bulk remove pending payments for members who are no longer in this committee (1 query)
+        CommitteeMemberPayment::whereIn('schedule_id', $scheduleIds)
+            ->whereNotIn('member_id', $currentMemberIds)
+            ->where('payment_status', 'pending')
+            ->delete();
+
+        // 2. Fetch all existing payment entries for these schedules in 1 query
+        $existingRecords = CommitteeMemberPayment::whereIn('schedule_id', $scheduleIds)
+            ->select('id', 'schedule_id', 'member_id', 'seat_no', 'payment_status')
+            ->get();
+
+        $existingLookup = [];
+        $excessIdsToDelete = [];
+
+        $memberSeatsMap = [];
+        foreach ($currentMembers as $member) {
+            $memberSeatsMap[$member->id] = isset($member->pivot->seats) ? (int) $member->pivot->seats : 1;
+        }
+
+        foreach ($existingRecords as $rec) {
+            $key = $rec->schedule_id . '_' . $rec->member_id . '_' . $rec->seat_no;
+            $existingLookup[$key] = true;
+
+            $maxSeats = $memberSeatsMap[$rec->member_id] ?? 1;
+            if ($rec->seat_no > $maxSeats && $rec->payment_status === 'pending') {
+                $excessIdsToDelete[] = $rec->id;
+            }
+        }
+
+        // Delete excess pending rows in 1 query if seat count was reduced
+        if (!empty($excessIdsToDelete)) {
+            CommitteeMemberPayment::whereIn('id', $excessIdsToDelete)->delete();
+        }
+
+        // 3. Prepare bulk insert for missing rows
+        $now = now();
+        $newPayments = [];
         foreach ($schedules as $schedule) {
-            // Remove pending payment records for members who are no longer in this committee
-            CommitteeMemberPayment::where('schedule_id', $schedule->id)
-                ->whereNotIn('member_id', $currentMemberIds)
-                ->where('payment_status', 'pending')
-                ->delete();
-
             foreach ($currentMembers as $member) {
-                $seatsCount = isset($member->pivot->seats) ? (int) $member->pivot->seats : 1;
-
-                // Remove excess pending payment rows if seat count was reduced
-                CommitteeMemberPayment::where('schedule_id', $schedule->id)
-                    ->where('member_id', $member->id)
-                    ->where('seat_no', '>', $seatsCount)
-                    ->where('payment_status', 'pending')
-                    ->delete();
-
-                // Create missing payment rows for seat_no 1..seatsCount
+                $seatsCount = $memberSeatsMap[$member->id] ?? 1;
                 for ($seatNo = 1; $seatNo <= $seatsCount; $seatNo++) {
-                    $exists = CommitteeMemberPayment::where('schedule_id', $schedule->id)
-                        ->where('member_id', $member->id)
-                        ->where('seat_no', $seatNo)
-                        ->exists();
-
-                    if (!$exists) {
-                        CommitteeMemberPayment::create([
-                            'schedule_id' => $schedule->id,
-                            'member_id' => $member->id,
-                            'seat_no' => $seatNo,
-                            'amount_paid' => $schedule->installment_per_member,
+                    $key = $schedule->id . '_' . $member->id . '_' . $seatNo;
+                    if (!isset($existingLookup[$key])) {
+                        $newPayments[] = [
+                            'schedule_id'    => $schedule->id,
+                            'member_id'      => $member->id,
+                            'seat_no'        => $seatNo,
+                            'amount_paid'    => $schedule->installment_per_member,
                             'payment_status' => 'pending',
-                        ]);
+                            'penalty_amount' => 0,
+                            'created_at'     => $now,
+                            'updated_at'     => $now,
+                        ];
+                        $existingLookup[$key] = true;
                     }
                 }
+            }
+        }
+
+        // Insert in bulk chunks of 250
+        if (!empty($newPayments)) {
+            foreach (array_chunk($newPayments, 250) as $chunk) {
+                CommitteeMemberPayment::insert($chunk);
             }
         }
     }

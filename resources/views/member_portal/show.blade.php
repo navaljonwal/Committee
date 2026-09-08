@@ -838,9 +838,9 @@
             if (chev) { chev.style.transform = 'rotate(180deg)'; }
         }
 
-        // Initial fetch immediately, then every 1.8 seconds for instant live bidding!
+        // Initial fetch immediately, then every 3.2 seconds for real-time live bidding without overloading server
         fetchLiveBids();
-        setInterval(fetchLiveBids, 1800);
+        setInterval(fetchLiveBids, 3200);
 
         // Pause polling when tab is hidden, resume instantly when tab is active
         document.addEventListener('visibilitychange', () => {

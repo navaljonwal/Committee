@@ -26,7 +26,7 @@ class MemberPortalController extends Controller
         }
 
         // All committees this member belongs to (supports 1, 2, 3+ committees)
-        $committees = $member->committees()->with(['schedules.winner', 'schedules.bids.member'])->get();
+        $committees = $member->committees()->with(['schedules.winner', 'schedules.bids.member', 'members'])->get();
 
         // Member's submitted bids
         $myBids = MemberBid::with('schedule.committee')
