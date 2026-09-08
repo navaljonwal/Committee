@@ -93,6 +93,9 @@ chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /
 chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 chmod 666 /var/www/html/.env
 
+# Discover packages with runtime environment
+php artisan package:discover --ansi || true
+
 # Clear stale cached configs and re-cache
 php artisan config:clear
 php artisan cache:clear

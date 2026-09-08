@@ -32,8 +32,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install PHP dependencies (use --no-scripts to ensure build never fails when env is unset)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
