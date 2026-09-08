@@ -213,6 +213,8 @@
                     <i class="fa-solid fa-star text-[10px] mr-1"></i> Month 2 = Special 0% Deduction Round
                 </span>
             </div>
+        </div>
+
         <!-- Mobile Swipe Helper Indicator -->
         <div class="md:hidden px-4 py-2 bg-slate-900/90 border-b border-slate-800 text-xs flex items-center justify-between text-slate-400">
             <span class="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
@@ -223,7 +225,7 @@
 
         <!-- High-Contrast Schedule Table -->
         <div class="overflow-x-auto -mx-1 sm:mx-0">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full min-w-[900px] text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-950 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-800">
                         <th class="py-4 px-4 text-center">Kisht No.</th>
