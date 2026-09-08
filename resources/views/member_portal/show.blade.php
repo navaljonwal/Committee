@@ -618,10 +618,10 @@
     // ─────────────────────────────────────────────────
     // REAL-TIME LIVE BIDS — Instant Polling (1.8s) & Live Sync
     // ─────────────────────────────────────────────────
-    const committeeId = {{ $committee->id }};
+    const committeeId = '{{ $committee->hash_id ?? $committee->id }}';
     const myMemberId  = {{ $member->id }};
     const alreadyWon  = {{ $alreadyWon ? 'true' : 'false' }};
-    const liveBidsUrl = '/member/committees/' + committeeId + '/live-bids';
+    const liveBidsUrl = '{{ route("member.committees.liveBids", $committee) }}';
 
     let _pollingActive  = true;
     let _abortCtrl      = null;

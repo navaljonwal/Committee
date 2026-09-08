@@ -45,6 +45,8 @@ class MemberPortalController extends Controller
 
     public function showCommittee($committeeId)
     {
+        $numericId = is_numeric($committeeId) ? (int)$committeeId : \App\Services\IdEncoder::decode($committeeId);
+
         $user   = Auth::user();
         $member = $user->member;
 
@@ -56,7 +58,7 @@ class MemberPortalController extends Controller
             'schedules.winner',
             'schedules.bids.member', // All bids from all members
             'members',
-        ])->findOrFail($committeeId);
+        ])->findOrFail($numericId);
 
         // Pre-associate committee on schedules to prevent lazy loading queries
         $committee->schedules->each(fn ($s) => $s->setRelation('committee', $committee));
@@ -117,7 +119,8 @@ class MemberPortalController extends Controller
             return response()->json(['error' => 'Unauthorized.'], 403);
         }
 
-        $committee = Committee::with('schedules')->findOrFail($committeeId);
+        $numericId = is_numeric($committeeId) ? (int)$committeeId : \App\Services\IdEncoder::decode($committeeId);
+        $committee = Committee::with('schedules')->findOrFail($numericId);
 
         // Security: only enrolled members or admin
         if (!$user->isAdmin() && !$committee->members()->where('member_id', $member?->id)->exists()) {
