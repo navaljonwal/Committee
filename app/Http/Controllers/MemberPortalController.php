@@ -81,7 +81,7 @@ class MemberPortalController extends Controller
         // so the view can render per-round bid lists
         $allBidsBySchedule = MemberBid::with('member')
             ->whereIn('schedule_id', $schedules->pluck('id'))
-            ->orderBy('bid_amount', 'asc') // lowest deduction = best bid
+            ->orderBy('bid_amount', 'desc') // highest deduction = top auction bid
             ->get()
             ->groupBy('schedule_id');
 
@@ -110,34 +110,47 @@ class MemberPortalController extends Controller
         $user   = Auth::user();
         $member = $user->member;
 
-        if (!$member) {
-            return response()->json(['error' => 'No member profile.'], 403);
+        if (!$member && !$user->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized.'], 403);
         }
 
         $committee = Committee::with('schedules')->findOrFail($committeeId);
 
-        // Security: only enrolled members
-        if (!$committee->members()->where('member_id', $member->id)->exists()) {
+        // Security: only enrolled members or admin
+        if (!$user->isAdmin() && !$committee->members()->where('member_id', $member?->id)->exists()) {
             return response()->json(['error' => 'Not enrolled.'], 403);
         }
 
         $scheduleIds = $committee->schedules->pluck('id');
 
-        // Fetch all current bids grouped by schedule
+        // Fetch all current bids grouped by schedule - highest deduction first (auction standard)
         $allBids = MemberBid::with('member:id,name')
             ->whereIn('schedule_id', $scheduleIds)
-            ->orderBy('bid_amount', 'asc')
+            ->orderBy('bid_amount', 'desc')
             ->get()
             ->groupBy('schedule_id')
             ->map(fn ($bids) => $bids->map(fn ($b) => [
                 'id'         => $b->id,
                 'member_id'  => $b->member_id,
-                'my_bid'     => $b->member_id === $member->id,
+                'my_bid'     => $member ? ($b->member_id === $member->id) : false,
                 'name'       => $b->member->name ?? 'Unknown',
                 'bid_amount' => (float) $b->bid_amount,
                 'remarks'    => $b->remarks,
                 'status'     => $b->status,
             ]));
+
+        // Calculate highest bid per schedule for instant UI sync
+        $highestBids = [];
+        foreach ($allBids as $sid => $bidsList) {
+            $top = $bidsList->first();
+            if ($top) {
+                $highestBids[$sid] = [
+                    'amount' => $top['bid_amount'],
+                    'name'   => $top['name'],
+                    'id'     => $top['id'],
+                ];
+            }
+        }
 
         // Fetch lock status and date status for each schedule
         $today = now()->startOfDay();
@@ -166,9 +179,10 @@ class MemberPortalController extends Controller
         });
 
         return response()->json([
-            'timestamp'  => now()->toDateTimeString(),
-            'bids'       => $allBids,
-            'lock_status'=> $lockStatus,
+            'timestamp'    => now()->toDateTimeString(),
+            'bids'         => $allBids,
+            'highest_bids' => $highestBids,
+            'lock_status'  => $lockStatus,
         ]);
     }
 

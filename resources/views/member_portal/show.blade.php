@@ -250,6 +250,28 @@
                         </div>
                     </div>
 
+                    <!-- Live Top Boli Bar (Always visible on card header) -->
+                    @php
+                        $topBid = $roundBids->sortByDesc('bid_amount')->first();
+                    @endphp
+                    <div class="mt-2.5 px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2 transition-all" id="topbid-pill-{{ $schedule->id }}">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2.5 w-2.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 {{ $topBid ? '' : 'hidden' }}" id="topbid-ping-{{ $schedule->id }}"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 {{ $topBid ? 'bg-amber-400' : 'bg-slate-600' }}" id="topbid-dot-{{ $schedule->id }}"></span>
+                            </span>
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300">Current Highest Boli:</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-mono font-black text-xs sm:text-sm text-amber-300" id="topbid-amount-{{ $schedule->id }}">
+                                {{ $topBid ? '₹' . number_format($topBid->bid_amount, 0) : 'No Bids Yet' }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-medium" id="topbid-name-{{ $schedule->id }}">
+                                {{ $topBid ? '(by ' . ($topBid->member_id == $member->id ? 'You' : ($topBid->member->name ?? 'Member')) . ')' : '' }}
+                            </span>
+                        </div>
+                    </div>
+
                     <!-- Bottom Action Row: Full width touch button on mobile, clean inline on desktop -->
                     <div class="mt-3 pt-2.5 border-t border-slate-800/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div class="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5">
@@ -378,12 +400,12 @@
                                     No bids placed yet for this round. Be the first!
                                 </div>
                             @else
-                                @foreach($roundBids->sortBy('bid_amount') as $idx => $bid)
+                                @foreach($roundBids->sortByDesc('bid_amount') as $idx => $bid)
                                 <div class="flex items-center justify-between p-2.5 rounded-lg {{ $bid->member_id == $member->id ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-slate-900/60 border border-slate-800' }}">
                                     <div class="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
                                         @if($idx === 0)
-                                            <div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0" title="Lowest Bid">
-                                                <i class="fa-solid fa-star"></i>
+                                            <div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0" title="Highest Bid">
+                                                <i class="fa-solid fa-crown"></i>
                                             </div>
                                         @else
                                             <div class="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -593,7 +615,7 @@
     }
 
     // ─────────────────────────────────────────────────
-    // REAL-TIME LIVE BIDS — Reliable Polling (5s)
+    // REAL-TIME LIVE BIDS — Instant Polling (1.8s) & Live Sync
     // ─────────────────────────────────────────────────
     const committeeId = {{ $committee->id }};
     const myMemberId  = {{ $member->id }};
@@ -602,7 +624,8 @@
 
     let _pollingActive  = true;
     let _abortCtrl      = null;
-    let _prevBidHash    = {};   // track bid counts per schedule for change detection
+    let _prevBidHash    = {};   // track bid contents for change detection
+    let _prevTopBids    = {};   // track highest bid amount per round to detect new bids
     let _consecutiveFails = 0;
 
     function formatINR(amount) {
@@ -612,18 +635,18 @@
     function buildBidRowHTML(bid, idx) {
         const isMe = bid.member_id === myMemberId;
         const rankIcon = idx === 0
-            ? '<div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0" title="Lowest Bid"><i class="fa-solid fa-star"></i></div>'
+            ? '<div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0" title="Highest Bid"><i class="fa-solid fa-crown"></i></div>'
             : `<div class="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 flex items-center justify-center text-[10px] font-bold shrink-0">${idx+1}</div>`;
         const statusBadge = bid.status === 'approved'
             ? '<span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-check-circle mr-0.5"></i>Approved</span>'
-            : '<span class="text-[10px] text-slate-500">Pending Review</span>';
+            : '<span class="text-[10px] text-slate-500">Pending</span>';
         const nameColor    = isMe ? 'text-emerald-300' : 'text-white';
         const amountColor  = isMe ? 'text-emerald-400' : 'text-amber-300';
         const rowBg        = isMe ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-slate-900/60 border border-slate-800';
-        const youTag       = isMe ? '<span class="text-[10px] text-emerald-400">(You)</span>' : '';
-        const remarksHtml  = bid.remarks ? `<span class="block text-[10px] text-slate-400 italic">"${bid.remarks}"</span>` : '';
+        const youTag       = isMe ? '<span class="text-[10px] text-emerald-400 font-bold">(You)</span>' : '';
+        const remarksHtml  = bid.remarks ? `<span class="block text-[10px] text-slate-400 italic truncate">"${bid.remarks}"</span>` : '';
 
-        return `<div class="flex items-center justify-between p-2.5 rounded-lg ${rowBg}">
+        return `<div class="flex items-center justify-between p-2.5 rounded-lg ${rowBg} transition-all duration-200">
             <div class="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
                 ${rankIcon}
                 <div class="min-w-0">
@@ -644,23 +667,66 @@
         let   pageNeedsReload = false;
 
         Object.entries(locks).forEach(([sid, info]) => {
-            const card    = document.getElementById('schedule-card-' + sid);
-            const bidList = document.querySelector('.bid-list-' + sid);
+            const card        = document.getElementById('schedule-card-' + sid);
+            const bidList     = document.querySelector('.bid-list-' + sid);
+            const topAmountEl = document.getElementById('topbid-amount-' + sid);
+            const topNameEl   = document.getElementById('topbid-name-' + sid);
+            const topDotEl    = document.getElementById('topbid-dot-' + sid);
+            const topPingEl   = document.getElementById('topbid-ping-' + sid);
+            const topPill     = document.getElementById('topbid-pill-' + sid);
+
             if (!card) return;
 
             const wasLocked  = card.dataset.isLocked === 'true';
             const isNowLocked = info.is_locked;
 
-            // ── Lock status changed → reload page once (updates button states) ──
+            // ── Lock status changed → reload page once ──
             if (wasLocked !== isNowLocked) {
                 pageNeedsReload = true;
             }
 
+            // ── Sort bids DESCENDING (highest boli first) ──
+            const bidArr = (bids[sid] || []).sort((a,b) => b.bid_amount - a.bid_amount);
+
             // ── Update bid count badges ──
-            const bidArr = (bids[sid] || []).sort((a,b) => a.bid_amount - b.bid_amount);
             document.querySelectorAll('.bid-count-' + sid).forEach(el => {
                 el.innerText = bidArr.length;
             });
+
+            // ── Update Top Boli Pill on Card Header ──
+            const topBid = bidArr[0]; // highest bid is index 0
+            const prevTopAmt = _prevTopBids[sid] || 0;
+
+            if (topBid) {
+                if (topAmountEl) topAmountEl.innerText = formatINR(topBid.bid_amount);
+                if (topNameEl) topNameEl.innerText = '(by ' + (topBid.member_id === myMemberId ? 'You' : topBid.name) + ')';
+                if (topDotEl) { topDotEl.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400'; }
+                if (topPingEl) { topPingEl.classList.remove('hidden'); }
+
+                // ── Check if another member placed a brand new higher bid! ──
+                if (prevTopAmt > 0 && topBid.bid_amount > prevTopAmt) {
+                    // Flash golden pulse on round card
+                    card.classList.add('ring-2', 'ring-amber-400', 'shadow-amber-500/30');
+                    if (topPill) topPill.classList.add('bg-amber-500/30', 'border-amber-400');
+
+                    setTimeout(() => {
+                        card.classList.remove('ring-2', 'ring-amber-400', 'shadow-amber-500/30');
+                        if (topPill) topPill.classList.remove('bg-amber-500/30', 'border-amber-400');
+                    }, 3000);
+
+                    // Live Toast Notification
+                    const bidderName = topBid.member_id === myMemberId ? 'Aap' : topBid.name;
+                    showToast('🔥 Nayi Boli: ' + bidderName + ' ne Month ' + info.month_no + ' ke liye ' + formatINR(topBid.bid_amount) + ' ki bid lagayi!', 'success');
+                }
+
+                _prevTopBids[sid] = topBid.bid_amount;
+            } else {
+                if (topAmountEl) topAmountEl.innerText = 'No Bids Yet';
+                if (topNameEl) topNameEl.innerText = '';
+                if (topDotEl) { topDotEl.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-600'; }
+                if (topPingEl) { topPingEl.classList.add('hidden'); }
+                _prevTopBids[sid] = 0;
+            }
 
             // ── Update card header: My Bid amount shown in quick view ──
             const myBidObj = bidArr.find(b => b.member_id === myMemberId);
@@ -670,12 +736,12 @@
                 quickBidEl.closest('[id^="mybid-wrap"]') && quickBidEl.closest('[id^="mybid-wrap"]').classList.remove('hidden');
             }
 
-            // ── Rebuild bid list only if changed ──
+            // ── Rebuild bid list in real-time ──
             const newHash = bidArr.map(b => b.id + ':' + b.bid_amount + ':' + b.status).join('|');
             if (_prevBidHash[sid] !== newHash && bidList) {
                 _prevBidHash[sid] = newHash;
                 if (bidArr.length === 0) {
-                    bidList.innerHTML = '<div class="text-center py-4 text-slate-500 text-xs italic">No bids placed yet. Be the first!</div>';
+                    bidList.innerHTML = '<div class="text-center py-4 text-slate-500 text-xs italic">No bids placed yet for this round. Be the first!</div>';
                 } else {
                     bidList.innerHTML = bidArr.map((b, i) => buildBidRowHTML(b, i)).join('');
                 }
@@ -683,7 +749,6 @@
         });
 
         if (pageNeedsReload) {
-            // Brief delay so user sees the update notification
             setTimeout(() => window.location.reload(), 1200);
         }
     }
@@ -691,7 +756,6 @@
     function fetchLiveBids() {
         if (!_pollingActive) return;
 
-        // Cancel any in-flight request
         if (_abortCtrl) _abortCtrl.abort();
         _abortCtrl = new AbortController();
 
@@ -707,21 +771,61 @@
             _consecutiveFails = 0;
             applyLiveBidsData(data);
 
-            // Update live status indicator → green pulse
             const badge = document.getElementById('liveStatusBadge');
             const timeEl = document.getElementById('lastUpdatedTime');
             if (badge) badge.className = 'inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider';
-            if (timeEl) timeEl.innerText = 'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            if (timeEl) timeEl.innerText = 'Live • ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
         })
         .catch(err => {
-            if (err.name === 'AbortError') return;  // intentional cancel, ignore
+            if (err.name === 'AbortError') return;
             _consecutiveFails++;
             const badge  = document.getElementById('liveStatusBadge');
             const timeEl = document.getElementById('lastUpdatedTime');
             if (badge) badge.className = 'inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400 text-[10px] font-bold uppercase tracking-wider';
-            if (timeEl) timeEl.innerText = 'Reconnecting... (attempt ' + _consecutiveFails + ')';
+            if (timeEl) timeEl.innerText = 'Reconnecting...';
         });
     }
+
+    // ── Instant AJAX Bid Submit without Page Reload ──
+    document.getElementById('bidForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const form = this;
+        const submitBtn = document.getElementById('bidSubmitBtn');
+        const origHtml = submitBtn.innerHTML;
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Submitting...';
+
+        try {
+            const formData = new FormData(form);
+            const res = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeBidModal();
+                showToast(data.message || 'Bid submitted successfully!', 'success');
+                // Fetch live bids instantly (0ms delay)
+                fetchLiveBids();
+            } else {
+                showToast(data.message || 'Could not submit bid. Please check amount.', 'error');
+            }
+        } catch (err) {
+            showToast('Network error while placing bid. Please try again.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origHtml;
+        }
+    });
 
     // Auto-expand the first open (non-locked) round on load
     document.addEventListener('DOMContentLoaded', () => {
@@ -734,16 +838,15 @@
             if (chev) { chev.style.transform = 'rotate(180deg)'; }
         }
 
-        // Initial fetch immediately, then every 5 seconds
+        // Initial fetch immediately, then every 1.8 seconds for instant live bidding!
         fetchLiveBids();
-        setInterval(fetchLiveBids, 5000);
+        setInterval(fetchLiveBids, 1800);
 
-        // Pause polling when tab is hidden (saves resources)
+        // Pause polling when tab is hidden, resume instantly when tab is active
         document.addEventListener('visibilitychange', () => {
             _pollingActive = !document.hidden;
-            if (_pollingActive) fetchLiveBids();  // resume instantly when tab is active again
+            if (_pollingActive) fetchLiveBids();
         });
     });
 </script>
-@endsection
 @endsection
