@@ -137,21 +137,10 @@ class Committee extends Model
                 'installment_per_member' => $kistPerMember,
                 'draw_date' => $drawDate,
             ]);
-
-            // Automatically create payment records if members are attached (multi-seat aware)
-            foreach ($this->members as $member) {
-                $seatsCount = isset($member->pivot->seats) ? (int) $member->pivot->seats : 1;
-                for ($seatNo = 1; $seatNo <= $seatsCount; $seatNo++) {
-                    CommitteeMemberPayment::create([
-                        'schedule_id' => $schedule->id,
-                        'member_id' => $member->id,
-                        'seat_no' => $seatNo,
-                        'amount_paid' => $kistPerMember,
-                        'payment_status' => 'pending',
-                    ]);
-                }
-            }
         }
+
+        // Delegate member payment generation to syncMemberPayments for consistency and deduplication
+        $this->syncMemberPayments();
     }
 
     /**
@@ -175,9 +164,10 @@ class Committee extends Model
             ->where('payment_status', 'pending')
             ->delete();
 
-        // 2. Fetch all existing payment entries for these schedules in 1 query
+        // 2. Fetch all existing payment entries for these schedules ordered so paid records come first
         $existingRecords = CommitteeMemberPayment::whereIn('schedule_id', $scheduleIds)
             ->select('id', 'schedule_id', 'member_id', 'seat_no', 'payment_status')
+            ->orderByRaw("CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END, id ASC")
             ->get();
 
         $existingLookup = [];
@@ -190,6 +180,15 @@ class Committee extends Model
 
         foreach ($existingRecords as $rec) {
             $key = $rec->schedule_id . '_' . $rec->member_id . '_' . $rec->seat_no;
+
+            // If a record already exists for this exact seat, this one is a duplicate
+            if (isset($existingLookup[$key])) {
+                if ($rec->payment_status === 'pending') {
+                    $excessIdsToDelete[] = $rec->id;
+                    continue;
+                }
+            }
+
             $existingLookup[$key] = true;
 
             $maxSeats = $memberSeatsMap[$rec->member_id] ?? 1;
@@ -198,7 +197,7 @@ class Committee extends Model
             }
         }
 
-        // Delete excess pending rows in 1 query if seat count was reduced
+        // Delete excess pending rows in 1 query if seat count was reduced or duplicate found
         if (!empty($excessIdsToDelete)) {
             CommitteeMemberPayment::whereIn('id', $excessIdsToDelete)->delete();
         }
