@@ -1,22 +1,20 @@
-import pool from './db.js';
+import pool, { isPostgres } from './db.js';
 import bcrypt from 'bcryptjs';
 
 export async function initializeDatabase() {
   try {
     console.log('🔄 Checking / Initializing database tables...');
 
-    // 1. Members table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS members (
-        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        name varchar(150) NOT NULL,
-        phone varchar(20) DEFAULT NULL,
-        plain_password varchar(255) NOT NULL DEFAULT 'member123',
-        created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
+    if (isPostgres) {
+      // In PostgreSQL, verify users table
+      const [tableRows] = await pool.query(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'"
+      );
+      if (tableRows.length > 0) {
+        console.log('✅ PostgreSQL database schema verified and ready.');
+        return true;
+      }
+    }
 
     // 2. Users table
     await pool.query(`
