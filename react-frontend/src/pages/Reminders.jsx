@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import {
   Bell, BellRing, Plus, Check, Trash2, AlertTriangle,
   Calendar, IndianRupee, Clock, X, ChevronRight,
-  Gavel, CheckCircle, AlertCircle, Loader2
+  Gavel, CheckCircle, AlertCircle, Loader2, MessageCircle, Layers
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
 
 const TYPE_META = {
   urgent:  { label: 'Urgent',  color: 'bg-red-100 text-red-700 border-red-200',   dot: 'bg-red-500',    icon: AlertTriangle },
@@ -272,38 +273,82 @@ export default function Reminders() {
             </section>
           )}
 
-          {/* ── Auto Alert: Pending Payments ── */}
+          {/* ── Auto Alert: Pending Payments with WhatsApp Reminder ── */}
           {pendingPayments.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
                 <IndianRupee className="w-4 h-4 text-amber-600" />
                 <h2 className="text-sm font-extrabold text-slate-800">Pending Member Payments</h2>
-                <span className="ml-auto text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{pendingPayments.length}</span>
+                <span className="ml-auto text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  {pendingPayments.length} pending
+                </span>
               </div>
               <div className="grid gap-3">
-                {pendingPayments.map((p, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4 bg-white rounded-2xl border border-amber-100 shadow-xs hover:shadow-md hover:border-amber-200 transition group">
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                      <IndianRupee className="w-4.5 h-4.5 text-amber-600" />
+                {pendingPayments.map((p, i) => {
+                  const waLink = p.member_phone ? makeWhatsAppPaymentReminder({
+                    phone: p.member_phone,
+                    memberName: p.member_name,
+                    committeeName: p.committee_name,
+                    monthNo: p.month_no,
+                    amountDue: p.total_due,
+                    drawDate: p.draw_date
+                  }) : null;
+
+                  return (
+                    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-amber-100 shadow-xs hover:shadow-md hover:border-amber-200 transition group">
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                          <IndianRupee className="w-4.5 h-4.5 text-amber-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-bold text-slate-900 truncate">{p.member_name}</p>
+                            {p.seat_no > 1 && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                Seat #{p.seat_no}
+                              </span>
+                            )}
+                            {p.member_phone && (
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                ({p.member_phone})
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            <span className="font-semibold text-slate-700">{p.committee_name}</span> · Month {p.month_no} · Due: <span className="font-bold text-rose-600 font-mono">₹{parseFloat(p.total_due).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                            {parseFloat(p.penalty_amount || 0) > 0 && (
+                              <span className="text-amber-600 text-[11px] ml-1">(+₹{p.penalty_amount} penalty)</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        {p.draw_date && <DueBadge dateStr={p.draw_date} />}
+
+                        {waLink && (
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Send WhatsApp Reminder to ${p.member_name}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 text-xs font-bold transition shadow-xs active:scale-95"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>WhatsApp</span>
+                          </a>
+                        )}
+
+                        <Link
+                          to={`/committees/${p.committee_hash_id}`}
+                          className="inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 text-xs font-semibold transition border border-slate-200/80 hover:border-orange-200"
+                        >
+                          Collect <ChevronRight className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">{p.committee_name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Month {p.month_no} — <span className="font-semibold text-amber-700">{p.pending_count} members pending</span>
-                        {p.pending_amount ? <span className="ml-1">· ₹{parseFloat(p.pending_amount).toLocaleString('en-IN')}</span> : ''}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {p.draw_date && <DueBadge dateStr={p.draw_date} />}
-                      <Link
-                        to={`/committees/${p.committee_hash_id}`}
-                        className="text-[11px] text-amber-600 hover:text-amber-800 font-semibold flex items-center gap-0.5"
-                      >
-                        Collect <ChevronRight className="w-3 h-3" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}

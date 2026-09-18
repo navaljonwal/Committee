@@ -10,11 +10,35 @@ import {
   AlertCircle,
   Calendar,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { useAuth } from '../context/AuthContext';
+
+function formatDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function daysFromNow(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(dateStr); due.setHours(0, 0, 0, 0);
+  return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+}
+
+function DueBadge({ dateStr }) {
+  const days = daysFromNow(dateStr);
+  if (days === null) return null;
+  if (days < 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Overdue by {Math.abs(days)}d</span>;
+  if (days === 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-pulse">Due Today!</span>;
+  if (days <= 3) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">In {days}d</span>;
+  return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{formatDate(dateStr)}</span>;
+}
 
 export default function MemberDashboard() {
   const { user } = useAuth();
@@ -50,7 +74,39 @@ export default function MemberDashboard() {
 
   const { member, committees, myBids, pendingPayments } = data;
 
-  const totalPendingAmount = pendingPayments.reduce((acc, p) => acc + parseFloat(p.total_due || 0), 0);
+  // Calculate current active month reminder per committee (only ONE current month per committee)
+  const currentMonthReminders = committees.map((c) => {
+    const commPending = pendingPayments.filter(
+      (p) => p.committee_id === c.id || p.committee_name === c.name
+    );
+    if (commPending.length === 0) return null;
+
+    const minMonth = Math.min(...commPending.map((p) => parseInt(p.month_no, 10)));
+    const thisMonthPayments = commPending.filter(
+      (p) => parseInt(p.month_no, 10) === minMonth
+    );
+    const totalDue = thisMonthPayments.reduce(
+      (acc, p) => acc + parseFloat(p.total_due || 0),
+      0
+    );
+    const penalty = thisMonthPayments.reduce(
+      (acc, p) => acc + parseFloat(p.penalty_amount || 0),
+      0
+    );
+    const drawDate = thisMonthPayments[0]?.draw_date;
+    const seatsCount = thisMonthPayments.length;
+
+    return {
+      committee: c,
+      monthNo: minMonth,
+      totalDue,
+      penalty,
+      drawDate,
+      seatsCount
+    };
+  }).filter(Boolean);
+
+  const totalCurrentMonthDue = currentMonthReminders.reduce((acc, r) => acc + r.totalDue, 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -66,15 +122,15 @@ export default function MemberDashboard() {
               Namaste, {member ? member.name : user?.name}!
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
-              Participate in live auction rounds, check your draw dates, and track installment dues
+              Check active committee installments, view payment sheets, and participate in live auctions
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="bg-white border border-slate-200 p-4 rounded-2xl text-right shadow-xs">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Pending Dues</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Current Month Due</span>
               <span className="text-xl font-black text-rose-600 font-mono">
-                ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                ₹{totalCurrentMonthDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -88,12 +144,114 @@ export default function MemberDashboard() {
         </div>
       )}
 
+      {/* ── Current Month Payment Reminders (Only current active month per committee) ── */}
+      {currentMonthReminders.length > 0 ? (
+        <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-amber-500/5 border-2 border-amber-300 rounded-3xl p-6 sm:p-7 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md shadow-orange-200 shrink-0">
+                <BellRing className="w-5 h-5 text-white animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                    Current Month Installment Reminder ({currentMonthReminders.length})
+                  </h2>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700 uppercase tracking-wide">
+                    Due Now
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-0.5 font-medium">
+                  Is mahine ka installment samay par jama karein. Kisi bhi committee par click karke uski puri Payment Sheet dekhein.
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Total Due</span>
+              <span className="text-xl font-black text-rose-600 font-mono">
+                ₹{totalCurrentMonthDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+            {currentMonthReminders.map((r) => (
+              <div
+                key={r.committee.id}
+                className="bg-white rounded-2xl p-4 sm:p-5 border border-amber-200/90 shadow-xs flex flex-col justify-between gap-4 hover:border-orange-400 hover:shadow-md transition"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-tight">
+                      {r.committee.name}
+                    </h3>
+                    <div className="text-right shrink-0">
+                      <div className="font-black text-base sm:text-lg text-rose-600 font-mono">
+                        ₹{r.totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      {r.penalty > 0 && (
+                        <div className="text-[10px] font-semibold text-amber-600">
+                          +₹{r.penalty} penalty
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2 flex-wrap text-xs text-slate-500 font-medium">
+                    <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-bold border border-amber-200">
+                      Month {r.monthNo} Installment
+                    </span>
+                    {r.seatsCount > 1 && (
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold">
+                        {r.seatsCount} Seats Combined
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <DueBadge dateStr={r.drawDate} />
+                  </div>
+
+                  <Link
+                    to={`/member/committees/${encodeId(r.committee.id)}`}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-md shadow-orange-600/20 active:scale-95"
+                  >
+                    <span>Open Payment Sheet</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-emerald-50/80 border border-emerald-200 rounded-3xl p-5 flex items-center gap-4 shadow-xs">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-emerald-900">Sabhi Payments Up-to-date Hain! 🎉</h3>
+            <p className="text-xs text-emerald-700 mt-0.5">
+              Is mahine ka koi bhi installment pending nahi hai.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Enrolled Committees Grid */}
       <div>
-        <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-4">
-          <Layers className="w-5 h-5 text-orange-600" />
-          My Enrolled Committees ({committees.length})
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <Layers className="w-5 h-5 text-orange-600" />
+            My Enrolled Committees ({committees.length})
+          </h2>
+          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            Click any committee to view its full Payment Sheet & Bidding Room
+          </span>
+        </div>
 
         {committees.length === 0 ? (
           <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-8 text-center text-slate-500 text-xs font-medium">
@@ -105,6 +263,13 @@ export default function MemberDashboard() {
               const wonCount = parseInt(c.won_count || 0, 10);
               const seats = parseInt(c.seats || 1, 10);
               const remaining = Math.max(0, seats - wonCount);
+
+              // Check if this committee has an active pending installment
+              const commPending = pendingPayments.filter(
+                (p) => p.committee_id === c.id || p.committee_name === c.name
+              );
+              const hasDue = commPending.length > 0;
+              const nextMonth = hasDue ? Math.min(...commPending.map(p => parseInt(p.month_no, 10))) : null;
 
               return (
                 <div
@@ -137,15 +302,21 @@ export default function MemberDashboard() {
                         <span>Draws Won:</span>
                         <span className="font-bold text-orange-600 font-mono">{wonCount} Won / {remaining} Left</span>
                       </div>
+                      {hasDue && (
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                          <span className="text-amber-700 font-semibold">Active Round:</span>
+                          <span className="font-bold text-amber-700 font-mono">Month {nextMonth} Due</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100">
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
                     <Link
                       to={`/member/committees/${encodeId(c.id)}`}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-lg shadow-orange-600/25 active:scale-[0.98]"
                     >
-                      <Gavel className="w-4 h-4" /> Enter Live Bidding Room
+                      <CreditCard className="w-4 h-4" /> View Payment Sheet & Bids
                     </Link>
                   </div>
                 </div>
@@ -154,47 +325,6 @@ export default function MemberDashboard() {
           </div>
         )}
       </div>
-
-      {/* Pending Payments Section */}
-      {pendingPayments.length > 0 && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 sm:p-8 space-y-4">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-amber-500" />
-            Pending Contribution Installments ({pendingPayments.length})
-          </h2>
-
-          <div className="overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Committee</th>
-                  <th className="py-3 px-4">Month</th>
-                  <th className="py-3 px-4">Seat #</th>
-                  <th className="py-3 px-4 text-right">Installment (₹)</th>
-                  <th className="py-3 px-4 text-right">Late Penalty (₹)</th>
-                  <th className="py-3 px-4 text-right">Total Due (₹)</th>
-                  <th className="py-3 px-4 text-center">Draw Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
-                {pendingPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-orange-50/30 transition duration-150">
-                    <td className="py-3 px-4 font-sans font-bold text-slate-900">{p.committee_name}</td>
-                    <td className="py-3 px-4 font-sans">Month {p.month_no}</td>
-                    <td className="py-3 px-4 font-sans">Seat {p.seat_no}</td>
-                    <td className="py-3 px-4 text-right font-medium">₹{parseFloat(p.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3 px-4 text-right text-amber-600 font-semibold">₹{parseFloat(p.penalty_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3 px-4 text-right font-black text-rose-600">₹{parseFloat(p.total_due).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td className="py-3 px-4 text-center font-sans text-slate-500">
-                      {p.draw_date ? new Date(p.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* My Submitted Bids History */}
       {myBids.length > 0 && (

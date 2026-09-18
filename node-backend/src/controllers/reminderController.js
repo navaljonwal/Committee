@@ -15,25 +15,34 @@ export async function getReminders(req, res) {
       ORDER BY r.due_date ASC, r.created_at DESC
     `);
 
-    // 2. Auto: Members with pending payments (grouped by committee)
-    const [pendingPayments] = await pool.query(`
+    // 2. Auto: Members with pending payments (individual level with phone)
+    const [pendingMembers] = await pool.query(`
       SELECT 
-        c.id as committee_id,
-        c.name as committee_name,
+        cmp.id as payment_id,
+        cmp.amount_paid,
+        cmp.penalty_amount,
+        (cmp.amount_paid + cmp.penalty_amount) as total_due,
+        cmp.seat_no,
+        m.id as member_id,
+        m.name as member_name,
+        m.phone as member_phone,
+        cs.id as schedule_id,
         cs.month_no,
         cs.draw_date,
-        COUNT(cmp.id) as pending_count,
-        SUM(cmp.amount_paid + cmp.penalty_amount) as pending_amount
+        c.id as committee_id,
+        c.name as committee_name
       FROM committee_member_payments cmp
+      JOIN members m ON cmp.member_id = m.id
       JOIN committee_schedules cs ON cmp.schedule_id = cs.id
       JOIN committees c ON cs.committee_id = c.id
       WHERE cmp.payment_status = 'pending' AND c.status = 'active'
-      GROUP BY c.id, cs.id
-      ORDER BY cs.draw_date ASC
-      LIMIT 20
+      ORDER BY cs.draw_date ASC, m.name ASC
+      LIMIT 50
     `);
 
-    // 3. Auto: Upcoming draw dates (next 30 days)
+    // 3. Auto: Upcoming draw dates (next 30 days) - portable dates
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const future30Str = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const [upcomingDraws] = await pool.query(`
       SELECT 
         cs.id as schedule_id,
@@ -44,12 +53,12 @@ export async function getReminders(req, res) {
         c.name as committee_name
       FROM committee_schedules cs
       JOIN committees c ON cs.committee_id = c.id
-      WHERE cs.draw_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      WHERE cs.draw_date BETWEEN ? AND ?
         AND cs.member_id IS NULL
         AND c.status = 'active'
       ORDER BY cs.draw_date ASC
       LIMIT 15
-    `);
+    `, [todayStr, future30Str]);
 
     // Encode IDs in manual reminders
     const reminders = manualRows.map(r => ({
@@ -59,8 +68,10 @@ export async function getReminders(req, res) {
     }));
 
     // Encode IDs in auto-alerts
-    const paymentAlerts = pendingPayments.map(p => ({
+    const paymentAlerts = pendingMembers.map(p => ({
       ...p,
+      payment_hash_id: encodeId(p.payment_id),
+      schedule_hash_id: encodeId(p.schedule_id),
       committee_hash_id: encodeId(p.committee_id)
     }));
 

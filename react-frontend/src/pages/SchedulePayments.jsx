@@ -10,10 +10,12 @@ import {
   IndianRupee,
   Calendar,
   Layers,
-  Award
+  Award,
+  MessageCircle
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
 
 export default function SchedulePayments() {
   const { scheduleId } = useParams();
@@ -302,19 +304,42 @@ export default function SchedulePayments() {
                       {p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                     </td>
 
-                    {/* 1-Click Status Toggle Action */}
+                    {/* 1-Click Status Toggle + WhatsApp Reminder */}
                     <td className="py-3 px-4 text-right font-sans">
-                      <button
-                        onClick={() => handleTogglePayment(p.id)}
-                        disabled={isCompleted}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border shadow-xs active:scale-[0.98] ${
-                          isPaid
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                            : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-orange-600/20'
-                        } disabled:opacity-40`}
-                      >
-                        {isPaid ? 'Mark Pending' : 'Mark Paid'}
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {!isPaid && p.member_phone && (() => {
+                          const waLink = makeWhatsAppPaymentReminder({
+                            phone: p.member_phone,
+                            memberName: p.member_name,
+                            committeeName: schedule.committee_name,
+                            monthNo: schedule.month_no,
+                            amountDue: p.total_due,
+                            drawDate: schedule.draw_date
+                          });
+                          return waLink ? (
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Send WhatsApp reminder to ${p.member_name}`}
+                              className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 transition"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </a>
+                          ) : null;
+                        })()}
+                        <button
+                          onClick={() => handleTogglePayment(p.id)}
+                          disabled={isCompleted}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border shadow-xs active:scale-[0.98] ${
+                            isPaid
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                              : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-orange-600/20'
+                          } disabled:opacity-40`}
+                        >
+                          {isPaid ? 'Mark Pending' : 'Mark Paid'}
+                        </button>
+                      </div>
                     </td>
 
                   </tr>

@@ -11,7 +11,22 @@ export async function initializeDatabase() {
         "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'"
       );
       if (tableRows.length > 0) {
-        console.log('✅ PostgreSQL database schema verified and ready.');
+        // Ensure reminders table exists in PostgreSQL
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS reminders (
+            id BIGSERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT DEFAULT NULL,
+            due_date DATE DEFAULT NULL,
+            reminder_type VARCHAR(50) NOT NULL DEFAULT 'custom',
+            status VARCHAR(50) NOT NULL DEFAULT 'active',
+            committee_id BIGINT DEFAULT NULL,
+            created_by BIGINT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        console.log('✅ PostgreSQL database schema verified and ready (including reminders table).');
         return true;
       }
     }
