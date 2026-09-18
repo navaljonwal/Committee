@@ -5,6 +5,7 @@ import {
   syncMemberPayments,
   recalculateSchedules
 } from '../services/formula.js';
+import { broadcastLiveBids, buildLiveBidsPayload } from './memberPortalController.js';
 
 export async function getCommitteesDashboard(req, res) {
   try {
@@ -743,8 +744,8 @@ export async function approveMemberBid(req, res) {
 
     await conn.beginTransaction();
 
-    await conn.query('UPDATE member_bids SET status = "rejected" WHERE schedule_id = ?', [bid.schedule_id]);
-    await conn.query('UPDATE member_bids SET status = "approved" WHERE id = ?', [bidId]);
+    await conn.query("UPDATE member_bids SET status = 'rejected' WHERE schedule_id = ?", [bid.schedule_id]);
+    await conn.query("UPDATE member_bids SET status = 'approved' WHERE id = ?", [bidId]);
 
     await conn.query(`
       UPDATE committee_schedules 
@@ -766,6 +767,16 @@ export async function approveMemberBid(req, res) {
     `, [installmentPerMember, bid.schedule_id]);
 
     await conn.commit();
+
+    // Broadcast SSE update live so all connected members and admin see new winner instantly
+    try {
+      const updatedLiveBids = await buildLiveBidsPayload(bid.committee_id);
+      if (updatedLiveBids) {
+        broadcastLiveBids(bid.committee_id, updatedLiveBids);
+      }
+    } catch (broadcastErr) {
+      console.error('Failed to broadcast approved bid:', broadcastErr);
+    }
 
     return res.json({
       success: true,

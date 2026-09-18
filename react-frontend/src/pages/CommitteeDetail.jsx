@@ -12,7 +12,8 @@ import {
   Printer, 
   Edit, 
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Check
 } from 'lucide-react';
 import api from '../api/client';
 import WinnerModal from '../components/WinnerModal';
@@ -27,6 +28,7 @@ export default function CommitteeDetail() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [approvingBidId, setApprovingBidId] = useState(null);
 
   // Modals state
   const [activeWinnerSchedule, setActiveWinnerSchedule] = useState(null);
@@ -47,9 +49,46 @@ export default function CommitteeDetail() {
     }
   };
 
+  const silentRefresh = async () => {
+    try {
+      const res = await api.get(`/committees/${id}`);
+      if (res.data?.success) {
+        setData(res.data);
+      }
+    } catch {
+      // silent background refresh
+    }
+  };
+
   useEffect(() => {
     loadDetail();
+
+    // Auto-poll every 3.5s to show live bids without page refresh
+    const interval = setInterval(() => {
+      silentRefresh();
+    }, 3500);
+
+    return () => clearInterval(interval);
   }, [id]);
+
+  const handleQuickApproveBid = async (bid, scheduleMonthNo) => {
+    if (!window.confirm(`Approve top bid of ₹${parseFloat(bid.bid_amount).toLocaleString('en-IN')} by ${bid.member_name} for Month ${scheduleMonthNo}?\n\nThis will set ${bid.member_name} as the winner and calculate payout accordingly.`)) {
+      return;
+    }
+    setApprovingBidId(bid.id);
+    setErrorMsg('');
+    try {
+      const res = await api.post(`/committees/schedules/bids/${encodeId(bid.id)}/approve`);
+      if (res.data?.success) {
+        setSuccessMsg(res.data.message || 'Bid approved successfully!');
+        silentRefresh();
+      }
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Failed to approve bid');
+    } finally {
+      setApprovingBidId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -222,7 +261,7 @@ export default function CommitteeDetail() {
                 <th className="py-3 px-3 text-right">Deduction (₹)</th>
                 <th className="py-3 px-3 text-right">Net Payout (₹)</th>
                 <th className="py-3 px-3 text-right">Kist / Member (₹)</th>
-                <th className="py-3 px-4">Winner Member</th>
+                <th className="py-3 px-4">Winner / Live Bids</th>
                 <th className="py-3 px-3 text-center">Draw Date</th>
                 <th className="py-3 px-3 text-center">Disbursement</th>
                 <th className="py-3 px-3 text-center">Payments</th>
@@ -276,12 +315,56 @@ export default function CommitteeDetail() {
                       ₹{parseFloat(s.installment_per_member).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
 
-                    {/* Winner */}
+                    {/* Winner / Live Bids */}
                     <td className="py-3 px-4 font-sans whitespace-nowrap">
                       {s.winner_name ? (
                         <div className="flex items-center gap-1.5">
-                          <Award className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                          <span className="font-bold text-slate-900">{s.winner_name}</span>
+                          <Award className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          <div>
+                            <span className="font-bold text-slate-900">{s.winner_name}</span>
+                            {s.is_custom_bid ? (
+                              <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 inline-block">
+                                Auction Winner
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : s.bids && s.bids.length > 0 ? (
+                        <div className="space-y-1.5 py-0.5">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-300 text-orange-950 shadow-xs">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
+                            </span>
+                            <span className="font-extrabold text-xs font-mono text-orange-700">
+                              ₹{parseFloat(s.bids[0].bid_amount).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                            </span>
+                            <span className="text-xs font-bold text-slate-900">
+                              ({s.bids[0].member_name})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleQuickApproveBid(s.bids[0], s.month_no)}
+                              disabled={isCompleted || approvingBidId === s.bids[0].id}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg shadow-xs hover:shadow transition disabled:opacity-50 cursor-pointer"
+                              title={`Approve ₹${parseFloat(s.bids[0].bid_amount).toLocaleString('en-IN')} bid by ${s.bids[0].member_name}`}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              {approvingBidId === s.bids[0].id ? 'Approving...' : 'Approve (स्वीकार करें)'}
+                            </button>
+
+                            {s.bids.length > 1 && (
+                              <button
+                                onClick={() => setActiveBiddingSchedule(s)}
+                                className="text-[10px] text-orange-600 hover:text-orange-700 font-bold underline cursor-pointer"
+                                title="View all bids"
+                              >
+                                +{s.bids.length - 1} more
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ) : (
                         <span className="text-slate-400 italic text-[11px]">Pending Draw</span>
@@ -337,10 +420,15 @@ export default function CommitteeDetail() {
                         <button
                           onClick={() => setActiveBiddingSchedule(s)}
                           disabled={isCompleted}
-                          className="p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition disabled:opacity-40"
-                          title="Auction Bidding & Deduction"
+                          className="relative p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition disabled:opacity-40"
+                          title={`Auction Bidding & Deduction (${s.bids?.length || 0} bids)`}
                         >
                           <Gavel className="w-4 h-4" />
+                          {s.bids && s.bids.length > 0 && !s.winner_name && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white shadow-xs">
+                              {s.bids.length}
+                            </span>
+                          )}
                         </button>
 
                         {/* Payout Button */}
