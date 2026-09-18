@@ -1,44 +1,36 @@
-FROM php:8.3-apache
+# Multi-stage build for Node.js + React.js
+FROM node:20-alpine AS builder
 
-# Install required system packages and PHP extensions
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libpq-dev \
-    libsqlite3-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql pdo_pgsql pdo_sqlite zip bcmath opcache
+WORKDIR /app
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Copy root and subfolder package definitions
+COPY package.json ./
+COPY node-backend/package*.json ./node-backend/
+COPY react-frontend/package*.json ./react-frontend/
 
-# Configure Apache Document Root to point to Laravel's public directory
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/conf-available/*.conf
+# Install dependencies
+RUN npm --prefix node-backend install
+RUN npm --prefix react-frontend install
 
-# Set working directory
-WORKDIR /var/www/html
+# Copy source code
+COPY node-backend ./node-backend
+COPY react-frontend ./react-frontend
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Build React frontend
+RUN npm --prefix react-frontend run build
 
-# Copy application files
-COPY . .
+# Production runner stage
+FROM node:20-alpine AS runner
 
-# Install PHP dependencies (use --no-scripts to ensure build never fails when env is unset)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+WORKDIR /app
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENV NODE_ENV=production
+ENV PORT=10000
 
-EXPOSE 80
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node-backend ./node-backend
+COPY --from=builder /app/react-frontend/dist ./react-frontend/dist
 
-CMD ["docker-entrypoint.sh"]
+EXPOSE 10000
+
+CMD ["node", "node-backend/src/server.js"]

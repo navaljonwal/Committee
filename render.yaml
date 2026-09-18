@@ -1,39 +1,27 @@
 services:
   - type: web
     name: chitfund-pro
-    env: docker
-    dockerfilePath: ./Dockerfile
+    env: node
     plan: free
     region: oregon
+    buildCommand: npm run render-build
+    startCommand: npm run render-start
     envVars:
-      - key: APP_NAME
-        value: "ChitFund Pro"
-      - key: APP_ENV
+      - key: NODE_ENV
         value: production
-      - key: APP_DEBUG
-        value: "false"
-      - key: APP_KEY
-        value: base64:GzW9WCh4BHyq8L3dpvZeFYB2swWpTfUQJ9j6DRPZv04=
-      - key: APP_URL
-        value: https://chitfund-pro.onrender.com
-      - key: DB_CONNECTION
-        value: pgsql
-      - key: DB_HOST
-        value: ep-odd-resonance-axbfdvp6-pooler.c-4.us-east-2.aws.neon.tech
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_DATABASE
-        value: neondb
-      - key: DB_USERNAME
-        value: neondb_owner
-      - key: DB_PASSWORD
-        value: npg_LM9pzEqlxwI5
-      - key: DB_SSLMODE
-        value: require
+      - key: PORT
+        value: 10000
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_LM9pzEqlxwI5@ep-odd-resonance-axbfdvp6-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require
-      - key: SESSION_DRIVER
-        value: file
-      - key: CACHE_STORE
-        value: file
-
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
