@@ -17,6 +17,7 @@ import committeeRoutes from './routes/committeeRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import memberPortalRoutes from './routes/memberPortalRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import reminderRoutes from './routes/reminderRoutes.js';
 
 dotenv.config();
 
@@ -103,6 +104,7 @@ app.use('/api/committees', committeeRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/member', memberPortalRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 // Static files for React Frontend (Production / Fullstack Deployment)
 const distPath = path.resolve(__dirname, '../../react-frontend/dist');

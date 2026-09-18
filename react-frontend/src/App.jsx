@@ -14,6 +14,7 @@ import MemberDashboard from './pages/MemberDashboard';
 import MemberCommittee from './pages/MemberCommittee';
 import PrintView from './pages/PrintView';
 import ProfileSettings from './pages/ProfileSettings';
+import Reminders from './pages/Reminders';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -98,6 +99,12 @@ export default function App() {
               <Route path="/profile" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <ProfileSettings />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/reminders" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Reminders />
                 </ProtectedRoute>
               } />
 

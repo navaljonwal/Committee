@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -9,14 +9,31 @@ import {
   Shield, 
   LayoutDashboard,
   Menu,
-  X
+  X,
+  BellRing
 } from 'lucide-react';
+import api from '../api/client';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [reminderCount, setReminderCount] = useState(0);
+
+  // Fetch reminder count for badge
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return;
+    const fetchCount = async () => {
+      try {
+        const res = await api.get('/reminders');
+        if (res.data.success) setReminderCount(res.data.counts?.total || 0);
+      } catch {}
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000); // refresh every 60s
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -99,6 +116,25 @@ export default function Navbar() {
                   <Users className="w-4 h-4" />
                   Members Directory
                 </Link>
+
+                <Link
+                  to="/reminders"
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 relative ${
+                    isActive('/reminders') 
+                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-xs' 
+                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50'
+                  }`}
+                >
+                  <span className="relative">
+                    <BellRing className="w-4 h-4" />
+                    {reminderCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                        {reminderCount > 9 ? '9+' : reminderCount}
+                      </span>
+                    )}
+                  </span>
+                  Reminders
+                </Link>
               </>
             ) : (
               <>
@@ -119,6 +155,22 @@ export default function Navbar() {
 
           {/* User Info & Actions */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {isAdmin && (
+              <Link
+                to="/reminders"
+                className={`relative p-2 rounded-xl text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition ${
+                  isActive('/reminders') ? 'text-orange-600 bg-orange-50 border border-orange-200' : ''
+                }`}
+                title="Reminder Center"
+              >
+                <BellRing className="w-4 h-4" />
+                {reminderCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-white">
+                    {reminderCount > 9 ? '9+' : reminderCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 to="/profile"

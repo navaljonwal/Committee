@@ -148,6 +148,25 @@ export async function initializeDatabase() {
       console.log('✅ Default admin user created successfully.');
     }
 
+    // Reminders table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reminders (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        title varchar(255) NOT NULL,
+        description text DEFAULT NULL,
+        due_date date DEFAULT NULL,
+        reminder_type enum('payment','draw','custom','urgent') NOT NULL DEFAULT 'custom',
+        status enum('active','done') NOT NULL DEFAULT 'active',
+        committee_id bigint(20) unsigned DEFAULT NULL,
+        created_by bigint(20) unsigned DEFAULT NULL,
+        created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY reminders_committee_id (committee_id),
+        KEY reminders_created_by (created_by)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('✅ Database schema verified and ready.');
     return true;
   } catch (error) {
@@ -155,3 +174,4 @@ export async function initializeDatabase() {
     return false;
   }
 }
+
