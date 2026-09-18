@@ -383,6 +383,11 @@ export async function updateWinner(req, res) {
     const { scheduleId } = req.params;
     const { member_id, draw_date } = req.body;
 
+    // Validate scheduleId is a number to prevent injection
+    if (!Number.isInteger(Number(scheduleId))) {
+      return res.status(400).json({ success: false, message: 'Invalid schedule ID' });
+    }
+
     const [schedules] = await pool.query(`
       SELECT cs.*, c.status as committee_status 
       FROM committee_schedules cs 
@@ -398,18 +403,23 @@ export async function updateWinner(req, res) {
       return res.status(422).json({ success: false, message: 'This committee is Completed & Closed. Winner cannot be updated.' });
     }
 
+    // Build safe parameterized update — only whitelisted fields
     const updates = ['updated_at = NOW()'];
     const params = [];
 
     if (member_id !== undefined) {
       updates.push('member_id = ?');
-      params.push(member_id || null);
+      params.push(member_id === null || member_id === '' ? null : parseInt(member_id, 10));
     }
     if (draw_date) {
+      // Validate date format (YYYY-MM-DD)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(draw_date)) {
+        return res.status(422).json({ success: false, message: 'Invalid date format. Use YYYY-MM-DD.' });
+      }
       updates.push('draw_date = ?');
       params.push(draw_date);
     }
-    params.push(scheduleId);
+    params.push(Number(scheduleId));
 
     await pool.query(`UPDATE committee_schedules SET ${updates.join(', ')} WHERE id = ?`, params);
 
@@ -418,7 +428,8 @@ export async function updateWinner(req, res) {
       message: `Draw winner updated for Month ${schedules[0].month_no}`
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('updateWinner error:', error);
+    return res.status(500).json({ success: false, message: 'Server error updating winner' });
   }
 }
 

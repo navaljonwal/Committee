@@ -16,7 +16,11 @@ export async function authenticate(req, res, next) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kameti_jwt_secret_super_secure_key_2026');
+    const decoded = jwt.verify(
+      token, 
+      process.env.JWT_SECRET || 'kameti_jwt_secret_super_secure_key_2026',
+      { algorithms: ['HS256'] }
+    );
     
     // Fetch fresh user from DB
     const [rows] = await pool.query(

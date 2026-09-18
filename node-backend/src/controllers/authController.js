@@ -6,11 +6,20 @@ export async function login(req, res) {
   try {
     const { identity, password } = req.body;
 
+    // Input validation
     if (!identity || !password) {
       return res.status(422).json({
         success: false,
         message: 'Please provide Email, Phone, or Name and Password'
       });
+    }
+
+    // Sanitize & enforce type — prevent oversized payloads slipping through
+    if (typeof identity !== 'string' || typeof password !== 'string') {
+      return res.status(422).json({ success: false, message: 'Invalid input format' });
+    }
+    if (identity.length > 255 || password.length > 128) {
+      return res.status(422).json({ success: false, message: 'Input too long' });
     }
 
     const cleanIdentity = identity.trim();
@@ -63,10 +72,12 @@ export async function login(req, res) {
     );
 
     // Set cookie for browser sessions
+    // secure: true on production (HTTPS), false only on local HTTP
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
-      secure: false, // local development
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -87,8 +98,8 @@ export async function login(req, res) {
     console.error('Login error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error during authentication',
-      error: error.message
+      message: 'Server error during authentication'
+      // Never expose error.message to client in production — prevents information leakage
     });
   }
 }

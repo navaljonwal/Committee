@@ -2,11 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { testConnection } from './config/db.js';
 import { initializeDatabase } from './config/initDb.js';
+import { sanitizeInputs } from './middleware/sanitize.js';
 
 import authRoutes from './routes/authRoutes.js';
 import memberRoutes from './routes/memberRoutes.js';
@@ -23,22 +26,75 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS setup
+// Security: Hide technological fingerprint
+app.disable('x-powered-by');
+
+// Security: HTTP Security Headers (XSS, Clickjacking, MIME sniffing protection)
+app.use(helmet({
+  contentSecurityPolicy: false, // Allows bundled SPA assets & fonts to load seamlessly
+  crossOriginEmbedderPolicy: false
+}));
+
+// Security: Rate limiting to prevent brute-force attacks on login
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Max 20 attempts per IP
+  message: {
+    success: false,
+    message: 'Too many authentication attempts. Please try again after 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Security: General API rate limiting against DDoS & scraping
+const apiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 600, // Sufficient for live auction polling while preventing abuse
+  message: {
+    success: false,
+    message: 'Too many API requests from your network. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// CORS setup — strict origin whitelist on production
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : null;
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    // In development (no CORS_ORIGIN set), allow all
+    if (!allowedOrigins) return callback(null, true);
+    // Strict whitelist check in production
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Security: Payload size limits to protect from Buffer overflow / payload DDoS
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
+
+// Security: Sanitize all inputs (XSS, script injection, prototype pollution)
+app.use(sanitizeInputs);
 
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString(), message: 'Kameti Node.js Backend is running' });
 });
+
+// Apply rate limiters
+app.use('/api/', apiRateLimiter);
+app.use('/api/auth/login', authRateLimiter);
 
 // API Routes
 app.use('/api/auth', authRoutes);
