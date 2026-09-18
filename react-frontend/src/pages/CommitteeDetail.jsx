@@ -18,6 +18,7 @@ import api from '../api/client';
 import WinnerModal from '../components/WinnerModal';
 import PayoutModal from '../components/PayoutModal';
 import BiddingModal from '../components/BiddingModal';
+import { encodeId } from '../utils/hashids';
 
 export default function CommitteeDetail() {
   const { id } = useParams();
@@ -306,7 +307,7 @@ export default function CommitteeDetail() {
                     {/* Payment stats */}
                     <td className="py-3 px-3 text-center font-sans whitespace-nowrap">
                       <Link
-                        to={`/schedules/${s.id}/payments`}
+                        to={`/schedules/${encodeId(s.id)}/payments`}
                         className={`text-[11px] px-2.5 py-1 rounded-lg border font-bold inline-flex items-center gap-1 transition ${
                           allPaid
                             ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'

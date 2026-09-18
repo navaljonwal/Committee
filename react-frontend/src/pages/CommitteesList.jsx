@@ -13,6 +13,7 @@ import {
   Edit
 } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function CommitteesList() {
   const [data, setData] = useState({ stats: {}, committees: [], members: [] });
@@ -44,7 +45,7 @@ export default function CommitteesList() {
     }
 
     try {
-      const res = await api.delete(`/committees/${id}`);
+      const res = await api.delete(`/committees/${encodeId(id)}`);
       if (res.data.success) {
         setSuccessMsg(res.data.message);
         loadCommittees();
@@ -263,7 +264,7 @@ export default function CommitteesList() {
                   <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <Link
-                        to={`/committees/${c.id}/edit`}
+                        to={`/committees/${encodeId(c.id)}/edit`}
                         className="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition"
                         title="Edit Committee Parameters"
                       >
@@ -271,7 +272,7 @@ export default function CommitteesList() {
                       </Link>
 
                       <a
-                        href={`/api/committees/${c.id}/export/csv`}
+                        href={`/api/committees/${encodeId(c.id)}/export/csv`}
                         className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition"
                         title="Download Schedule CSV"
                         download
@@ -291,7 +292,7 @@ export default function CommitteesList() {
                     </div>
 
                     <Link
-                      to={`/committees/${c.id}`}
+                      to={`/committees/${encodeId(c.id)}`}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold transition shadow-xs"
                     >
                       View Schedule <ArrowUpRight className="w-3.5 h-3.5" />

@@ -13,6 +13,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 import { useAuth } from '../context/AuthContext';
 
 export default function MemberDashboard() {
@@ -141,7 +142,7 @@ export default function MemberDashboard() {
 
                   <div className="mt-6 pt-4 border-t border-slate-100">
                     <Link
-                      to={`/member/committees/${c.id}`}
+                      to={`/member/committees/${encodeId(c.id)}`}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-lg shadow-orange-600/25 active:scale-[0.98]"
                     >
                       <Gavel className="w-4 h-4" /> Enter Live Bidding Room

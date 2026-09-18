@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Award, Calendar } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function WinnerModal({ isOpen, onClose, schedule, members, onSaveSuccess }) {
   if (!isOpen || !schedule) return null;
@@ -20,7 +21,7 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
     setErrorMsg('');
 
     try {
-      const res = await api.post(`/committees/schedules/${schedule.id}/winner`, {
+      const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/winner`, {
         member_id: memberId ? parseInt(memberId, 10) : null,
         draw_date: drawDate || null
       });

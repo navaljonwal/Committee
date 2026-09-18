@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, IndianRupee, Banknote, Smartphone, AlertCircle } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }) {
   if (!isOpen || !schedule) return null;
@@ -94,7 +95,7 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
         payout_remarks: remarks
       };
 
-      const res = await api.post(`/committees/schedules/${schedule.id}/payout`, payload);
+      const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/payout`, payload);
       if (res.data.success) {
         onSaveSuccess(res.data.message);
         onClose();

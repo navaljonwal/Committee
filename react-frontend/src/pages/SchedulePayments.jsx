@@ -13,6 +13,7 @@ import {
   Award
 } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function SchedulePayments() {
   const { scheduleId } = useParams();
@@ -52,7 +53,7 @@ export default function SchedulePayments() {
 
   const handleTogglePayment = async (paymentId) => {
     try {
-      const res = await api.post(`/payments/${paymentId}/toggle`);
+      const res = await api.post(`/payments/${encodeId(paymentId)}/toggle`);
       if (res.data.success) {
         setSuccessMsg(res.data.message);
         loadPayments();
@@ -89,7 +90,7 @@ export default function SchedulePayments() {
 
   const handleSavePenalty = async (paymentId) => {
     try {
-      const res = await api.post(`/payments/${paymentId}/penalty`, {
+      const res = await api.post(`/payments/${encodeId(paymentId)}/penalty`, {
         penalty_amount: parseFloat(penaltyAmount || 0),
         remarks: penaltyRemarks
       });
@@ -128,7 +129,7 @@ export default function SchedulePayments() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
-            to={`/committees/${schedule.committee_id}`}
+            to={`/committees/${encodeId(schedule.committee_id)}`}
             className="p-2.5 bg-white border border-slate-200 shadow-xs rounded-xl text-slate-500 hover:text-orange-600 hover:border-orange-200 transition"
           >
             <ArrowLeft className="w-5 h-5" />

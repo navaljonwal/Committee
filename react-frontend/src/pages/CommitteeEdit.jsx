@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Users, IndianRupee, Calendar, Check, AlertCircle } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function CommitteeEdit() {
   const { id } = useParams();

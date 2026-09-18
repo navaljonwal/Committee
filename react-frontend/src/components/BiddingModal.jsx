@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Gavel, Check, Lock, AlertCircle, ArrowUpRight } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess }) {
   if (!isOpen || !schedule) return null;
@@ -19,7 +20,7 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
     setErrorMsg('');
 
     try {
-      const res = await api.post(`/committees/schedules/${schedule.id}/bid`, {
+      const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/bid`, {
         custom_deduction_amount: parseFloat(customDeduction || 0)
       });
       if (res.data.success) {
@@ -41,7 +42,7 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
     setErrorMsg('');
 
     try {
-      const res = await api.post(`/committees/schedules/bids/${bidId}/approve`);
+      const res = await api.post(`/committees/schedules/bids/${encodeId(bidId)}/approve`);
       if (res.data.success) {
         onSaveSuccess(res.data.message);
         onClose();
@@ -61,7 +62,7 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
     setErrorMsg('');
 
     try {
-      const res = await api.post(`/committees/schedules/${schedule.id}/lock-default`);
+      const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/lock-default`);
       if (res.data.success) {
         onSaveSuccess(res.data.message);
         onClose();

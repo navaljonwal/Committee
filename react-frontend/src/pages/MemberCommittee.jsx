@@ -15,6 +15,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import api from '../api/client';
+import { encodeId } from '../utils/hashids';
 
 export default function MemberCommittee() {
   const { id } = useParams();
@@ -83,7 +84,7 @@ export default function MemberCommittee() {
     setSuccessMsg('');
 
     try {
-      const res = await api.post(`/member/schedules/${activeBidScheduleId}/bid`, {
+      const res = await api.post(`/member/schedules/${encodeId(activeBidScheduleId)}/bid`, {
         bid_amount: parseFloat(bidAmount),
         remarks: bidRemarks
       });
