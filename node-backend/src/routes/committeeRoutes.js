@@ -12,7 +12,9 @@ import {
   updateAuctionBid,
   lockFormulaDefault,
   approveMemberBid,
-  updateMembersSync
+  updateMembersSync,
+  toggleFutureVisibility,
+  toggleScheduleInstallmentVisibility
 } from '../controllers/committeeController.js';
 import { exportCsv } from '../controllers/exportController.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
@@ -46,5 +48,9 @@ router.post('/schedules/bids/:bidId/approve', decodeHash('bidId'), approveMember
 
 // Export CSV
 router.get('/:id/export/csv', decodeHash('id'), exportCsv);
+
+// Member visibility toggles
+router.post('/:id/toggle-future-visibility', decodeHash('id'), toggleFutureVisibility);
+router.post('/schedules/:scheduleId/toggle-installment-visibility', decodeHash('scheduleId'), toggleScheduleInstallmentVisibility);
 
 export default router;

@@ -182,6 +182,27 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Ensure show_future_installments and is_installment_visible columns exist
+    try {
+      await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS show_future_installments boolean DEFAULT false');
+    } catch (colErr) {
+      try {
+        await pool.query('ALTER TABLE committees ADD COLUMN show_future_installments tinyint(1) DEFAULT 0');
+      } catch (e) {
+        // column already exists
+      }
+    }
+
+    try {
+      await pool.query('ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS is_installment_visible boolean DEFAULT false');
+    } catch (colErr) {
+      try {
+        await pool.query('ALTER TABLE committee_schedules ADD COLUMN is_installment_visible tinyint(1) DEFAULT 0');
+      } catch (e) {
+        // column already exists
+      }
+    }
+
     console.log('✅ Database schema verified and ready.');
     return true;
   } catch (error) {

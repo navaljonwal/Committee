@@ -210,12 +210,20 @@ export default function MemberCommittee() {
   if (schedules && myPayments) {
     for (const s of schedules) {
       const pList = myPayments[s.id] || [];
+      const isPastOrDue = !currentPendingSchedule || s.month_no <= currentPendingSchedule.month_no;
+      const isSchedVisible = 
+        isPastOrDue || 
+        Boolean(s.winner_name) || 
+        Boolean(s.is_custom_bid) || 
+        Boolean(committee.show_future_installments) || 
+        Boolean(s.is_installment_visible);
+
       for (const p of pList) {
         const amt = parseFloat(p.amount_paid || 0);
         const pen = parseFloat(p.penalty_amount || 0);
         if (p.payment_status === 'paid') {
           totalPaidAmount += amt;
-        } else {
+        } else if (isSchedVisible) {
           totalPendingAmount += (amt + pen);
           totalPenaltyAmount += pen;
         }
@@ -393,11 +401,15 @@ export default function MemberCommittee() {
             </div>
 
             <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 shadow-xs">
-              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">Installments Pending</span>
+              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
+                {committee.show_future_installments ? 'Installments Pending' : 'Current Due Amount'}
+              </span>
               <span className="text-xl font-black text-rose-600 font-mono mt-1 block">
                 ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
-              <span className="text-xs text-amber-700 mt-0.5 block">{pendingMonthsCount} Month(s) Remaining</span>
+              <span className="text-xs text-amber-700 mt-0.5 block">
+                {pendingMonthsCount} Month(s) Remaining {!committee.show_future_installments && '• Next months on draw'}
+              </span>
             </div>
           </div>
 
@@ -447,6 +459,17 @@ export default function MemberCommittee() {
                     const anyPaid = hasPayments && payments.some(p => p.payment_status === 'paid');
                     const paidDate = payments.find(p => p.payment_date)?.payment_date;
 
+                    // Visibility for this month's installment details:
+                    // Paid months, current due month, and rounds with finalized winners/bids are always visible.
+                    // Future upcoming rounds are hidden unless enabled by admin.
+                    const isInstallmentVisible = 
+                      allPaid || 
+                      isCurrentDue || 
+                      Boolean(s.winner_name) || 
+                      Boolean(s.is_custom_bid) || 
+                      Boolean(committee.show_future_installments) || 
+                      Boolean(s.is_installment_visible);
+
                     return (
                       <tr
                         key={s.id}
@@ -483,22 +506,36 @@ export default function MemberCommittee() {
 
                         {/* Installment Amount */}
                         <td className="py-3.5 px-4 text-right font-medium">
-                          <div>₹{totalBaseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                          {seatsCount > 1 && (
-                            <div className="text-[10px] text-slate-400 font-normal">
-                              (₹{parseFloat(s.installment_per_member).toLocaleString('en-IN')} × {seatsCount})
-                            </div>
+                          {isInstallmentVisible ? (
+                            <>
+                              <div>₹{totalBaseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                              {seatsCount > 1 && (
+                                <div className="text-[10px] text-slate-400 font-normal">
+                                  (₹{parseFloat(s.installment_per_member).toLocaleString('en-IN')} × {seatsCount})
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-mono font-bold text-sm">—</span>
                           )}
                         </td>
 
                         {/* Penalty */}
                         <td className="py-3.5 px-4 text-right text-amber-600 font-semibold">
-                          {totalPenalty > 0 ? `₹${totalPenalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                          {isInstallmentVisible ? (
+                            totalPenalty > 0 ? `₹${totalPenalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'
+                          ) : (
+                            <span className="text-slate-400 font-mono font-bold text-sm">—</span>
+                          )}
                         </td>
 
                         {/* Total Due */}
-                        <td className={`py-3.5 px-4 text-right font-black ${allPaid ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          ₹{totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <td className={`py-3.5 px-4 text-right font-black ${allPaid ? 'text-emerald-700' : isInstallmentVisible ? 'text-rose-600' : 'text-slate-400'}`}>
+                          {isInstallmentVisible ? (
+                            `₹${totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                          ) : (
+                            <span className="text-slate-400 font-mono font-bold text-sm">—</span>
+                          )}
                         </td>
 
                         {/* Status */}
@@ -515,9 +552,13 @@ export default function MemberCommittee() {
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
                               DUE NOW
                             </span>
-                          ) : (
+                          ) : isInstallmentVisible ? (
                             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
                               PENDING
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                              UPCOMING
                             </span>
                           )}
                         </td>
@@ -526,8 +567,10 @@ export default function MemberCommittee() {
                         <td className="py-3.5 px-4 font-sans text-xs text-slate-600">
                           {s.winner_name ? (
                             <span className="text-slate-800 font-medium">Winner: <strong>{s.winner_name}</strong></span>
-                          ) : (
+                          ) : isInstallmentVisible ? (
                             <span className="text-slate-400 italic">Round open</span>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Decided after draw</span>
                           )}
                         </td>
                       </tr>
@@ -536,6 +579,15 @@ export default function MemberCommittee() {
                 </tbody>
               </table>
             </div>
+
+            {!committee.show_future_installments && (
+              <div className="text-[11px] text-slate-600 bg-orange-50/50 border border-orange-200/80 rounded-xl p-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+                <span>
+                  <strong>Notice:</strong> Next months' installments and totals (—) will be decided during their respective monthly auction draws.
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

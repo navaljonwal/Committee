@@ -853,3 +853,52 @@ export async function updateMembersSync(req, res) {
     conn.release();
   }
 }
+
+export async function toggleFutureVisibility(req, res) {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query('SELECT show_future_installments FROM committees WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Committee not found' });
+    }
+    const currentVal = Boolean(rows[0].show_future_installments);
+    const newVal = !currentVal;
+
+    await pool.query('UPDATE committees SET show_future_installments = ? WHERE id = ?', [newVal, id]);
+
+    return res.json({
+      success: true,
+      show_future_installments: newVal,
+      message: newVal 
+        ? 'Future installments are now VISIBLE to members in their ledger.' 
+        : 'Future installments are now HIDDEN from members in their ledger.'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function toggleScheduleInstallmentVisibility(req, res) {
+  try {
+    const { scheduleId } = req.params;
+    const [rows] = await pool.query('SELECT is_installment_visible, month_no FROM committee_schedules WHERE id = ?', [scheduleId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+    const currentVal = Boolean(rows[0].is_installment_visible);
+    const newVal = !currentVal;
+
+    await pool.query('UPDATE committee_schedules SET is_installment_visible = ? WHERE id = ?', [newVal, scheduleId]);
+
+    return res.json({
+      success: true,
+      is_installment_visible: newVal,
+      message: newVal 
+        ? `Month ${rows[0].month_no} installment is now visible to members.` 
+        : `Month ${rows[0].month_no} installment is now hidden from members.`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

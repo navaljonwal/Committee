@@ -13,7 +13,9 @@ import {
   Edit, 
   AlertCircle,
   ExternalLink,
-  Check
+  Check,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import api from '../api/client';
 import WinnerModal from '../components/WinnerModal';
@@ -29,6 +31,7 @@ export default function CommitteeDetail() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [approvingBidId, setApprovingBidId] = useState(null);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   // Modals state
   const [activeWinnerSchedule, setActiveWinnerSchedule] = useState(null);
@@ -87,6 +90,35 @@ export default function CommitteeDetail() {
       setErrorMsg(err.response?.data?.message || 'Failed to approve bid');
     } finally {
       setApprovingBidId(null);
+    }
+  };
+
+  const handleToggleFutureVisibility = async () => {
+    setTogglingVisibility(true);
+    setErrorMsg('');
+    try {
+      const res = await api.post(`/committees/${encodeId(id)}/toggle-future-visibility`);
+      if (res.data?.success) {
+        setSuccessMsg(res.data.message);
+        silentRefresh();
+      }
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Failed to update visibility');
+    } finally {
+      setTogglingVisibility(false);
+    }
+  };
+
+  const handleToggleScheduleVisibility = async (schedId) => {
+    setErrorMsg('');
+    try {
+      const res = await api.post(`/committees/schedules/${encodeId(schedId)}/toggle-installment-visibility`);
+      if (res.data?.success) {
+        setSuccessMsg(res.data.message);
+        silentRefresh();
+      }
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Failed to update month visibility');
     }
   };
 
@@ -247,6 +279,56 @@ export default function CommitteeDetail() {
               Review monthly payouts, manage draw winners, auction deductions, disbursements, and collection ledgers
             </p>
           </div>
+        </div>
+
+        {/* Member Visibility Control Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-2 rounded-xl flex-shrink-0 ${committee.show_future_installments ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+              {committee.show_future_installments ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900">Member Payment Ledger Visibility:</span>
+                {committee.show_future_installments ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    All Future Installments Visible to Members
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 border border-slate-300">
+                    Next Months Hidden from Members (Default)
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {committee.show_future_installments
+                  ? 'Members can see estimated installment & total amounts for all future rounds in their ledger.'
+                  : 'Members only see Month & Draw Date for upcoming rounds. Installments show "—" until draw is done or unlocked.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggleFutureVisibility}
+            disabled={togglingVisibility || isCompleted}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer disabled:opacity-40 ${
+              committee.show_future_installments
+                ? 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                : 'bg-orange-600 hover:bg-orange-700 text-white'
+            }`}
+          >
+            {committee.show_future_installments ? (
+              <>
+                <EyeOff className="w-3.5 h-3.5" />
+                Hide Future from Members
+              </>
+            ) : (
+              <>
+                <Eye className="w-3.5 h-3.5" />
+                Show Future to Members
+              </>
+            )}
+          </button>
         </div>
 
         <div className="sm:hidden text-[10px] text-slate-400 font-semibold px-1 flex items-center gap-1">
@@ -439,6 +521,24 @@ export default function CommitteeDetail() {
                           title="Disburse Payout"
                         >
                           <Banknote className="w-4 h-4" />
+                        </button>
+
+                        {/* Member Visibility Toggle for this Month */}
+                        <button
+                          onClick={() => handleToggleScheduleVisibility(s.id)}
+                          disabled={isCompleted}
+                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition disabled:opacity-40 cursor-pointer"
+                          title={
+                            s.is_installment_visible || committee.show_future_installments
+                              ? `Month ${s.month_no} installment is VISIBLE to members. Click to toggle.`
+                              : `Month ${s.month_no} installment is HIDDEN from members. Click to reveal.`
+                          }
+                        >
+                          {s.is_installment_visible || committee.show_future_installments ? (
+                            <Eye className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-slate-400" />
+                          )}
                         </button>
 
                       </div>
