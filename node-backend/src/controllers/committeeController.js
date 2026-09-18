@@ -857,6 +857,13 @@ export async function updateMembersSync(req, res) {
 export async function toggleFutureVisibility(req, res) {
   try {
     const { id } = req.params;
+
+    try {
+      await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS show_future_installments boolean DEFAULT false');
+    } catch (colErr) {
+      // ignore
+    }
+
     const [rows] = await pool.query('SELECT show_future_installments FROM committees WHERE id = ?', [id]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Committee not found' });
@@ -865,6 +872,15 @@ export async function toggleFutureVisibility(req, res) {
     const newVal = !currentVal;
 
     await pool.query('UPDATE committees SET show_future_installments = ? WHERE id = ?', [newVal, id]);
+
+    try {
+      const livePayload = await buildLiveBidsPayload(id);
+      if (livePayload) {
+        broadcastLiveBids(id, livePayload);
+      }
+    } catch (bErr) {
+      // ignore
+    }
 
     return res.json({
       success: true,
@@ -881,7 +897,14 @@ export async function toggleFutureVisibility(req, res) {
 export async function toggleScheduleInstallmentVisibility(req, res) {
   try {
     const { scheduleId } = req.params;
-    const [rows] = await pool.query('SELECT is_installment_visible, month_no FROM committee_schedules WHERE id = ?', [scheduleId]);
+
+    try {
+      await pool.query('ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS is_installment_visible boolean DEFAULT false');
+    } catch (colErr) {
+      // ignore
+    }
+
+    const [rows] = await pool.query('SELECT cs.is_installment_visible, cs.month_no, cs.committee_id FROM committee_schedules cs WHERE cs.id = ?', [scheduleId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Schedule not found' });
     }
@@ -889,6 +912,15 @@ export async function toggleScheduleInstallmentVisibility(req, res) {
     const newVal = !currentVal;
 
     await pool.query('UPDATE committee_schedules SET is_installment_visible = ? WHERE id = ?', [newVal, scheduleId]);
+
+    try {
+      const livePayload = await buildLiveBidsPayload(rows[0].committee_id);
+      if (livePayload) {
+        broadcastLiveBids(rows[0].committee_id, livePayload);
+      }
+    } catch (bErr) {
+      // ignore
+    }
 
     return res.json({
       success: true,

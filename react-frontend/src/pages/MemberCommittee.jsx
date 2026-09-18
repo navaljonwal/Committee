@@ -214,9 +214,9 @@ export default function MemberCommittee() {
       const isSchedVisible = 
         isPastOrDue || 
         Boolean(s.winner_name) || 
-        Boolean(s.is_custom_bid) || 
-        Boolean(committee.show_future_installments) || 
-        Boolean(s.is_installment_visible);
+        Boolean(s.is_custom_bid && s.custom_deduction_amount !== null && s.is_custom_bid !== '0' && s.is_custom_bid !== 0) || 
+        Boolean(committee.show_future_installments && committee.show_future_installments !== '0' && committee.show_future_installments !== 0) || 
+        Boolean(s.is_installment_visible && s.is_installment_visible !== '0' && s.is_installment_visible !== 0);
 
       for (const p of pList) {
         const amt = parseFloat(p.amount_paid || 0);
@@ -466,9 +466,9 @@ export default function MemberCommittee() {
                       allPaid || 
                       isCurrentDue || 
                       Boolean(s.winner_name) || 
-                      Boolean(s.is_custom_bid) || 
-                      Boolean(committee.show_future_installments) || 
-                      Boolean(s.is_installment_visible);
+                      Boolean(s.is_custom_bid && s.custom_deduction_amount !== null && s.is_custom_bid !== '0' && s.is_custom_bid !== 0) || 
+                      Boolean(committee.show_future_installments && committee.show_future_installments !== '0' && committee.show_future_installments !== 0) || 
+                      Boolean(s.is_installment_visible && s.is_installment_visible !== '0' && s.is_installment_visible !== 0);
 
                     return (
                       <tr

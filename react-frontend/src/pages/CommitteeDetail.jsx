@@ -97,9 +97,20 @@ export default function CommitteeDetail() {
     setTogglingVisibility(true);
     setErrorMsg('');
     try {
-      const res = await api.post(`/committees/${encodeId(id)}/toggle-future-visibility`);
+      const committeeParam = (typeof id === 'string' && !/^\d+$/.test(id)) ? id : encodeId(id);
+      const res = await api.post(`/committees/${committeeParam}/toggle-future-visibility`);
       if (res.data?.success) {
         setSuccessMsg(res.data.message);
+        setData(prev => {
+          if (!prev || !prev.committee) return prev;
+          return {
+            ...prev,
+            committee: {
+              ...prev.committee,
+              show_future_installments: res.data.show_future_installments
+            }
+          };
+        });
         silentRefresh();
       }
     } catch (err) {
@@ -112,9 +123,19 @@ export default function CommitteeDetail() {
   const handleToggleScheduleVisibility = async (schedId) => {
     setErrorMsg('');
     try {
-      const res = await api.post(`/committees/schedules/${encodeId(schedId)}/toggle-installment-visibility`);
+      const schedParam = (typeof schedId === 'string' && !/^\d+$/.test(schedId)) ? schedId : encodeId(schedId);
+      const res = await api.post(`/committees/schedules/${schedParam}/toggle-installment-visibility`);
       if (res.data?.success) {
         setSuccessMsg(res.data.message);
+        setData(prev => {
+          if (!prev || !prev.schedules) return prev;
+          return {
+            ...prev,
+            schedules: prev.schedules.map(s => 
+              s.id === schedId ? { ...s, is_installment_visible: res.data.is_installment_visible } : s
+            )
+          };
+        });
         silentRefresh();
       }
     } catch (err) {
