@@ -168,8 +168,6 @@ export default function MemberCommittee() {
   let totalPaidAmount = 0;
   let totalPendingAmount = 0;
   let totalPenaltyAmount = 0;
-  let paidRoundsCount = 0;
-  let pendingRoundsCount = 0;
 
   if (schedules && myPayments) {
     for (const s of schedules) {
@@ -179,15 +177,19 @@ export default function MemberCommittee() {
         const pen = parseFloat(p.penalty_amount || 0);
         if (p.payment_status === 'paid') {
           totalPaidAmount += amt;
-          paidRoundsCount++;
         } else {
           totalPendingAmount += (amt + pen);
           totalPenaltyAmount += pen;
-          pendingRoundsCount++;
         }
       }
     }
   }
+
+  const paidMonthsCount = schedules?.filter(s => {
+    const pList = myPayments?.[s.id] || [];
+    return pList.length > 0 && pList.every(p => p.payment_status === 'paid');
+  }).length || 0;
+  const pendingMonthsCount = (schedules?.length || 0) - paidMonthsCount;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -348,7 +350,7 @@ export default function MemberCommittee() {
               <span className="text-xl font-black text-emerald-700 font-mono mt-1 block">
                 ₹{totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
-              <span className="text-xs text-emerald-600 mt-0.5 block">{paidRoundsCount} Installment(s) Cleared</span>
+              <span className="text-xs text-emerald-600 mt-0.5 block">{paidMonthsCount} Month(s) Cleared</span>
             </div>
 
             <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 shadow-xs">
@@ -356,7 +358,7 @@ export default function MemberCommittee() {
               <span className="text-xl font-black text-rose-600 font-mono mt-1 block">
                 ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
-              <span className="text-xs text-amber-700 mt-0.5 block">{pendingRoundsCount} Installment(s) Remaining</span>
+              <span className="text-xs text-amber-700 mt-0.5 block">{pendingMonthsCount} Month(s) Remaining</span>
             </div>
           </div>
 
@@ -378,7 +380,7 @@ export default function MemberCommittee() {
                   <tr>
                     <th className="py-3 px-4">Month</th>
                     <th className="py-3 px-4">Draw Date</th>
-                    <th className="py-3 px-4 text-center">Seat #</th>
+                    <th className="py-3 px-4 text-center">Seats</th>
                     <th className="py-3 px-4 text-right">Installment (₹)</th>
                     <th className="py-3 px-4 text-right">Penalty (₹)</th>
                     <th className="py-3 px-4 text-right">Total (₹)</th>
@@ -391,83 +393,106 @@ export default function MemberCommittee() {
                     const payments = myPayments?.[s.id] || [];
                     const isCurrentDue = s.id === currentPendingSchedule?.id;
 
-                    if (payments.length === 0) {
-                      return (
-                        <tr key={s.id} className="hover:bg-slate-50 transition">
-                          <td className="py-3 px-4 font-sans font-bold text-slate-900">Month {s.month_no}</td>
-                          <td className="py-3 px-4 font-sans text-slate-500">{s.draw_date ? formatDate(s.draw_date) : 'N/A'}</td>
-                          <td className="py-3 px-4 text-center font-sans text-slate-400">-</td>
-                          <td className="py-3 px-4 text-right font-medium">₹{parseFloat(s.installment_per_member).toLocaleString('en-IN')}</td>
-                          <td className="py-3 px-4 text-right text-slate-400">₹0.00</td>
-                          <td className="py-3 px-4 text-right font-bold">₹{parseFloat(s.installment_per_member).toLocaleString('en-IN')}</td>
-                          <td className="py-3 px-4 text-center font-sans">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Upcoming</span>
-                          </td>
-                          <td className="py-3 px-4 font-sans text-slate-400 text-[11px]">-</td>
-                        </tr>
-                      );
-                    }
+                    const hasPayments = payments.length > 0;
+                    const seatsCount = hasPayments ? payments.length : (totalSeats || 1);
+                    const totalBaseAmount = hasPayments
+                      ? payments.reduce((acc, p) => acc + parseFloat(p.amount_paid || 0), 0)
+                      : parseFloat(s.installment_per_member || 0) * seatsCount;
+                    const totalPenalty = hasPayments
+                      ? payments.reduce((acc, p) => acc + parseFloat(p.penalty_amount || 0), 0)
+                      : 0;
+                    const totalDue = totalBaseAmount + totalPenalty;
 
-                    return payments.map((p, pIndex) => {
-                      const isPaid = p.payment_status === 'paid';
-                      const totalDue = parseFloat(p.amount_paid) + parseFloat(p.penalty_amount || 0);
+                    // Status across seats for this month
+                    const allPaid = hasPayments && payments.every(p => p.payment_status === 'paid');
+                    const anyPaid = hasPayments && payments.some(p => p.payment_status === 'paid');
+                    const paidDate = payments.find(p => p.payment_date)?.payment_date;
 
-                      return (
-                        <tr
-                          key={`${s.id}-${p.id || pIndex}`}
-                          className={`transition ${
-                            isCurrentDue 
-                              ? 'bg-amber-50/50 hover:bg-amber-50 font-semibold' 
-                              : isPaid 
-                                ? 'hover:bg-emerald-50/20' 
-                                : 'hover:bg-orange-50/30'
-                          }`}
-                        >
-                          <td className="py-3 px-4 font-sans font-bold text-slate-900">
-                            Month {s.month_no}
-                          </td>
-                          <td className="py-3 px-4 font-sans text-slate-600">
-                            {s.draw_date ? formatDate(s.draw_date) : 'N/A'}
-                          </td>
-                          <td className="py-3 px-4 text-center font-sans">
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-700">
-                              Seat #{p.seat_no}
+                    return (
+                      <tr
+                        key={s.id}
+                        className={`transition ${
+                          isCurrentDue
+                            ? 'bg-amber-50/60 hover:bg-amber-50 font-semibold'
+                            : allPaid
+                              ? 'hover:bg-emerald-50/20'
+                              : 'hover:bg-orange-50/30'
+                        }`}
+                      >
+                        {/* Month */}
+                        <td className="py-3.5 px-4 font-sans font-bold text-slate-900">
+                          Month {s.month_no}
+                        </td>
+
+                        {/* Draw Date */}
+                        <td className="py-3.5 px-4 font-sans text-slate-600">
+                          {s.draw_date ? formatDate(s.draw_date) : 'N/A'}
+                        </td>
+
+                        {/* Seats */}
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          {seatsCount > 1 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-orange-50 text-orange-800 font-bold border border-orange-200 text-[11px]">
+                              {seatsCount} Seats
                             </span>
-                          </td>
-                          <td className="py-3 px-4 text-right font-medium">
-                            ₹{parseFloat(p.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3 px-4 text-right text-amber-600 font-semibold">
-                            {parseFloat(p.penalty_amount || 0) > 0 ? `₹${parseFloat(p.penalty_amount).toLocaleString('en-IN')}` : '-'}
-                          </td>
-                          <td className={`py-3 px-4 text-right font-black ${isPaid ? 'text-emerald-700' : 'text-rose-600'}`}>
-                            ₹{totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3 px-4 text-center font-sans">
-                            {isPaid ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                <Check className="w-3 h-3" /> PAID {p.payment_date ? `(${formatDate(p.payment_date)})` : ''}
-                              </span>
-                            ) : isCurrentDue ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
-                                DUE NOW
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                                PENDING
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 font-sans text-xs text-slate-600">
-                            {s.winner_name ? (
-                              <span className="text-slate-800 font-medium">Winner: <strong>{s.winner_name}</strong></span>
-                            ) : (
-                              <span className="text-slate-400 italic">Round open</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    });
+                          ) : (
+                            <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-700">
+                              Seat #{payments[0]?.seat_no || 1}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Installment Amount */}
+                        <td className="py-3.5 px-4 text-right font-medium">
+                          <div>₹{totalBaseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                          {seatsCount > 1 && (
+                            <div className="text-[10px] text-slate-400 font-normal">
+                              (₹{parseFloat(s.installment_per_member).toLocaleString('en-IN')} × {seatsCount})
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Penalty */}
+                        <td className="py-3.5 px-4 text-right text-amber-600 font-semibold">
+                          {totalPenalty > 0 ? `₹${totalPenalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+
+                        {/* Total Due */}
+                        <td className={`py-3.5 px-4 text-right font-black ${allPaid ? 'text-emerald-700' : 'text-rose-600'}`}>
+                          ₹{totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          {allPaid ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              <Check className="w-3 h-3" /> PAID {paidDate ? `(${formatDate(paidDate)})` : ''}
+                            </span>
+                          ) : anyPaid ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                              PARTIAL
+                            </span>
+                          ) : isCurrentDue ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
+                              DUE NOW
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                              PENDING
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Round Winner / Remarks */}
+                        <td className="py-3.5 px-4 font-sans text-xs text-slate-600">
+                          {s.winner_name ? (
+                            <span className="text-slate-800 font-medium">Winner: <strong>{s.winner_name}</strong></span>
+                          ) : (
+                            <span className="text-slate-400 italic">Round open</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
                   })}
                 </tbody>
               </table>
