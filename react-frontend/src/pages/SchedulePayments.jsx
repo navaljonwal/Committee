@@ -171,7 +171,7 @@ export default function SchedulePayments() {
       )}
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-slate-200 shadow-xs p-5 rounded-2xl">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paid Seats</span>
           <div className="text-2xl font-black text-emerald-600 mt-1 font-mono">
@@ -207,6 +207,9 @@ export default function SchedulePayments() {
 
       {/* Payment Records Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">
+        <div className="sm:hidden text-[10px] text-slate-400 font-semibold px-1 flex items-center gap-1">
+          ← Scroll sideways to see all payment columns →
+        </div>
         <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">

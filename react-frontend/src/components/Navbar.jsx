@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -7,13 +7,16 @@ import {
   PlusCircle, 
   LogOut, 
   Shield, 
-  LayoutDashboard
+  LayoutDashboard,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -25,14 +28,24 @@ export default function Navbar() {
   const isAdmin = user.role === 'admin';
   const isActive = (path) => location.pathname === path;
 
+  const closeMobile = () => setMobileMenuOpen(false);
+
   return (
     <nav className="no-print bg-white/95 backdrop-blur border-b border-slate-200/90 shadow-xs sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo */}
+          {/* Logo & Mobile Menu Toggle */}
           <div className="flex items-center space-x-3">
-            <Link to={isAdmin ? "/" : "/member/dashboard"} className="flex items-center space-x-2.5">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl text-slate-600 hover:text-orange-600 hover:bg-orange-50 transition border border-slate-200"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5 text-orange-600" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            <Link to={isAdmin ? "/" : "/member/dashboard"} className="flex items-center space-x-2.5" onClick={closeMobile}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
                 <Layers className="w-5 h-5 text-white" />
               </div>
@@ -47,7 +60,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Navigation Links */}
+          {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-1.5">
             {isAdmin ? (
               <>
@@ -105,7 +118,7 @@ export default function Navbar() {
           </div>
 
           {/* User Info & Actions */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {isAdmin && (
               <Link
                 to="/profile"
@@ -118,17 +131,17 @@ export default function Navbar() {
               </Link>
             )}
 
-            <div className="flex items-center space-x-2.5 pl-2 border-l border-slate-200">
-              <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 border border-orange-200 flex items-center justify-center text-xs font-bold shadow-xs">
+            <div className="flex items-center space-x-2 sm:space-x-2.5 pl-1.5 sm:pl-2 border-l border-slate-200">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-100 text-orange-700 border border-orange-200 flex items-center justify-center text-xs font-bold shadow-xs">
                 {user.name.charAt(0).toUpperCase()}
               </div>
-              <div className="hidden lg:block text-left">
-                <div className="text-xs font-bold text-slate-800 leading-tight">
+              <div className="hidden sm:block text-left">
+                <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">
                   {user.name}
                 </div>
                 <div className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">
                   <span className={`inline-block w-1.5 h-1.5 rounded-full ${isAdmin ? 'bg-orange-500' : 'bg-amber-500'}`} />
-                  {isAdmin ? 'Administrator' : 'Member'}
+                  {isAdmin ? 'Admin' : 'Member'}
                 </div>
               </div>
             </div>
@@ -144,6 +157,101 @@ export default function Navbar() {
 
         </div>
       </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-2 shadow-lg animate-in slide-in-from-top-2 duration-150">
+          <div className="pb-2 mb-2 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">{user.name}</span>
+                <span className="text-[10px] text-slate-400 capitalize">{user.role}</span>
+              </div>
+            </div>
+            {isAdmin && (
+              <Link
+                to="/profile"
+                onClick={closeMobile}
+                className="text-xs text-orange-600 font-semibold px-2 py-1 bg-orange-50 rounded-lg border border-orange-200"
+              >
+                Settings
+              </Link>
+            )}
+          </div>
+
+          {isAdmin ? (
+            <>
+              <Link
+                to="/"
+                onClick={closeMobile}
+                className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition ${
+                  isActive('/') 
+                    ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Layers className="w-4 h-4 text-orange-500" />
+                Committees Dashboard
+              </Link>
+
+              <Link
+                to="/committees/create"
+                onClick={closeMobile}
+                className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition ${
+                  isActive('/committees/create') 
+                    ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <PlusCircle className="w-4 h-4 text-orange-500" />
+                Create New Committee
+              </Link>
+
+              <Link
+                to="/members"
+                onClick={closeMobile}
+                className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition ${
+                  isActive('/members') 
+                    ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Users className="w-4 h-4 text-orange-500" />
+                Members Directory
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/member/dashboard"
+              onClick={closeMobile}
+              className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition ${
+                isActive('/member/dashboard') 
+                  ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4 text-orange-500" />
+              My Dashboard
+            </Link>
+          )}
+
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              onClick={() => {
+                closeMobile();
+                handleLogout();
+              }}
+              className="w-full px-4 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

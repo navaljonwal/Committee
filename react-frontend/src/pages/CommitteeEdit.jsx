@@ -382,14 +382,14 @@ export default function CommitteeEdit() {
           </div>
         </div>
 
-        <div className="flex items-center justify-end space-x-4">
-          <Link to={`/committees/${id}`} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
+          <Link to={`/committees/${id}`} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 text-center">
             Cancel
           </Link>
           <button
             type="submit"
             disabled={submitting}
-            className="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/25 transition disabled:opacity-50 flex items-center gap-2"
+            className="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/25 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {submitting ? 'Updating...' : <><Save className="w-4 h-4" /> Save & Recalculate Schedules</>}
           </button>

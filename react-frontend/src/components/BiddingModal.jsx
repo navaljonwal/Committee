@@ -75,7 +75,7 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">

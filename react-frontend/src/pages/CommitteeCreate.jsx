@@ -502,17 +502,17 @@ export default function CommitteeCreate() {
         )}
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end space-x-4">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
           <Link
             to="/"
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition text-center"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={submitting}
-            className="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xl shadow-orange-500/25 transition disabled:opacity-50 flex items-center gap-2"
+            className="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xl shadow-orange-500/25 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {submitting ? 'Generating Committee & Schedules...' : (
               <>

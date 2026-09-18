@@ -77,7 +77,7 @@ export default function CommitteeDetail() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Back and Breadcrumb */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-orange-600 transition"
@@ -85,7 +85,7 @@ export default function CommitteeDetail() {
           <ArrowLeft className="w-4 h-4" /> Back to All Committees
         </Link>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Link
             to={`/committees/${id}/edit`}
             className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 text-xs font-bold border border-slate-200 transition flex items-center gap-1.5 shadow-xs"
@@ -207,6 +207,10 @@ export default function CommitteeDetail() {
               Review monthly payouts, manage draw winners, auction deductions, disbursements, and collection ledgers
             </p>
           </div>
+        </div>
+
+        <div className="sm:hidden text-[10px] text-slate-400 font-semibold px-1 flex items-center gap-1">
+          ← Scroll sideways to see all columns & actions →
         </div>
 
         <div className="overflow-x-auto rounded-2xl border border-slate-200">

@@ -179,6 +179,9 @@ export default function MembersList() {
 
       {/* Members Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">
+        <div className="sm:hidden text-[10px] text-slate-400 font-semibold px-1 flex items-center gap-1">
+          ← Scroll sideways to see all member columns & actions →
+        </div>
         <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
@@ -293,7 +296,7 @@ export default function MembersList() {
       {/* Add / Edit Member Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-orange-600" />
