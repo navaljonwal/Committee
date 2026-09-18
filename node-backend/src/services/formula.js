@@ -4,13 +4,39 @@
  */
 
 export function addMonthsToDate(dateStrOrObj, monthsToAdd) {
+  if (!dateStrOrObj) return null;
+
+  if (typeof dateStrOrObj === 'string') {
+    const match = dateStrOrObj.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1 + monthsToAdd;
+      const day = parseInt(match[3], 10);
+
+      const d = new Date(Date.UTC(year, month, day));
+      if (d.getUTCDate() !== day) {
+        d.setUTCDate(0);
+      }
+      return d.toISOString().split('T')[0];
+    }
+  }
+
+  if (dateStrOrObj instanceof Date && !isNaN(dateStrOrObj.getTime())) {
+    try {
+      const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(dateStrOrObj);
+      return addMonthsToDate(istStr, monthsToAdd);
+    } catch {
+      const year = dateStrOrObj.getFullYear();
+      const month = String(dateStrOrObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateStrOrObj.getDate()).padStart(2, '0');
+      return addMonthsToDate(`${year}-${month}-${day}`, monthsToAdd);
+    }
+  }
+
   const d = new Date(dateStrOrObj);
   if (isNaN(d.getTime())) return null;
-  
   const currentDay = d.getUTCDate();
   d.setUTCMonth(d.getUTCMonth() + monthsToAdd);
-  
-  // Handle edge case where adding month overflows (e.g. Jan 31 + 1 month -> Feb 28)
   if (d.getUTCDate() !== currentDay) {
     d.setUTCDate(0);
   }

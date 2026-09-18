@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { getTodayDateStr } from '../utils/dateUtils.js';
 
 export async function getSchedulePayments(req, res) {
   try {
@@ -85,7 +86,7 @@ export async function togglePayment(req, res) {
     }
 
     const newStatus = payment.payment_status === 'paid' ? 'pending' : 'paid';
-    const newDate = newStatus === 'paid' ? new Date().toISOString().split('T')[0] : null;
+    const newDate = newStatus === 'paid' ? getTodayDateStr() : null;
 
     await pool.query(`
       UPDATE committee_member_payments 
@@ -167,7 +168,7 @@ export async function markAllPaid(req, res) {
       return res.status(422).json({ success: false, message: 'This committee is Completed & Closed. Payments cannot be modified.' });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateStr();
 
     await pool.query(`
       UPDATE committee_member_payments 

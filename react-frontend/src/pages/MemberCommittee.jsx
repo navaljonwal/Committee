@@ -515,8 +515,28 @@ export default function MemberCommittee() {
               const hBid = highest_bids?.[s.id] || {};
               const roundBids = bids?.[s.id] || [];
 
+              const todayStr = (() => {
+                try {
+                  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+                } catch {
+                  const d = new Date();
+                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+              })();
+
+              const rawDrawDate = s.draw_date ? String(s.draw_date).split('T')[0] : (lInfo.draw_date || null);
+              let dateStatus = lInfo.date_status || 'today';
+              if (rawDrawDate) {
+                if (rawDrawDate === todayStr) {
+                  dateStatus = 'today';
+                } else if (todayStr < rawDrawDate) {
+                  dateStatus = 'before';
+                } else if (todayStr > rawDrawDate) {
+                  dateStatus = 'after';
+                }
+              }
+
               const isLocked = lInfo.is_locked || s.is_custom_bid;
-              const dateStatus = lInfo.date_status || 'today';
               const isWinnerAssigned = Boolean(s.winner_name || s.member_id);
 
               const canBid = !alreadyWonAllSeats && !isLocked && dateStatus === 'today';
@@ -545,7 +565,7 @@ export default function MemberCommittee() {
                       </div>
 
                       <span className="text-xs font-mono text-slate-500 font-medium">
-                        {s.draw_date ? new Date(s.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                        {rawDrawDate || 'N/A'}
                       </span>
                     </div>
 
@@ -618,7 +638,7 @@ export default function MemberCommittee() {
                         {isLocked 
                           ? 'Bidding closed by organizer' 
                           : dateStatus === 'before'
-                            ? `Bidding opens on ${lInfo.draw_date || 'draw date'}`
+                            ? `Bidding opens on ${rawDrawDate || lInfo.draw_date || 'draw date'}`
                             : dateStatus === 'after'
                               ? 'Bidding closed (past draw date)'
                               : alreadyWonAllSeats

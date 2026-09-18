@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { addMonthsToDate } from '../services/formula.js';
+import { getTodayDateStr, formatDbDate } from '../utils/dateUtils.js';
 
 export async function getMemberDashboard(req, res) {
   try {
@@ -238,13 +239,12 @@ export async function getLiveBids(req, res) {
       };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateStr();
     const lockStatus = {};
 
     for (const s of schedules) {
-      const effectiveDrawDate = s.draw_date 
-        ? new Date(s.draw_date).toISOString().split('T')[0]
-        : (committee.start_date ? addMonthsToDate(committee.start_date, s.month_no - 1) : null);
+      const effectiveDrawDate = formatDbDate(s.draw_date) 
+        || (committee.start_date ? addMonthsToDate(committee.start_date, s.month_no - 1) : null);
 
       let dateStatus = 'today';
       if (effectiveDrawDate) {
@@ -312,12 +312,11 @@ export async function submitBid(req, res) {
     }
 
     // GUARD 2: Draw date check
-    const effectiveDrawDate = schedule.draw_date 
-      ? new Date(schedule.draw_date).toISOString().split('T')[0]
-      : (schedule.start_date ? addMonthsToDate(schedule.start_date, schedule.month_no - 1) : null);
+    const effectiveDrawDate = formatDbDate(schedule.draw_date) 
+      || (schedule.start_date ? addMonthsToDate(schedule.start_date, schedule.month_no - 1) : null);
 
     if (effectiveDrawDate) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateStr();
       if (today < effectiveDrawDate) {
         return res.status(422).json({
           success: false,
