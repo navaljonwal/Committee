@@ -1,11 +1,10 @@
 services:
   - type: web
     name: chitfund-pro
-    env: node
+    env: docker
+    dockerfilePath: ./Dockerfile
     plan: free
     region: oregon
-    buildCommand: npm run render-build
-    startCommand: npm run render-start
     envVars:
       - key: NODE_ENV
         value: production

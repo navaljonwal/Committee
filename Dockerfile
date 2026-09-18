@@ -1,26 +1,28 @@
-# Multi-stage build for Node.js + React.js
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy root and subfolder package definitions
+# Copy package definitions
 COPY package.json ./
 COPY node-backend/package*.json ./node-backend/
 COPY react-frontend/package*.json ./react-frontend/
 
-# Install dependencies
+# Install dependencies in Linux
 RUN npm --prefix node-backend install
 RUN npm --prefix react-frontend install
 
-# Copy source code
-COPY node-backend ./node-backend
+# Copy source files
+COPY node-backend/src ./node-backend/src
 COPY react-frontend ./react-frontend
 
-# Build React frontend
+# Build frontend
 RUN npm --prefix react-frontend run build
 
-# Production runner stage
-FROM node:20-alpine AS runner
+# Copy dist to node-backend/public as direct fallback
+RUN cp -r /app/react-frontend/dist /app/node-backend/public
+
+# Runner stage
+FROM node:20-slim AS runner
 
 WORKDIR /app
 

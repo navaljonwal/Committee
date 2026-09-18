@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "description": "ChitFund / Kameti Management System - Node.js Backend & React.js Frontend",
   "scripts": {
+    "postinstall": "npm --prefix node-backend install && npm --prefix react-frontend install && npm --prefix react-frontend run build",
     "dev:backend": "cd node-backend && npm run dev",
     "dev:frontend": "cd react-frontend && npm run dev",
     "build:frontend": "cd react-frontend && npm run build",
