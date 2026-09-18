@@ -617,7 +617,7 @@ export async function updateAuctionBid(req, res) {
       SET 
         custom_deduction_amount = ?,
         deduction_amount = ?,
-        is_custom_bid = 1,
+        is_custom_bid = true,
         net_payout = ?,
         installment_per_member = ?,
         updated_at = NOW()
@@ -686,7 +686,7 @@ export async function lockFormulaDefault(req, res) {
       SET 
         custom_deduction_amount = ?,
         deduction_amount = ?,
-        is_custom_bid = 1,
+        is_custom_bid = true,
         net_payout = ?,
         installment_per_member = ?,
         updated_at = NOW()
@@ -752,7 +752,7 @@ export async function approveMemberBid(req, res) {
       SET 
         custom_deduction_amount = ?,
         deduction_amount = ?,
-        is_custom_bid = 1,
+        is_custom_bid = true,
         net_payout = ?,
         installment_per_member = ?,
         member_id = ?,

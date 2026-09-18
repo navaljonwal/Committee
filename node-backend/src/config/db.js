@@ -22,7 +22,9 @@ if (isPostgres) {
 
     let cleanSql = sql
       .replace(/`/g, '')
-      .replace(/CURDATE\(\)/gi, 'CURRENT_DATE');
+      .replace(/CURDATE\(\)/gi, 'CURRENT_DATE')
+      .replace(/\bis_custom_bid\s*=\s*1\b/gi, 'is_custom_bid = true')
+      .replace(/\bis_custom_bid\s*=\s*0\b/gi, 'is_custom_bid = false');
 
     cleanSql = cleanSql.replace(/\?/g, () => {
       const val = params[paramIndex++];

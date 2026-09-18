@@ -128,7 +128,7 @@ export async function generateSchedules(committeeId, conn) {
       indexN,
       deduction,
       null, // custom_deduction_amount
-      0,    // is_custom_bid
+      false, // is_custom_bid
       netPayout,
       kist,
       null, // member_id (winner)
@@ -291,7 +291,7 @@ export async function recalculateSchedules(committeeId, conn) {
         indexN,
         deduction,
         null,
-        0,
+        false,
         netPayout,
         kist,
         null,
