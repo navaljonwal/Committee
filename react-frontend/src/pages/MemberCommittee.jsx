@@ -85,9 +85,43 @@ export default function MemberCommittee() {
     loadInitialData();
     pollLiveBids();
 
-    // 10 second auto-polling
-    const interval = setInterval(pollLiveBids, 10000);
-    return () => clearInterval(interval);
+    // Fast 2.5s auto-polling as rock-solid background fallback
+    const interval = setInterval(pollLiveBids, 2500);
+
+    // Instant Real-Time Live Bidding via Server-Sent Events (SSE)
+    let eventSource = null;
+    const token = localStorage.getItem('kameti_token') || localStorage.getItem('token') || '';
+    try {
+      const baseUrl = api.defaults.baseURL || '/api';
+      const streamUrl = `${baseUrl}/member/committees/${id}/live-stream?token=${encodeURIComponent(token)}`;
+      eventSource = new EventSource(streamUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const streamData = JSON.parse(event.data);
+          if (streamData && streamData.bids) {
+            setLiveBidsData(streamData);
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+
+      eventSource.onerror = () => {
+        if (eventSource) {
+          eventSource.close();
+        }
+      };
+    } catch {
+      // EventSource fallback to polling
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, [id]);
 
   const handleOpenBid = (schedule) => {
@@ -116,7 +150,11 @@ export default function MemberCommittee() {
       if (res.data.success) {
         setSuccessMsg(res.data.message);
         setActiveBidScheduleId(null);
-        pollLiveBids();
+        if (res.data.data) {
+          setLiveBidsData(res.data.data);
+        } else {
+          pollLiveBids();
+        }
         loadInitialData();
       }
     } catch (err) {
@@ -203,9 +241,10 @@ export default function MemberCommittee() {
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
-        <div className="flex items-center gap-2 text-xs text-orange-700 font-bold bg-orange-50 border border-orange-200 px-3.5 py-1 rounded-full shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-          Live Auction Sync Active (10s)
+        <div className="flex items-center gap-2 text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-3.5 py-1 rounded-full shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-emerald-600 -ml-4" />
+          Real-Time Live Auction Active (Instant Sync)
         </div>
       </div>
 
@@ -525,21 +564,26 @@ export default function MemberCommittee() {
               })();
 
               const rawDrawDate = s.draw_date ? String(s.draw_date).split('T')[0] : (lInfo.draw_date || null);
+              const isLocked = lInfo.is_locked || s.is_custom_bid;
+              const isWinnerAssigned = Boolean(s.winner_name || s.member_id);
+
               let dateStatus = lInfo.date_status || 'today';
               if (rawDrawDate) {
                 if (rawDrawDate === todayStr) {
                   dateStatus = 'today';
                 } else if (todayStr < rawDrawDate) {
                   dateStatus = 'before';
-                } else if (todayStr > rawDrawDate) {
-                  dateStatus = 'after';
+                } else {
+                  // Draw date is today or past
+                  if (isWinnerAssigned || isLocked) {
+                    dateStatus = 'after';
+                  } else {
+                    dateStatus = 'today';
+                  }
                 }
               }
 
-              const isLocked = lInfo.is_locked || s.is_custom_bid;
-              const isWinnerAssigned = Boolean(s.winner_name || s.member_id);
-
-              const canBid = !alreadyWonAllSeats && !isLocked && dateStatus === 'today';
+              const canBid = !alreadyWonAllSeats && !isLocked && !isWinnerAssigned && dateStatus === 'today';
 
               const myBid = roundBids.find(b => b.my_bid);
 

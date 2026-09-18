@@ -51,7 +51,8 @@ const authRateLimiter = rateLimit({
 // Security: General API rate limiting against DDoS & scraping
 const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 600, // Sufficient for live auction polling while preventing abuse
+  max: 3000, // Sufficient for live auction polling while preventing abuse
+  skip: (req) => req.path.includes('/live-bids') || req.path.includes('/live-stream'),
   message: {
     success: false,
     message: 'Too many API requests from your network. Please slow down.'

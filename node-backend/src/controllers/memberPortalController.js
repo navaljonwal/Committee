@@ -179,97 +179,166 @@ export async function getMemberCommittee(req, res) {
   }
 }
 
+// In-memory SSE client connections: committeeId -> Set of Response objects
+const sseClients = new Map();
+
+/**
+ * Register SSE connection for real-time live auction bids
+ */
+export function subscribeLiveBids(req, res) {
+  const { committeeId } = req.params;
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.write(': connected\n\n');
+
+  const cKey = String(committeeId);
+  if (!sseClients.has(cKey)) {
+    sseClients.set(cKey, new Set());
+  }
+  const clientSet = sseClients.get(cKey);
+  clientSet.add(res);
+
+  // Send initial data immediately
+  buildLiveBidsPayload(committeeId, req.user?.member_id).then((initData) => {
+    if (initData) {
+      res.write(`data: ${JSON.stringify(initData)}\n\n`);
+    }
+  }).catch(() => {});
+
+  req.on('close', () => {
+    clientSet.delete(res);
+    if (clientSet.size === 0) {
+      sseClients.delete(cKey);
+    }
+  });
+}
+
+/**
+ * Broadcast live bids update to all connected SSE clients for a committee
+ */
+export function broadcastLiveBids(committeeId, data) {
+  const cKey = String(committeeId);
+  const clientSet = sseClients.get(cKey);
+  if (clientSet && clientSet.size > 0) {
+    const payload = `data: ${JSON.stringify(data)}\n\n`;
+    for (const client of clientSet) {
+      try {
+        client.write(payload);
+      } catch {
+        clientSet.delete(client);
+      }
+    }
+  }
+}
+
+/**
+ * Build consolidated live bids data payload for a committee
+ */
+export async function buildLiveBidsPayload(committeeId, memberId = null) {
+  const [committees] = await pool.query('SELECT * FROM committees WHERE id = ?', [committeeId]);
+  if (committees.length === 0) return null;
+  const committee = committees[0];
+
+  const [schedules] = await pool.query(
+    'SELECT * FROM committee_schedules WHERE committee_id = ? ORDER BY month_no ASC',
+    [committeeId]
+  );
+
+  const [bids] = await pool.query(`
+    SELECT mb.*, m.name as member_name 
+    FROM member_bids mb
+    JOIN members m ON mb.member_id = m.id
+    WHERE mb.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
+    ORDER BY mb.bid_amount DESC
+  `, [committeeId]);
+
+  const allBids = {};
+  for (const s of schedules) {
+    allBids[s.id] = [];
+  }
+
+  for (const b of bids) {
+    if (!allBids[b.schedule_id]) allBids[b.schedule_id] = [];
+    allBids[b.schedule_id].push({
+      id: b.id,
+      member_id: b.member_id,
+      my_bid: memberId ? (b.member_id === memberId) : false,
+      name: b.member_name,
+      bid_amount: parseFloat(b.bid_amount),
+      remarks: b.remarks,
+      status: b.status
+    });
+  }
+
+  const highestBids = {};
+  for (const s of schedules) {
+    const sBids = allBids[s.id] || [];
+    const top = sBids.length > 0 ? sBids[0] : null;
+    const baseDeduct = parseFloat(s.deduction_amount || 0);
+    const topAmount = top ? parseFloat(top.bid_amount) : 0.0;
+    const minNextBid = topAmount > 0 ? (topAmount + 1) : Math.max(0, baseDeduct);
+
+    highestBids[s.id] = {
+      amount: top ? parseFloat(top.bid_amount) : null,
+      name: top ? top.name : null,
+      id: top ? top.id : null,
+      base_deduction: baseDeduct,
+      min_next_bid: minNextBid
+    };
+  }
+
+  const today = getTodayDateStr();
+  const lockStatus = {};
+
+  for (const s of schedules) {
+    const effectiveDrawDate = formatDbDate(s.draw_date) 
+      || (committee.start_date ? addMonthsToDate(committee.start_date, s.month_no - 1) : null);
+
+    let dateStatus = 'today';
+    if (effectiveDrawDate) {
+      if (today < effectiveDrawDate) {
+        dateStatus = 'before';
+      } else {
+        // Draw date is today or past — closed only if round is locked or winner already assigned
+        if (s.member_id || s.is_custom_bid) {
+          dateStatus = 'after';
+        } else {
+          dateStatus = 'today';
+        }
+      }
+    }
+
+    lockStatus[s.id] = {
+      is_locked: Boolean(s.is_custom_bid),
+      month_no: s.month_no,
+      winner_id: s.member_id,
+      date_status: dateStatus,
+      draw_date: effectiveDrawDate
+    };
+  }
+
+  return {
+    timestamp: new Date().toISOString(),
+    bids: allBids,
+    highest_bids: highestBids,
+    lock_status: lockStatus
+  };
+}
+
 export async function getLiveBids(req, res) {
   try {
     const { committeeId } = req.params;
     const user = req.user;
-    const memberId = user.member_id;
-
-    const [committees] = await pool.query('SELECT * FROM committees WHERE id = ?', [committeeId]);
-    if (committees.length === 0) {
+    const data = await buildLiveBidsPayload(committeeId, user?.member_id);
+    if (!data) {
       return res.status(404).json({ error: 'Committee not found' });
     }
-    const committee = committees[0];
-
-    const [schedules] = await pool.query(
-      'SELECT * FROM committee_schedules WHERE committee_id = ? ORDER BY month_no ASC',
-      [committeeId]
-    );
-
-    const [bids] = await pool.query(`
-      SELECT mb.*, m.name as member_name 
-      FROM member_bids mb
-      JOIN members m ON mb.member_id = m.id
-      WHERE mb.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
-      ORDER BY mb.bid_amount DESC
-    `, [committeeId]);
-
-    const allBids = {};
-    for (const s of schedules) {
-      allBids[s.id] = [];
-    }
-
-    for (const b of bids) {
-      if (!allBids[b.schedule_id]) allBids[b.schedule_id] = [];
-      allBids[b.schedule_id].push({
-        id: b.id,
-        member_id: b.member_id,
-        my_bid: memberId ? (b.member_id === memberId) : false,
-        name: b.member_name,
-        bid_amount: parseFloat(b.bid_amount),
-        remarks: b.remarks,
-        status: b.status
-      });
-    }
-
-    const highestBids = {};
-    for (const s of schedules) {
-      const sBids = allBids[s.id] || [];
-      const top = sBids.length > 0 ? sBids[0] : null;
-      const baseDeduct = parseFloat(s.deduction_amount || 0);
-      const topAmount = top ? parseFloat(top.bid_amount) : 0.0;
-      const minNextBid = topAmount > 0 ? (topAmount + 1) : Math.max(0, baseDeduct);
-
-      highestBids[s.id] = {
-        amount: top ? parseFloat(top.bid_amount) : null,
-        name: top ? top.name : null,
-        id: top ? top.id : null,
-        base_deduction: baseDeduct,
-        min_next_bid: minNextBid
-      };
-    }
-
-    const today = getTodayDateStr();
-    const lockStatus = {};
-
-    for (const s of schedules) {
-      const effectiveDrawDate = formatDbDate(s.draw_date) 
-        || (committee.start_date ? addMonthsToDate(committee.start_date, s.month_no - 1) : null);
-
-      let dateStatus = 'today';
-      if (effectiveDrawDate) {
-        if (today < effectiveDrawDate) {
-          dateStatus = 'before';
-        } else if (today > effectiveDrawDate) {
-          dateStatus = 'after';
-        }
-      }
-
-      lockStatus[s.id] = {
-        is_locked: Boolean(s.is_custom_bid),
-        month_no: s.month_no,
-        winner_id: s.member_id,
-        date_status: dateStatus,
-        draw_date: effectiveDrawDate
-      };
-    }
-
-    return res.json({
-      timestamp: new Date().toISOString(),
-      bids: allBids,
-      highest_bids: highestBids,
-      lock_status: lockStatus
-    });
+    return res.json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -311,7 +380,15 @@ export async function submitBid(req, res) {
       });
     }
 
-    // GUARD 2: Draw date check
+    // GUARD 2: Winner already assigned
+    if (schedule.member_id) {
+      return res.status(422).json({
+        success: false,
+        message: `Month ${schedule.month_no} draw has already been won. Bidding is closed.`
+      });
+    }
+
+    // GUARD 3: Future draw date check
     const effectiveDrawDate = formatDbDate(schedule.draw_date) 
       || (schedule.start_date ? addMonthsToDate(schedule.start_date, schedule.month_no - 1) : null);
 
@@ -323,15 +400,9 @@ export async function submitBid(req, res) {
           message: `Bidding for Month ${schedule.month_no} will open on ${effectiveDrawDate}. You cannot submit a bid before the draw date.`
         });
       }
-      if (today > effectiveDrawDate) {
-        return res.status(422).json({
-          success: false,
-          message: `Bidding for Month ${schedule.month_no} closed on ${effectiveDrawDate}. Bids can only be submitted on the draw date.`
-        });
-      }
     }
 
-    // GUARD 3: Member seats limit
+    // GUARD 4: Member seats limit
     const [enrollment] = await pool.query(
       'SELECT seats FROM committee_member WHERE committee_id = ? AND member_id = ?',
       [schedule.committee_id, memberId]
@@ -358,7 +429,7 @@ export async function submitBid(req, res) {
     if (isNaN(newBidAmount) || newBidAmount < 0 || newBidAmount > v) {
       return res.status(422).json({
         success: false,
-        message: `Bid amount must be between 0 and ₹${v}`
+        message: `Bid amount must be between 0 and ₹${v.toLocaleString('en-IN')}`
       });
     }
 
@@ -384,7 +455,7 @@ export async function submitBid(req, res) {
       });
     }
 
-    // Upsert member bid
+    // Upsert member bid (PostgreSQL safe with single quotes 'pending')
     const [existingBid] = await pool.query(
       'SELECT id FROM member_bids WHERE schedule_id = ? AND member_id = ?',
       [scheduleId, memberId]
@@ -392,19 +463,26 @@ export async function submitBid(req, res) {
 
     if (existingBid.length > 0) {
       await pool.query(
-        'UPDATE member_bids SET bid_amount = ?, remarks = ?, status = "pending", updated_at = NOW() WHERE id = ?',
+        "UPDATE member_bids SET bid_amount = ?, remarks = ?, status = 'pending', updated_at = NOW() WHERE id = ?",
         [newBidAmount, remarks || null, existingBid[0].id]
       );
     } else {
       await pool.query(
-        'INSERT INTO member_bids (schedule_id, member_id, bid_amount, remarks, status, created_at, updated_at) VALUES (?, ?, ?, ?, "pending", NOW(), NOW())',
+        "INSERT INTO member_bids (schedule_id, member_id, bid_amount, remarks, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', NOW(), NOW())",
         [scheduleId, memberId, newBidAmount, remarks || null]
       );
     }
 
+    // Broadcast instant update to all connected members via SSE
+    const updatedLiveBids = await buildLiveBidsPayload(schedule.committee_id);
+    if (updatedLiveBids) {
+      broadcastLiveBids(schedule.committee_id, updatedLiveBids);
+    }
+
     return res.json({
       success: true,
-      message: `Bid placed — ₹${newBidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} for Month ${schedule.month_no}. Visible to all members in real-time.`
+      message: `Bid placed — ₹${newBidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} for Month ${schedule.month_no}. Visible to all members in real-time!`,
+      data: updatedLiveBids
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
