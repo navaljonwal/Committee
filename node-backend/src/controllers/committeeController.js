@@ -82,6 +82,11 @@ export async function createCommittee(req, res) {
 
     await conn.beginTransaction();
 
+    const totalMembersInt = parseInt(total_members, 10);
+    const specialMonthIdx = !isNaN(parseInt(special_month_index, 10))
+      ? parseInt(special_month_index, 10)
+      : Math.max(1, totalMembersInt - 1);
+
     const [commResult] = await conn.query(`
       INSERT INTO committees 
       (name, total_amount, total_members, deduction_rate, special_month_index, start_date, status, created_at, updated_at)
@@ -89,9 +94,9 @@ export async function createCommittee(req, res) {
     `, [
       name.trim(),
       parseFloat(total_amount),
-      parseInt(total_members, 10),
+      totalMembersInt,
       parseFloat(deduction_rate || 0),
-      parseInt(special_month_index, 10),
+      specialMonthIdx,
       start_date
     ]);
 
@@ -283,6 +288,11 @@ export async function updateCommittee(req, res) {
 
     await conn.beginTransaction();
 
+    const totalMembersInt = parseInt(total_members, 10);
+    const specialMonthIdx = !isNaN(parseInt(special_month_index, 10))
+      ? parseInt(special_month_index, 10)
+      : Math.max(1, totalMembersInt - 1);
+
     await conn.query(`
       UPDATE committees 
       SET name = ?, total_amount = ?, total_members = ?, deduction_rate = ?, special_month_index = ?, start_date = ?, status = ?, updated_at = NOW()
@@ -290,9 +300,9 @@ export async function updateCommittee(req, res) {
     `, [
       name.trim(),
       parseFloat(total_amount),
-      parseInt(total_members, 10),
+      totalMembersInt,
       parseFloat(deduction_rate),
-      parseInt(special_month_index, 10),
+      specialMonthIdx,
       start_date,
       status || 'active',
       id

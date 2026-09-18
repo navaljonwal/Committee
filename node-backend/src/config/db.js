@@ -28,21 +28,46 @@ if (isPostgres) {
       const val = params[paramIndex++];
       if (Array.isArray(val)) {
         if (val.length === 0) return 'NULL';
-        const placeholders = val.map((item) => {
-          flatParams.push(item);
-          return '$' + flatParams.length;
-        });
-        return placeholders.join(', ');
+
+        // 2D Array: Bulk INSERT e.g. VALUES ? where val = [ [r1c1, r1c2], [r2c1, r2c2] ]
+        if (Array.isArray(val[0])) {
+          const rowPlaceholders = val.map((row) => {
+            if (Array.isArray(row)) {
+              const cols = row.map((cell) => {
+                const safeVal = (cell === undefined || (typeof cell === 'number' && isNaN(cell))) ? null : cell;
+                flatParams.push(safeVal);
+                return '$' + flatParams.length;
+              });
+              return `(${cols.join(', ')})`;
+            } else {
+              const safeVal = (row === undefined || (typeof row === 'number' && isNaN(row))) ? null : row;
+              flatParams.push(safeVal);
+              return `($${flatParams.length})`;
+            }
+          });
+          return rowPlaceholders.join(', ');
+        } else {
+          // 1D Array: e.g. WHERE id IN (?)
+          const placeholders = val.map((item) => {
+            const safeVal = (item === undefined || (typeof item === 'number' && isNaN(item))) ? null : item;
+            flatParams.push(safeVal);
+            return '$' + flatParams.length;
+          });
+          return placeholders.join(', ');
+        }
       } else {
-        flatParams.push(val);
+        const safeVal = (val === undefined || (typeof val === 'number' && isNaN(val))) ? null : val;
+        flatParams.push(safeVal);
         return '$' + flatParams.length;
       }
     });
 
+    // Strip trailing semicolon if present
+    cleanSql = cleanSql.trim().replace(/;+$/, '');
+
     // Auto-append RETURNING id for INSERT queries if not already present
-    const trimmed = cleanSql.trim();
-    if (/^INSERT\s+INTO/i.test(trimmed) && !/RETURNING/i.test(trimmed)) {
-      cleanSql = `${trimmed} RETURNING id`;
+    if (/^INSERT\s+INTO/i.test(cleanSql) && !/RETURNING/i.test(cleanSql)) {
+      cleanSql = `${cleanSql} RETURNING id`;
     }
 
     return { sql: cleanSql, params: flatParams };
