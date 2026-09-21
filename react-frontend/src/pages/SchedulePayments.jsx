@@ -16,16 +16,16 @@ import {
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
+import { usePopup } from '../context/PopupContext';
 
 export default function SchedulePayments() {
   const { scheduleId } = useParams();
+  const { showConfirm, toast } = usePopup();
 
   const [schedule, setSchedule] = useState(null);
   const [payments, setPayments] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   // Penalty edit states
@@ -43,7 +43,7 @@ export default function SchedulePayments() {
         setStats(res.data.stats);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to load payments');
+      toast.error(err.response?.data?.message || 'Failed to load payments');
     } finally {
       setLoading(false);
     }
@@ -57,28 +57,34 @@ export default function SchedulePayments() {
     try {
       const res = await api.post(`/payments/${encodeId(paymentId)}/toggle`);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message);
         loadPayments();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to toggle payment status');
+      toast.error(err.response?.data?.message || 'Failed to toggle payment status');
     }
   };
 
   const handleMarkAllPaid = async () => {
-    if (!window.confirm(`Mark all ${payments.length} member payments for Month ${schedule.month_no} as PAID?`)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Mark All as Paid?',
+      message: `Mark all ${payments.length} member payments for Month ${schedule.month_no} as PAID?\n\nThis will update all remaining unpaid members for this month.`,
+      confirmText: 'Mark All Paid',
+      cancelText: 'Cancel',
+      type: 'warning'
+    });
+
+    if (!confirmed) return;
 
     try {
       setActionLoading(true);
       const res = await api.post(`/payments/schedules/${scheduleId}/mark-all-paid`);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message);
         loadPayments();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to mark all paid');
+      toast.error(err.response?.data?.message || 'Failed to mark all paid');
     } finally {
       setActionLoading(false);
     }
@@ -97,12 +103,12 @@ export default function SchedulePayments() {
         remarks: penaltyRemarks
       });
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message);
         setEditingPenaltyId(null);
         loadPayments();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update penalty');
+      toast.error(err.response?.data?.message || 'Failed to update penalty');
     }
   };
 
@@ -157,21 +163,6 @@ export default function SchedulePayments() {
           </button>
         )}
       </div>
-
-      {/* Success / Error alerts */}
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-center justify-between shadow-xs font-medium">
-          <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-emerald-700 hover:text-emerald-900 font-bold text-base">×</button>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center justify-between shadow-xs font-medium">
-          <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg('')} className="text-rose-700 hover:text-rose-900 font-bold text-base">×</button>
-        </div>
-      )}
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

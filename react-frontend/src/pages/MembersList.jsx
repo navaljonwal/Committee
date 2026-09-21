@@ -17,12 +17,12 @@ import {
   Layers
 } from 'lucide-react';
 import api from '../api/client';
+import { usePopup } from '../context/PopupContext';
 
 export default function MembersList() {
+  const { showConfirm, toast } = usePopup();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   // Password visibility toggle tracker
   const [showPassMap, setShowPassMap] = useState({});
@@ -44,7 +44,7 @@ export default function MembersList() {
         setMembers(res.data.members || []);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to load members');
+      toast.error(err.response?.data?.message || 'Failed to load members');
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function MembersList() {
           password: formPassword.trim() || null
         });
         if (res.data.success) {
-          setSuccessMsg(res.data.message);
+          toast.success(res.data.message || 'Member updated successfully');
           setModalOpen(false);
           loadMembers();
         }
@@ -111,31 +111,37 @@ export default function MembersList() {
           password: formPassword.trim() || null
         });
         if (res.data.success) {
-          setSuccessMsg(res.data.message);
+          toast.success(res.data.message || 'Member registered successfully');
           setModalOpen(false);
           loadMembers();
         }
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Action failed');
+      toast.error(err.response?.data?.message || 'Action failed');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete member "${name}" and their login account?`)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Delete Member?',
+      message: `Are you sure you want to delete member "${name}" and their login account?\n\nThis action cannot be undone.`,
+      confirmText: 'Delete Member',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const res = await api.delete(`/members/${id}`);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message || 'Member deleted successfully');
         loadMembers();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to delete member');
+      toast.error(err.response?.data?.message || 'Failed to delete member');
     }
   };
 
@@ -161,21 +167,6 @@ export default function MembersList() {
           <UserPlus className="w-4 h-4" /> Add New Member
         </button>
       </div>
-
-      {/* Success / Error alerts */}
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-center justify-between shadow-xs font-medium">
-          <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-emerald-700 hover:text-emerald-900 font-bold text-base">×</button>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center justify-between shadow-xs font-medium">
-          <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg('')} className="text-rose-700 hover:text-rose-900 font-bold text-base">×</button>
-        </div>
-      )}
 
       {/* Members Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { X, Award, Calendar } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 export default function WinnerModal({ isOpen, onClose, schedule, members, onSaveSuccess }) {
   if (!isOpen || !schedule) return null;
 
+  const { toast } = usePopup();
   const [memberId, setMemberId] = useState(schedule.member_id || '');
   const [drawDate, setDrawDate] = useState(
     schedule.draw_date 
@@ -13,12 +15,10 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
       : new Date().toISOString().split('T')[0]
   );
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMsg('');
 
     try {
       const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/winner`, {
@@ -31,7 +31,7 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
         onClose();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update winner');
+      toast.error(err.response?.data?.message || 'Failed to update winner');
     } finally {
       setSubmitting(false);
     }
@@ -51,12 +51,6 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {errorMsg && (
-          <div className="mx-5 mt-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-medium">
-            {errorMsg}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PopupProvider } from './context/PopupContext';
 
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
@@ -45,88 +46,90 @@ function ProtectedRoute({ children, allowedRoles }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              {/* Public route */}
-              <Route path="/login" element={<Login />} />
+      <PopupProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                {/* Public route */}
+                <Route path="/login" element={<Login />} />
 
-              {/* Admin Routes */}
-              <Route path="/" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <CommitteesList />
-                </ProtectedRoute>
-              } />
+                {/* Admin Routes */}
+                <Route path="/" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <CommitteesList />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/committees/create" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <CommitteeCreate />
-                </ProtectedRoute>
-              } />
+                <Route path="/committees/create" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <CommitteeCreate />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/committees/:id" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <CommitteeDetail />
-                </ProtectedRoute>
-              } />
+                <Route path="/committees/:id" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <CommitteeDetail />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/committees/:id/edit" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <CommitteeEdit />
-                </ProtectedRoute>
-              } />
+                <Route path="/committees/:id/edit" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <CommitteeEdit />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/committees/:id/print" element={
-                <ProtectedRoute allowedRoles={['admin', 'member']}>
-                  <PrintView />
-                </ProtectedRoute>
-              } />
+                <Route path="/committees/:id/print" element={
+                  <ProtectedRoute allowedRoles={['admin', 'member']}>
+                    <PrintView />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/members" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <MembersList />
-                </ProtectedRoute>
-              } />
+                <Route path="/members" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <MembersList />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/schedules/:scheduleId/payments" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <SchedulePayments />
-                </ProtectedRoute>
-              } />
+                <Route path="/schedules/:scheduleId/payments" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <SchedulePayments />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/profile" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <ProfileSettings />
-                </ProtectedRoute>
-              } />
+                <Route path="/profile" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ProfileSettings />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/reminders" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <Reminders />
-                </ProtectedRoute>
-              } />
+                <Route path="/reminders" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Reminders />
+                  </ProtectedRoute>
+                } />
 
-              {/* Member Portal Routes */}
-              <Route path="/member/dashboard" element={
-                <ProtectedRoute allowedRoles={['member', 'admin']}>
-                  <MemberDashboard />
-                </ProtectedRoute>
-              } />
+                {/* Member Portal Routes */}
+                <Route path="/member/dashboard" element={
+                  <ProtectedRoute allowedRoles={['member', 'admin']}>
+                    <MemberDashboard />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/member/committees/:id" element={
-                <ProtectedRoute allowedRoles={['member', 'admin']}>
-                  <MemberCommittee />
-                </ProtectedRoute>
-              } />
+                <Route path="/member/committees/:id" element={
+                  <ProtectedRoute allowedRoles={['member', 'admin']}>
+                    <MemberCommittee />
+                  </ProtectedRoute>
+                } />
 
-              {/* Catch-all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
-      </BrowserRouter>
+                {/* Catch-all */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
+          </div>
+        </BrowserRouter>
+      </PopupProvider>
     </AuthProvider>
   );
 }

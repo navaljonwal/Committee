@@ -6,8 +6,7 @@ import {
   Gavel, CheckCircle, AlertCircle, Loader2, MessageCircle, Layers
 } from 'lucide-react';
 import api from '../api/client';
-import { encodeId } from '../utils/hashids';
-import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
+import { usePopup } from '../context/PopupContext';
 
 const TYPE_META = {
   urgent:  { label: 'Urgent',  color: 'bg-red-100 text-red-700 border-red-200',   dot: 'bg-red-500',    icon: AlertTriangle },
@@ -39,12 +38,11 @@ function DueBadge({ dateStr }) {
 }
 
 export default function Reminders() {
+  const { showConfirm, toast } = usePopup();
   const [data, setData] = useState({ reminders: [], auto_alerts: { pending_payments: [], upcoming_draws: [] }, counts: {} });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
 
   // Form state
   const [form, setForm] = useState({ title: '', description: '', due_date: '', reminder_type: 'custom' });
@@ -56,8 +54,8 @@ export default function Reminders() {
       setLoading(true);
       const res = await api.get('/reminders');
       if (res.data.success) setData(res.data);
-    } catch (err) {
-      setErrorMsg('Failed to load reminders');
+    } catch {
+      toast.error('Failed to load reminders');
     } finally {
       setLoading(false);
     }
@@ -65,25 +63,26 @@ export default function Reminders() {
 
   useEffect(() => { load(); }, []);
 
-  const flash = (msg, isError = false) => {
-    if (isError) { setErrorMsg(msg); setTimeout(() => setErrorMsg(''), 4000); }
-    else { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 4000); }
-  };
-
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.title.trim()) { setFormError('Title is required'); return; }
+    if (!form.title.trim()) { 
+      setFormError('Title is required');
+      toast.error('Title is required');
+      return; 
+    }
     setFormLoading(true); setFormError('');
     try {
       const res = await api.post('/reminders', form);
       if (res.data.success) {
         setShowForm(false);
         setForm({ title: '', description: '', due_date: '', reminder_type: 'custom' });
-        flash(res.data.message);
+        toast.success(res.data.message);
         load();
       }
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to create reminder');
+      const msg = err.response?.data?.message || 'Failed to create reminder';
+      setFormError(msg);
+      toast.error(msg);
     } finally {
       setFormLoading(false);
     }
@@ -93,22 +92,37 @@ export default function Reminders() {
     setActionLoading(hashId);
     try {
       const res = await api.patch(`/reminders/${hashId}/done`);
-      if (res.data.success) { flash(res.data.message); load(); }
+      if (res.data.success) { 
+        toast.success(res.data.message); 
+        load(); 
+      }
     } catch (err) {
-      flash(err.response?.data?.message || 'Failed to mark done', true);
+      toast.error(err.response?.data?.message || 'Failed to mark done');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleDelete = async (hashId) => {
-    if (!window.confirm('Delete this reminder?')) return;
+    const confirmed = await showConfirm({
+      title: 'Delete Reminder?',
+      message: 'Are you sure you want to delete this reminder?\n\nThis action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
     setActionLoading(hashId);
     try {
       const res = await api.delete(`/reminders/${hashId}`);
-      if (res.data.success) { flash(res.data.message); load(); }
-    } catch (err) {
-      flash('Failed to delete reminder', true);
+      if (res.data.success) { 
+        toast.success(res.data.message); 
+        load(); 
+      }
+    } catch {
+      toast.error('Failed to delete reminder');
     } finally {
       setActionLoading(null);
     }
@@ -143,18 +157,6 @@ export default function Reminders() {
           {showForm ? 'Cancel' : 'New Reminder'}
         </button>
       </div>
-
-      {/* Flash messages */}
-      {successMsg && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-sm font-semibold shadow-xs">
-          <CheckCircle className="w-4 h-4 shrink-0" /> {successMsg}
-        </div>
-      )}
-      {errorMsg && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm font-semibold shadow-xs">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
-        </div>
-      )}
 
       {/* Create Form */}
       {showForm && (

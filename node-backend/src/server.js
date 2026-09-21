@@ -19,13 +19,14 @@ import memberPortalRoutes from './routes/memberPortalRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import reminderRoutes from './routes/reminderRoutes.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Security: Hide technological fingerprint
 app.disable('x-powered-by');

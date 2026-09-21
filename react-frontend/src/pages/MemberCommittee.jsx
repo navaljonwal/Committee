@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 function formatDate(dateStr) {
   if (!dateStr) return null;
@@ -42,12 +43,11 @@ function DueBadge({ dateStr }) {
 
 export default function MemberCommittee() {
   const { id } = useParams();
+  const { toast } = usePopup();
 
   const [data, setData] = useState(null);
   const [liveBidsData, setLiveBidsData] = useState({ bids: {}, highest_bids: {}, lock_status: {} });
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState('payments');
 
   // Bid submission state
@@ -64,7 +64,7 @@ export default function MemberCommittee() {
         setData(res.data);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to load committee');
+      toast.error(err.response?.data?.message || 'Failed to load committee');
     } finally {
       setLoading(false);
     }
@@ -132,14 +132,11 @@ export default function MemberCommittee() {
 
     setBidAmount(myBid ? myBid.bid_amount : minNext);
     setBidRemarks(myBid ? (myBid.remarks || '') : '');
-    setErrorMsg('');
   };
 
   const handleBidSubmit = async (e) => {
     e.preventDefault();
     setSubmittingBid(true);
-    setErrorMsg('');
-    setSuccessMsg('');
 
     try {
       const res = await api.post(`/member/schedules/${encodeId(activeBidScheduleId)}/bid`, {
@@ -148,7 +145,7 @@ export default function MemberCommittee() {
       });
 
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message || 'Bid placed successfully!');
         setActiveBidScheduleId(null);
         if (res.data.data) {
           setLiveBidsData(res.data.data);
@@ -158,7 +155,7 @@ export default function MemberCommittee() {
         loadInitialData();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to place bid');
+      toast.error(err.response?.data?.message || 'Failed to place bid');
     } finally {
       setSubmittingBid(false);
     }
@@ -255,21 +252,6 @@ export default function MemberCommittee() {
           Real-Time Live Auction Active (Instant Sync)
         </div>
       </div>
-
-      {/* Success / Error alerts */}
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-center justify-between shadow-xs font-medium">
-          <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-emerald-700 hover:text-emerald-900 font-bold text-base">×</button>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center justify-between shadow-xs font-medium">
-          <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg('')} className="text-rose-700 hover:text-rose-900 font-bold text-base">×</button>
-        </div>
-      )}
 
       {/* Committee Overview Banner */}
       <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 sm:p-8">

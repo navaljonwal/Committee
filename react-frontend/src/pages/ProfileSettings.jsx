@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Shield, User, Lock, Check, AlertCircle, Save } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 
 export default function ProfileSettings() {
   const { user } = useAuth();
+  const { toast } = usePopup();
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -13,11 +15,6 @@ export default function ProfileSettings() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  const [profileSuccess, setProfileSuccess] = useState('');
-  const [profileError, setProfileError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
-  const [passwordError, setPasswordError] = useState('');
 
   const [submittingProfile, setSubmittingProfile] = useState(false);
   const [submittingPassword, setSubmittingPassword] = useState(false);
@@ -33,16 +30,14 @@ export default function ProfileSettings() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setSubmittingProfile(true);
-    setProfileError('');
-    setProfileSuccess('');
 
     try {
       const res = await api.put('/profile', { name, email, phone });
       if (res.data.success) {
-        setProfileSuccess(res.data.message);
+        toast.success(res.data.message || 'Profile updated successfully');
       }
     } catch (err) {
-      setProfileError(err.response?.data?.message || 'Failed to update profile');
+      toast.error(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setSubmittingProfile(false);
     }
@@ -51,13 +46,11 @@ export default function ProfileSettings() {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setPasswordError('New password and confirmation do not match');
+      toast.error('New password and confirmation do not match');
       return;
     }
 
     setSubmittingPassword(true);
-    setPasswordError('');
-    setPasswordSuccess('');
 
     try {
       const res = await api.put('/profile/password', {
@@ -66,13 +59,13 @@ export default function ProfileSettings() {
         password_confirmation: confirmPassword
       });
       if (res.data.success) {
-        setPasswordSuccess(res.data.message);
+        toast.success(res.data.message || 'Password changed successfully');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
     } catch (err) {
-      setPasswordError(err.response?.data?.message || 'Failed to change password');
+      toast.error(err.response?.data?.message || 'Failed to change password');
     } finally {
       setSubmittingPassword(false);
     }
@@ -98,20 +91,6 @@ export default function ProfileSettings() {
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <User className="w-4 h-4 text-orange-600" /> Account Details
           </h2>
-
-          {profileSuccess && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-              <Check className="w-4 h-4 flex-shrink-0 text-emerald-600" />
-              {profileSuccess}
-            </div>
-          )}
-
-          {profileError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-              {profileError}
-            </div>
-          )}
 
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
@@ -161,20 +140,6 @@ export default function ProfileSettings() {
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Lock className="w-4 h-4 text-amber-500" /> Update Password
           </h2>
-
-          {passwordSuccess && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-              <Check className="w-4 h-4 flex-shrink-0 text-emerald-600" />
-              {passwordSuccess}
-            </div>
-          )}
-
-          {passwordError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-              {passwordError}
-            </div>
-          )}
 
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div>

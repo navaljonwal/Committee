@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, IndianRupee, Banknote, Smartphone, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }) {
   if (!isOpen || !schedule) return null;
 
+  const { toast } = usePopup();
   const netPayoutTarget = parseFloat(schedule.net_payout || 0);
 
   // Parse notes from schedule if available
@@ -36,7 +38,6 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
   const [remarks, setRemarks] = useState(schedule.payout_remarks || '');
   const [notes, setNotes] = useState(initialNotes);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   // Calculate Cash Total from notes
   const cashNotesTotal = (parseInt(notes['500'] || 0, 10) * 500) +
@@ -101,7 +102,7 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
         onClose();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update disbursement details');
+      toast.error(err.response?.data?.message || 'Failed to update disbursement details');
     } finally {
       setSubmitting(false);
     }
@@ -129,13 +130,6 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {errorMsg && (
-          <div className="mx-6 mt-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-            {errorMsg}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           

@@ -17,6 +17,7 @@ import {
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 
 function formatDate(dateStr) {
   if (!dateStr) return null;
@@ -42,10 +43,10 @@ function DueBadge({ dateStr }) {
 
 export default function MemberDashboard() {
   const { user } = useAuth();
+  const { toast } = usePopup();
 
   const [data, setData] = useState({ member: null, committees: [], myBids: [], pendingPayments: [] });
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     async function loadDashboard() {
@@ -56,7 +57,7 @@ export default function MemberDashboard() {
           setData(res.data);
         }
       } catch (err) {
-        setErrorMsg(err.response?.data?.message || 'Failed to load member dashboard');
+        toast.error(err.response?.data?.message || 'Failed to load member dashboard');
       } finally {
         setLoading(false);
       }
@@ -136,13 +137,6 @@ export default function MemberDashboard() {
           </div>
         </div>
       </div>
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center gap-2 shadow-xs font-medium">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {errorMsg}
-        </div>
-      )}
 
       {/* ── Current Month Payment Reminders (Only current active month per committee) ── */}
       {currentMonthReminders.length > 0 ? (

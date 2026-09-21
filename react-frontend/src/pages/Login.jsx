@@ -1,31 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Layers, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { usePopup } from '../context/PopupContext';
+import { Layers, Lock, User, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const [identity, setIdentity] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   
   const { login } = useAuth();
+  const { toast } = usePopup();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       const res = await login(identity, password);
+      toast.success(`Welcome back, ${res.user.name || 'User'}!`);
       if (res.user.role === 'admin') {
         navigate('/');
       } else {
         navigate('/member/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Check your credentials.');
+      toast.error(err.response?.data?.message || 'Login failed. Check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -58,13 +59,6 @@ export default function Login() {
           <p className="text-xs text-slate-500 mb-6">
             Login with your Email, Phone Number, or Full Name
           </p>
-
-          {error && (
-            <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2.5">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-              <span>{error}</span>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

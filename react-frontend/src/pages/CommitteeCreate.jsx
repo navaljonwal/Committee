@@ -12,9 +12,11 @@ import {
   Award
 } from 'lucide-react';
 import api from '../api/client';
+import { usePopup } from '../context/PopupContext';
 
 export default function CommitteeCreate() {
   const navigate = useNavigate();
+  const { toast } = usePopup();
 
   const [name, setName] = useState('');
   const [totalAmount, setTotalAmount] = useState(200000);
@@ -34,7 +36,6 @@ export default function CommitteeCreate() {
   const [preview, setPreview] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   // Load all members for seat allocation
   useEffect(() => {
@@ -104,16 +105,15 @@ export default function CommitteeCreate() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg('Please enter a committee name');
+      toast.error('Please enter a committee name');
       return;
     }
     if (totalAssignedSeats > maxSeatsAllowed) {
-      setErrorMsg(`Cannot assign more than ${maxSeatsAllowed} total seats to this committee (currently: ${totalAssignedSeats} seats).`);
+      toast.error(`Cannot assign more than ${maxSeatsAllowed} total seats to this committee (currently: ${totalAssignedSeats} seats).`);
       return;
     }
 
     setSubmitting(true);
-    setErrorMsg('');
 
     try {
       const res = await api.post('/committees', {
@@ -128,10 +128,11 @@ export default function CommitteeCreate() {
       });
 
       if (res.data.success) {
+        toast.success('Committee created successfully!');
         navigate(`/committees/${res.data.committee_id}`);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to create committee');
+      toast.error(err.response?.data?.message || 'Failed to create committee');
     } finally {
       setSubmitting(false);
     }
@@ -158,13 +159,6 @@ export default function CommitteeCreate() {
           </p>
         </div>
       </div>
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs flex items-center gap-2 shadow-xs">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         

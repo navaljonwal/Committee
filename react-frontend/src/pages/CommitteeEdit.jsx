@@ -3,14 +3,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Users, IndianRupee, Calendar, Check, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 export default function CommitteeEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = usePopup();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const [name, setName] = useState('');
   const [totalAmount, setTotalAmount] = useState(0);
@@ -64,7 +65,7 @@ export default function CommitteeEdit() {
           setAllMembers(membRes.data.members || []);
         }
       } catch (err) {
-        setErrorMsg(err.response?.data?.message || 'Failed to load committee');
+        toast.error(err.response?.data?.message || 'Failed to load committee');
       } finally {
         setLoading(false);
       }
@@ -98,12 +99,11 @@ export default function CommitteeEdit() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (totalAssignedSeats > maxSeatsAllowed) {
-      setErrorMsg(`Cannot assign more than ${maxSeatsAllowed} seats (currently: ${totalAssignedSeats}).`);
+      toast.error(`Cannot assign more than ${maxSeatsAllowed} seats (currently: ${totalAssignedSeats}).`);
       return;
     }
 
     setSubmitting(true);
-    setErrorMsg('');
 
     const sIndex = specialMonthNumber === 'none' ? -1 : (parseInt(totalMembers, 10) - parseInt(specialMonthNumber, 10) + 1);
 
@@ -121,10 +121,11 @@ export default function CommitteeEdit() {
       });
 
       if (res.data.success) {
+        toast.success('Committee updated successfully!');
         navigate(`/committees/${id}`);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update committee');
+      toast.error(err.response?.data?.message || 'Failed to update committee');
     } finally {
       setSubmitting(false);
     }
@@ -156,13 +157,6 @@ export default function CommitteeEdit() {
           </p>
         </div>
       </div>
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs flex items-center gap-2 shadow-xs">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-          {errorMsg}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">

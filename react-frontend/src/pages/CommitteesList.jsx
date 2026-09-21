@@ -14,12 +14,12 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 export default function CommitteesList() {
+  const { showConfirm, toast } = usePopup();
   const [data, setData] = useState({ stats: {}, committees: [], members: [] });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   const loadCommittees = async () => {
     try {
@@ -29,7 +29,7 @@ export default function CommitteesList() {
         setData(res.data);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load committees');
+      toast.error(err.response?.data?.message || 'Failed to load committees');
     } finally {
       setLoading(false);
     }
@@ -40,18 +40,24 @@ export default function CommitteesList() {
   }, []);
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete committee "${name}"? All related schedules, payments, and bids will be permanently removed.`)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Delete Committee?',
+      message: `Are you sure you want to delete committee "${name}"?\n\nAll related schedules, payments, and bids will be permanently removed.`,
+      confirmText: 'Delete Committee',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const res = await api.delete(`/committees/${encodeId(id)}`);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message || 'Committee deleted successfully');
         loadCommittees();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete committee');
+      toast.error(err.response?.data?.message || 'Failed to delete committee');
     }
   };
 
@@ -90,21 +96,6 @@ export default function CommitteesList() {
           Create New Committee
         </Link>
       </div>
-
-      {/* Success / Error alerts */}
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs flex items-center justify-between shadow-xs">
-          <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-emerald-700 font-bold hover:text-emerald-900">×</button>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs flex items-center justify-between shadow-xs">
-          <span>{error}</span>
-          <button onClick={() => setError('')} className="text-rose-700 font-bold hover:text-rose-900">×</button>
-        </div>
-      )}
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

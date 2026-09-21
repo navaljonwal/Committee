@@ -2,22 +2,22 @@ import React, { useState } from 'react';
 import { X, Gavel, Check, Lock, AlertCircle, ArrowUpRight } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess }) {
   if (!isOpen || !schedule) return null;
 
+  const { showConfirm, toast } = usePopup();
   const [customDeduction, setCustomDeduction] = useState(
     schedule.custom_deduction_amount !== null ? schedule.custom_deduction_amount : schedule.deduction_amount
   );
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const bids = schedule.bids || [];
 
   const handleCustomSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMsg('');
 
     try {
       const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/bid`, {
@@ -28,19 +28,24 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
         onClose();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update deduction');
+      toast.error(err.response?.data?.message || 'Failed to update deduction');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleApproveBid = async (bidId, memberName, amount) => {
-    if (!window.confirm(`Approve ₹${parseFloat(amount).toLocaleString('en-IN')} bid by ${memberName}? This will close bidding and set this member as the winner.`)) {
-      return;
-    }
-    setSubmitting(true);
-    setErrorMsg('');
+    const confirmed = await showConfirm({
+      title: 'Approve Bid?',
+      message: `Approve ₹${parseFloat(amount).toLocaleString('en-IN')} bid by ${memberName}?\n\nThis will close bidding and set this member as the winner for Month ${schedule.month_no}.`,
+      confirmText: 'Approve Bid',
+      cancelText: 'Cancel',
+      type: 'success'
+    });
 
+    if (!confirmed) return;
+
+    setSubmitting(true);
     try {
       const res = await api.post(`/committees/schedules/bids/${encodeId(bidId)}/approve`);
       if (res.data.success) {
@@ -48,19 +53,24 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
         onClose();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to approve bid');
+      toast.error(err.response?.data?.message || 'Failed to approve bid');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleLockDefault = async () => {
-    if (!window.confirm(`Lock Month ${schedule.month_no} at default formula deduction (₹${parseFloat(schedule.formula_deduction || 0).toLocaleString('en-IN')})?`)) {
-      return;
-    }
-    setSubmitting(true);
-    setErrorMsg('');
+    const confirmed = await showConfirm({
+      title: 'Lock Default Formula?',
+      message: `Lock Month ${schedule.month_no} at default formula deduction (₹${parseFloat(schedule.formula_deduction || 0).toLocaleString('en-IN')})?\n\nThis will finalize the round without custom bidding.`,
+      confirmText: 'Lock Default',
+      cancelText: 'Cancel',
+      type: 'warning'
+    });
 
+    if (!confirmed) return;
+
+    setSubmitting(true);
     try {
       const res = await api.post(`/committees/schedules/${encodeId(schedule.id)}/lock-default`);
       if (res.data.success) {
@@ -68,7 +78,7 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
         onClose();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to lock default formula');
+      toast.error(err.response?.data?.message || 'Failed to lock default formula');
     } finally {
       setSubmitting(false);
     }
@@ -93,13 +103,6 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {errorMsg && (
-          <div className="mx-6 mt-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-            {errorMsg}
-          </div>
-        )}
 
         <div className="p-6 space-y-6">
           

@@ -22,14 +22,14 @@ import WinnerModal from '../components/WinnerModal';
 import PayoutModal from '../components/PayoutModal';
 import BiddingModal from '../components/BiddingModal';
 import { encodeId } from '../utils/hashids';
+import { usePopup } from '../context/PopupContext';
 
 export default function CommitteeDetail() {
   const { id } = useParams();
+  const { showConfirm, toast } = usePopup();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [approvingBidId, setApprovingBidId] = useState(null);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
 
@@ -46,7 +46,7 @@ export default function CommitteeDetail() {
         setData(res.data);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to load committee details');
+      toast.error(err.response?.data?.message || 'Failed to load committee details');
     } finally {
       setLoading(false);
     }
@@ -75,19 +75,25 @@ export default function CommitteeDetail() {
   }, [id]);
 
   const handleQuickApproveBid = async (bid, scheduleMonthNo) => {
-    if (!window.confirm(`Approve top bid of ₹${parseFloat(bid.bid_amount).toLocaleString('en-IN')} by ${bid.member_name} for Month ${scheduleMonthNo}?\n\nThis will set ${bid.member_name} as the winner and calculate payout accordingly.`)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      title: 'Approve Top Bid?',
+      message: `Approve top bid of ₹${parseFloat(bid.bid_amount).toLocaleString('en-IN')} by ${bid.member_name} for Month ${scheduleMonthNo}?\n\nThis will set ${bid.member_name} as the winner and calculate payout accordingly.`,
+      confirmText: 'Approve & Finalize',
+      cancelText: 'Cancel',
+      type: 'success'
+    });
+
+    if (!confirmed) return;
+
     setApprovingBidId(bid.id);
-    setErrorMsg('');
     try {
       const res = await api.post(`/committees/schedules/bids/${encodeId(bid.id)}/approve`);
       if (res.data?.success) {
-        setSuccessMsg(res.data.message || 'Bid approved successfully!');
+        toast.success(res.data.message || 'Bid approved successfully!');
         silentRefresh();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to approve bid');
+      toast.error(err.response?.data?.message || 'Failed to approve bid');
     } finally {
       setApprovingBidId(null);
     }
@@ -95,12 +101,11 @@ export default function CommitteeDetail() {
 
   const handleToggleFutureVisibility = async () => {
     setTogglingVisibility(true);
-    setErrorMsg('');
     try {
       const committeeParam = (typeof id === 'string' && !/^\d+$/.test(id)) ? id : encodeId(id);
       const res = await api.post(`/committees/${committeeParam}/toggle-future-visibility`);
       if (res.data?.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message);
         setData(prev => {
           if (!prev || !prev.committee) return prev;
           return {
@@ -114,19 +119,18 @@ export default function CommitteeDetail() {
         silentRefresh();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update visibility');
+      toast.error(err.response?.data?.message || 'Failed to update visibility');
     } finally {
       setTogglingVisibility(false);
     }
   };
 
   const handleToggleScheduleVisibility = async (schedId) => {
-    setErrorMsg('');
     try {
       const schedParam = (typeof schedId === 'string' && !/^\d+$/.test(schedId)) ? schedId : encodeId(schedId);
       const res = await api.post(`/committees/schedules/${schedParam}/toggle-installment-visibility`);
       if (res.data?.success) {
-        setSuccessMsg(res.data.message);
+        toast.success(res.data.message);
         setData(prev => {
           if (!prev || !prev.schedules) return prev;
           return {
@@ -139,7 +143,7 @@ export default function CommitteeDetail() {
         silentRefresh();
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to update month visibility');
+      toast.error(err.response?.data?.message || 'Failed to update month visibility');
     }
   };
 
@@ -203,21 +207,6 @@ export default function CommitteeDetail() {
           </Link>
         </div>
       </div>
-
-      {/* Success / Error alerts */}
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs flex items-center justify-between shadow-xs">
-          <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-emerald-700 font-bold hover:text-emerald-900">×</button>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs flex items-center justify-between shadow-xs">
-          <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg('')} className="text-rose-700 font-bold hover:text-rose-900">×</button>
-        </div>
-      )}
 
       {/* Top Banner Card */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
@@ -599,7 +588,7 @@ export default function CommitteeDetail() {
         schedule={activeWinnerSchedule}
         members={members}
         onSaveSuccess={(msg) => {
-          setSuccessMsg(msg);
+          toast.success(msg || 'Winner saved successfully');
           loadDetail();
         }}
       />
@@ -609,7 +598,7 @@ export default function CommitteeDetail() {
         onClose={() => setActivePayoutSchedule(null)}
         schedule={activePayoutSchedule}
         onSaveSuccess={(msg) => {
-          setSuccessMsg(msg);
+          toast.success(msg || 'Payout updated successfully');
           loadDetail();
         }}
       />
@@ -619,7 +608,7 @@ export default function CommitteeDetail() {
         onClose={() => setActiveBiddingSchedule(null)}
         schedule={activeBiddingSchedule}
         onSaveSuccess={(msg) => {
-          setSuccessMsg(msg);
+          toast.success(msg || 'Bid action completed successfully');
           loadDetail();
         }}
       />
