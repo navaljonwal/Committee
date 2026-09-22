@@ -59,7 +59,6 @@ export default function MembersList() {
     setFormName('');
     setFormPhone('');
     setFormPassword('');
-    setErrorMsg('');
     setModalOpen(true);
   };
 
@@ -68,7 +67,6 @@ export default function MembersList() {
     setFormName(m.name);
     setFormPhone(m.phone || '');
     setFormPassword('');
-    setErrorMsg('');
     setModalOpen(true);
   };
 
@@ -85,12 +83,11 @@ export default function MembersList() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formName.trim()) {
-      setErrorMsg('Member name is required');
+      toast.error('Member name is required');
       return;
     }
 
     setSubmitting(true);
-    setErrorMsg('');
 
     try {
       if (editingMember) {

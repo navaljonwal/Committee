@@ -148,6 +148,9 @@ export async function updateMember(req, res) {
     });
   } catch (error) {
     await conn.rollback();
+    if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+      return res.status(409).json({ success: false, message: 'This phone number is already registered to another member' });
+    }
     return res.status(500).json({ success: false, message: error.message });
   } finally {
     conn.release();

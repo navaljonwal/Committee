@@ -76,7 +76,6 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMsg('');
 
     try {
       const payload = {
