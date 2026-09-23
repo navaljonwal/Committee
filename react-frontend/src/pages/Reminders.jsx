@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bell, BellRing, Plus, Check, Trash2, AlertTriangle,
-  Calendar, IndianRupee, Clock, X, ChevronRight,
-  Gavel, CheckCircle, AlertCircle, Loader2, MessageCircle, Layers
+  IndianRupee, X, ChevronRight,
+  Gavel, CheckCircle, Loader2, MessageCircle, Layers
 } from 'lucide-react';
 import api from '../api/client';
 import { usePopup } from '../context/PopupContext';
+import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
 
 const TYPE_META = {
   urgent:  { label: 'Urgent',  color: 'bg-red-100 text-red-700 border-red-200',   dot: 'bg-red-500',    icon: AlertTriangle },
@@ -18,6 +19,7 @@ const TYPE_META = {
 function formatDate(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -25,6 +27,7 @@ function daysFromNow(dateStr) {
   if (!dateStr) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const due = new Date(dateStr); due.setHours(0, 0, 0, 0);
+  if (isNaN(due.getTime())) return null;
   return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
 }
 

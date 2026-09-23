@@ -6,6 +6,7 @@ import {
   deleteReminder
 } from '../controllers/reminderController.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
+import { decodeHash } from '../middleware/decodeHash.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.use(requireAdmin);
 
 router.get('/', getReminders);
 router.post('/', createReminder);
-router.patch('/:id/done', markReminderDone);
-router.delete('/:id', deleteReminder);
+router.patch('/:id/done', decodeHash('id'), markReminderDone);
+router.delete('/:id', decodeHash('id'), deleteReminder);
 
 export default router;
