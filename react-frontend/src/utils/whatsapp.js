@@ -30,15 +30,34 @@ function cleanPhone(phone) {
  * @param {number} params.monthNo - Month number
  * @param {number} params.amountDue - Total amount due
  * @param {string} [params.drawDate] - Draw date (optional)
+ * @param {number} [params.seatsCount] - Number of seats (optional, default 1)
+ * @param {string} [params.seatNumbers] - Seat number or formatted list of seats (optional)
  * @returns {string|null} - wa.me URL or null if no valid phone
  */
-export function makeWhatsAppPaymentReminder({ phone, memberName, committeeName, monthNo, amountDue, drawDate }) {
+export function makeWhatsAppPaymentReminder({ 
+  phone, 
+  memberName, 
+  committeeName, 
+  monthNo, 
+  amountDue, 
+  drawDate,
+  seatsCount = 1,
+  seatNumbers = null 
+}) {
   const cleanedPhone = phone ? cleanPhone(phone) : null;
 
   const amount = parseFloat(amountDue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
   const drawInfo = drawDate 
     ? `\n📅 Draw Date: ${new Date(drawDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}` 
     : '';
+
+  let seatInfo = '';
+  if (seatsCount > 1) {
+    const seatsStr = seatNumbers ? ` (${seatNumbers})` : '';
+    seatInfo = `\n🎫 *Seats:* ${seatsCount} Seats${seatsStr}`;
+  } else if (seatNumbers) {
+    seatInfo = `\n🎫 *Seat:* ${seatNumbers}`;
+  }
 
   const message = `🔔 *Kameti Payment Reminder*
 
@@ -47,8 +66,8 @@ Namaskar ${memberName || 'Member'} ji,
 Aapka is mahine ka Kameti installment pending hai:
 
 🏦 *Committee:* ${committeeName}
-📆 *Month:* ${monthNo}
-💰 *Amount Due:* ₹${amount}${drawInfo}
+📆 *Month:* ${monthNo}${seatInfo}
+💰 *Total Amount Due:* ₹${amount}${drawInfo}
 
 Kripya jald se jald payment karein.
 

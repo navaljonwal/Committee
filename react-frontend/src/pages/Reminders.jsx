@@ -290,13 +290,17 @@ export default function Reminders() {
               </div>
               <div className="grid gap-3">
                 {pendingPayments.map((p, i) => {
+                  const seatsCount = p.seats_count || 1;
+                  const seatNumbers = p.seat_numbers ? `Seat #${p.seat_numbers}` : (p.seat_no ? `Seat #${p.seat_no}` : null);
                   const waLink = p.member_phone ? makeWhatsAppPaymentReminder({
                     phone: p.member_phone,
                     memberName: p.member_name,
                     committeeName: p.committee_name,
                     monthNo: p.month_no,
                     amountDue: p.total_due,
-                    drawDate: p.draw_date
+                    drawDate: p.draw_date,
+                    seatsCount,
+                    seatNumbers
                   }) : null;
 
                   return (
@@ -308,11 +312,15 @@ export default function Reminders() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-bold text-slate-900 truncate">{p.member_name}</p>
-                            {p.seat_no > 1 && (
+                            {seatsCount > 1 ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                {seatsCount} Seats (#{p.seat_numbers})
+                              </span>
+                            ) : p.seat_no > 1 ? (
                               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                                 Seat #{p.seat_no}
                               </span>
-                            )}
+                            ) : null}
                             {p.member_phone && (
                               <span className="text-[11px] text-slate-400 font-mono">
                                 ({p.member_phone})

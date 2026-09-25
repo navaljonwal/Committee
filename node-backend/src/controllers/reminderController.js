@@ -15,14 +15,16 @@ export async function getReminders(req, res) {
       ORDER BY r.due_date ASC, r.created_at DESC
     `);
 
-    // 2. Auto: Members with pending payments (individual level with phone)
+    // 2. Auto: Members with pending payments (consolidated per member per schedule)
     const [pendingMembers] = await pool.query(`
       SELECT 
-        cmp.id as payment_id,
-        cmp.amount_paid,
-        cmp.penalty_amount,
-        (cmp.amount_paid + cmp.penalty_amount) as total_due,
-        cmp.seat_no,
+        MIN(cmp.id) as payment_id,
+        GROUP_CONCAT(cmp.id) as payment_ids,
+        SUM(cmp.amount_paid) as amount_paid,
+        SUM(cmp.penalty_amount) as penalty_amount,
+        SUM(cmp.amount_paid + cmp.penalty_amount) as total_due,
+        COUNT(cmp.id) as seats_count,
+        GROUP_CONCAT(cmp.seat_no ORDER BY cmp.seat_no ASC SEPARATOR ', ') as seat_numbers,
         m.id as member_id,
         m.name as member_name,
         m.phone as member_phone,
@@ -36,6 +38,7 @@ export async function getReminders(req, res) {
       JOIN committee_schedules cs ON cmp.schedule_id = cs.id
       JOIN committees c ON cs.committee_id = c.id
       WHERE cmp.payment_status = 'pending' AND c.status = 'active'
+      GROUP BY cs.id, m.id
       ORDER BY cs.draw_date ASC, m.name ASC
       LIMIT 50
     `);

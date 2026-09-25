@@ -34,7 +34,8 @@ app.disable('x-powered-by');
 // Security: HTTP Security Headers (XSS, Clickjacking, MIME sniffing protection)
 app.use(helmet({
   contentSecurityPolicy: false, // Allows bundled SPA assets & fonts to load seamlessly
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false
 }));
 
 // Security: Rate limiting to prevent brute-force attacks on login
@@ -62,19 +63,26 @@ const apiRateLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// CORS setup — strict origin whitelist on production
-const allowedOrigins = process.env.CORS_ORIGIN
+// CORS setup — allow localhost / 127.0.0.1 on all ports, plus configured CORS_ORIGIN
+const envOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : null;
+  : [];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
+    // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
     if (!origin) return callback(null, true);
-    // In development (no CORS_ORIGIN set), allow all
-    if (!allowedOrigins) return callback(null, true);
-    // Strict whitelist check in production
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    // In local development or self-served SPA, allow all localhost/127.0.0.1 origins on any port
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Check configured CORS_ORIGIN whitelist
+    if (envOrigins.length === 0 || envOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
     callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   credentials: true,
@@ -149,8 +157,8 @@ async function startServer() {
     await initializeDatabase();
   }
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Kameti Server running at: http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Kameti Server running at: http://localhost:${PORT} or http://127.0.0.1:${PORT}`);
     console.log(`📡 Serving API routes at: http://localhost:${PORT}/api`);
   });
 }

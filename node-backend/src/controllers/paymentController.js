@@ -47,12 +47,15 @@ export async function getSchedulePayments(req, res) {
       .filter(p => p.payment_status === 'pending')
       .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0) + parseFloat(p.penalty_amount || 0), 0);
 
+    const uniqueMemberIds = new Set(payments.map(p => p.member_id));
+
     return res.json({
       success: true,
       schedule,
       payments,
       stats: {
         total_payments: payments.length,
+        total_members: uniqueMemberIds.size,
         paid_count: payments.filter(p => p.payment_status === 'paid').length,
         pending_count: payments.filter(p => p.payment_status === 'pending').length,
         total_collected: parseFloat(totalCollected.toFixed(2)),
@@ -179,6 +182,59 @@ export async function markAllPaid(req, res) {
     return res.json({
       success: true,
       message: `All member payments for Month ${schedule.month_no} marked as PAID successfully!`
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function toggleMemberPayments(req, res) {
+  try {
+    const { scheduleId, memberId } = req.params;
+
+    const [schedules] = await pool.query(`
+      SELECT cs.*, c.status as committee_status 
+      FROM committee_schedules cs 
+      JOIN committees c ON cs.committee_id = c.id 
+      WHERE cs.id = ?
+    `, [scheduleId]);
+
+    if (schedules.length === 0) {
+      return res.status(404).json({ success: false, message: 'Schedule round not found' });
+    }
+
+    const schedule = schedules[0];
+    if (schedule.committee_status === 'completed') {
+      return res.status(422).json({ success: false, message: 'This committee is Completed & Closed. Payments cannot be modified.' });
+    }
+
+    const [payments] = await pool.query(`
+      SELECT * FROM committee_member_payments 
+      WHERE schedule_id = ? AND member_id = ?
+    `, [scheduleId, memberId]);
+
+    if (payments.length === 0) {
+      return res.status(404).json({ success: false, message: 'Payment records not found for this member' });
+    }
+
+    // If any seat is pending, mark all seats as paid. If all are paid, mark all as pending.
+    const hasPending = payments.some(p => p.payment_status === 'pending');
+    const newStatus = hasPending ? 'paid' : 'pending';
+    const newDate = newStatus === 'paid' ? getTodayDateStr() : null;
+
+    await pool.query(`
+      UPDATE committee_member_payments 
+      SET payment_status = ?, payment_date = ?, updated_at = NOW() 
+      WHERE schedule_id = ? AND member_id = ?
+    `, [newStatus, newDate, scheduleId, memberId]);
+
+    return res.json({
+      success: true,
+      status: newStatus,
+      payment_date: newDate,
+      message: newStatus === 'paid' 
+        ? `Payment marked as PAID for all ${payments.length} seat(s)!` 
+        : `Payment marked as PENDING for all ${payments.length} seat(s)!`
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
