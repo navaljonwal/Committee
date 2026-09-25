@@ -15,7 +15,7 @@ export async function getReminders(req, res) {
       ORDER BY r.due_date ASC, r.created_at DESC
     `);
 
-    // 2. Auto: Members with pending payments (consolidated per member per schedule)
+    // 2. Auto: Members with pending payments (only current active month per committee, consolidating multiple seats)
     const [pendingMembers] = await pool.query(`
       SELECT 
         MIN(cmp.id) as payment_id,
@@ -37,14 +37,19 @@ export async function getReminders(req, res) {
       JOIN members m ON cmp.member_id = m.id
       JOIN committee_schedules cs ON cmp.schedule_id = cs.id
       JOIN committees c ON cs.committee_id = c.id
-      WHERE cmp.payment_status = 'pending' AND c.status = 'active'
+      WHERE cmp.payment_status = 'pending' 
+        AND c.status = 'active'
+        AND cs.month_no = (
+          SELECT MIN(cs2.month_no) 
+          FROM committee_schedules cs2 
+          JOIN committee_member_payments cmp2 ON cs2.id = cmp2.schedule_id 
+          WHERE cs2.committee_id = c.id AND cmp2.payment_status = 'pending'
+        )
       GROUP BY cs.id, m.id
       ORDER BY cs.draw_date ASC, m.name ASC
-      LIMIT 50
     `);
 
-    // 3. Auto: Upcoming draw dates (next 30 days) - portable dates
-    const todayStr = new Date().toISOString().slice(0, 10);
+    // 3. Auto: Next upcoming or overdue draw dates needing a winner
     const future30Str = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const [upcomingDraws] = await pool.query(`
       SELECT 
@@ -56,12 +61,17 @@ export async function getReminders(req, res) {
         c.name as committee_name
       FROM committee_schedules cs
       JOIN committees c ON cs.committee_id = c.id
-      WHERE cs.draw_date BETWEEN ? AND ?
+      WHERE cs.draw_date <= ?
         AND cs.member_id IS NULL
         AND c.status = 'active'
+        AND cs.month_no = (
+          SELECT MIN(cs2.month_no)
+          FROM committee_schedules cs2
+          WHERE cs2.committee_id = c.id AND cs2.member_id IS NULL
+        )
       ORDER BY cs.draw_date ASC
       LIMIT 15
-    `, [todayStr, future30Str]);
+    `, [future30Str]);
 
     // Encode IDs in manual reminders
     const reminders = manualRows.map(r => ({

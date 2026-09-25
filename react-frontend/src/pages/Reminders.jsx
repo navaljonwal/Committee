@@ -353,7 +353,7 @@ export default function Reminders() {
                         )}
 
                         <Link
-                          to={`/committees/${p.committee_hash_id}`}
+                          to={p.schedule_hash_id ? `/schedules/${p.schedule_hash_id}/payments` : `/committees/${p.committee_hash_id}`}
                           className="inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 text-xs font-semibold transition border border-slate-200/80 hover:border-orange-200"
                         >
                           Collect <ChevronRight className="w-3 h-3" />

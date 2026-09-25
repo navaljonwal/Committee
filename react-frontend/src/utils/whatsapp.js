@@ -47,9 +47,15 @@ export function makeWhatsAppPaymentReminder({
   const cleanedPhone = phone ? cleanPhone(phone) : null;
 
   const amount = parseFloat(amountDue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  const drawInfo = drawDate 
-    ? `\n📅 Draw Date: ${new Date(drawDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}` 
-    : '';
+  let drawInfo = '';
+  if (drawDate) {
+    try {
+      const d = new Date(drawDate);
+      if (!isNaN(d.getTime())) {
+        drawInfo = `\n📅 Draw Date: ${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+      }
+    } catch (_) {}
+  }
 
   let seatInfo = '';
   if (seatsCount > 1) {
@@ -89,9 +95,15 @@ export function makeWhatsAppDrawReminder({ phone, memberName, committeeName, mon
   const cleanedPhone = cleanPhone(phone);
   if (!cleanedPhone) return null;
 
-  const dateStr = drawDate 
-    ? new Date(drawDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
-    : 'Jald hi';
+  let dateStr = 'Jald hi';
+  if (drawDate) {
+    try {
+      const d = new Date(drawDate);
+      if (!isNaN(d.getTime())) {
+        dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    } catch (_) {}
+  }
 
   const message = `🎯 *Kameti Draw Reminder*
 

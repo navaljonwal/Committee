@@ -294,13 +294,6 @@ export default function MembersList() {
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button>
-                          <Link
-                            to={`/member/dashboard?memberId=${m.id}`}
-                            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
-                            title="View Member Portal Dashboard"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
                           <button
                             onClick={() => openEditModal(m)}
                             className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
@@ -433,13 +426,6 @@ export default function MembersList() {
                         <Phone className="w-3.5 h-3.5 text-slate-500" /> Call
                       </a>
                     )}
-                    <Link
-                      to={`/member/dashboard?memberId=${m.id}`}
-                      className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 text-xs font-bold flex items-center gap-1 active:scale-95 transition border border-slate-200"
-                      title="View Member Portal"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-orange-600" /> Portal
-                    </Link>
                     <button
                       onClick={() => openEditModal(m)}
                       className="py-1.5 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition border border-orange-200"

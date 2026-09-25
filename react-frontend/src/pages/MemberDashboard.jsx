@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   Layers, 
   IndianRupee, 
@@ -53,15 +53,12 @@ function DueBadge({ dateStr }) {
 export default function MemberDashboard() {
   const { user } = useAuth();
   const { toast } = usePopup();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedMemberId = searchParams.get('memberId') || '';
 
   const [data, setData] = useState({ 
     member: null, 
     committees: [], 
     myBids: [], 
-    pendingPayments: [],
-    allMembers: []
+    pendingPayments: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -69,9 +66,7 @@ export default function MemberDashboard() {
     async function loadDashboard() {
       try {
         setLoading(true);
-        const res = await api.get('/member/dashboard', {
-          params: selectedMemberId ? { memberId: selectedMemberId } : {}
-        });
+        const res = await api.get('/member/dashboard');
         if (res.data.success) {
           setData(res.data);
         }
@@ -82,7 +77,7 @@ export default function MemberDashboard() {
       }
     }
     loadDashboard();
-  }, [selectedMemberId]);
+  }, []);
 
   if (loading) {
     return (
@@ -172,60 +167,6 @@ export default function MemberDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
       
-      {/* ── Admin Preview Banner (Allows Admin to preview any member's dashboard) ── */}
-      {user?.role === 'admin' && (
-        <div className="bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center shrink-0">
-              <Eye className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-orange-400 uppercase tracking-wider">Admin Portal Preview</span>
-                <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-slate-300 font-medium">Phone View</span>
-              </div>
-              <p className="text-[11px] text-slate-300">
-                You are viewing the Member Portal as: <span className="text-white font-bold">{displayName}</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {allMembers.length > 0 && (
-              <select
-                value={member?.id || ''}
-                onChange={(e) => setSearchParams({ memberId: e.target.value })}
-                className="bg-slate-800 border border-slate-600 text-white text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-orange-500 flex-1 md:flex-initial"
-              >
-                {allMembers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    👤 {m.name} {m.phone ? `(${m.phone})` : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-            {member && (
-              <button
-                type="button"
-                onClick={() => handleShareWhatsApp(member)}
-                className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 transition flex items-center gap-1.5 active:scale-95 shadow-sm"
-                title="Share ID & Password on WhatsApp"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">WhatsApp Credentials</span>
-                <span className="sm:hidden">WhatsApp</span>
-              </button>
-            )}
-            <Link
-              to="/"
-              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold shrink-0 transition"
-            >
-              Exit
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* ── MNC-Grade Member Header Card ── */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 relative overflow-hidden shadow-xl border border-slate-700/50">
         {/* Subtle decorative glow */}

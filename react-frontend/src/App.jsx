@@ -113,13 +113,13 @@ export default function App() {
 
                 {/* Member Portal Routes */}
                 <Route path="/member/dashboard" element={
-                  <ProtectedRoute allowedRoles={['member', 'admin']}>
+                  <ProtectedRoute allowedRoles={['member']}>
                     <MemberDashboard />
                   </ProtectedRoute>
                 } />
 
                 <Route path="/member/committees/:id" element={
-                  <ProtectedRoute allowedRoles={['member', 'admin']}>
+                  <ProtectedRoute allowedRoles={['member']}>
                     <MemberCommittee />
                   </ProtectedRoute>
                 } />
