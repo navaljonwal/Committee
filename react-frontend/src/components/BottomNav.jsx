@@ -37,7 +37,7 @@ export default function BottomNav() {
     return null;
   }
 
-  const isAdmin = user.role === 'admin';
+  const isMemberMode = user.role === 'member' || location.pathname.startsWith('/member');
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -49,7 +49,7 @@ export default function BottomNav() {
       className="no-print md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] pb-[max(env(safe-area-inset-bottom,0px),8px)] pt-1"
     >
       <div className="flex items-center justify-around h-14 px-2 max-w-lg mx-auto">
-        {isAdmin ? (
+        {!isMemberMode ? (
           <>
             {/* Pools */}
             <Link
@@ -160,23 +160,52 @@ export default function BottomNav() {
               <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Dashboard</span>
             </Link>
 
-            {/* Member: Profile */}
-            <Link
-              to="/profile"
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-                isActive('/profile') 
-                  ? 'text-orange-600 font-bold scale-105' 
-                  : 'text-slate-500 hover:text-slate-800 font-medium'
-              }`}
+            {/* Member: My Kametis */}
+            <a
+              href="/member/dashboard#my-kametis"
+              onClick={() => {
+                if (location.pathname === '/member/dashboard') {
+                  const el = document.getElementById('my-kametis');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 hover:text-orange-600 font-medium transition-all"
             >
               <div className="relative">
-                <User className="w-5 h-5" />
-                {isActive('/profile') && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full" />
-                )}
+                <Layers className="w-5 h-5" />
               </div>
-              <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Profile</span>
-            </Link>
+              <span className="text-[10px] mt-0.5 tracking-tight font-semibold">My Kametis</span>
+            </a>
+
+            {/* Member Profile or Admin Mode return */}
+            {user.role === 'admin' ? (
+              <Link
+                to="/"
+                className="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 hover:text-orange-600 font-medium transition-all"
+              >
+                <div className="relative">
+                  <Shield className="w-5 h-5 text-orange-600" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight font-bold text-orange-600">Admin Panel</span>
+              </Link>
+            ) : (
+              <Link
+                to="/profile"
+                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+                  isActive('/profile') 
+                    ? 'text-orange-600 font-bold scale-105' 
+                    : 'text-slate-500 hover:text-slate-800 font-medium'
+                }`}
+              >
+                <div className="relative">
+                  <User className="w-5 h-5" />
+                  {isActive('/profile') && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full" />
+                  )}
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Profile</span>
+              </Link>
+            )}
           </>
         )}
       </div>

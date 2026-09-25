@@ -235,45 +235,45 @@ export default function MemberCommittee() {
   const pendingMonthsCount = (schedules?.length || 0) - paidMonthsCount;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
       
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Link
           to="/member/dashboard"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-orange-600 transition"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-orange-600 transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
-        <div className="flex items-center gap-2 text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-3.5 py-1 rounded-full shadow-xs">
+        <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span className="w-2 h-2 rounded-full bg-emerald-600 -ml-4" />
-          Real-Time Live Auction Active (Instant Sync)
+          <span className="hidden sm:inline">Real-Time Live Auction Active (Instant Sync)</span>
+          <span className="sm:hidden">Live Auction Active</span>
         </div>
       </div>
 
       {/* Committee Overview Banner */}
-      <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 sm:p-8">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="bg-white border border-slate-200 shadow-xs rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {committee.name}
             </h1>
-            <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-3 font-medium">
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2 sm:gap-3 font-medium">
               <span>Pool Value: <strong className="text-orange-600 font-mono font-bold">₹{parseFloat(committee.total_amount).toLocaleString('en-IN')}</strong></span>
               <span>•</span>
-              <span>Total Duration: <strong className="text-slate-800 font-sans font-bold">{committee.total_members} Months</strong></span>
+              <span>Duration: <strong className="text-slate-800 font-sans font-bold">{committee.total_members} Months</strong></span>
               <span>•</span>
-              <span>My Registration: <strong className="text-slate-800 font-sans font-bold">{totalSeats} Seat(s)</strong></span>
+              <span>My Seats: <strong className="text-slate-800 font-sans font-bold">{totalSeats} Seat(s)</strong></span>
               <span>•</span>
-              <span>Status: <strong className="text-amber-600 font-sans font-bold">{wonCount} Won ({remainingSeats} Left to Win)</strong></span>
+              <span>Status: <strong className="text-amber-600 font-sans font-bold">{wonCount} Won ({remainingSeats} Left)</strong></span>
             </p>
           </div>
 
           {alreadyWonAllSeats && (
-            <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl text-xs text-emerald-800 flex items-center gap-2 font-medium">
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600" />
+            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl sm:rounded-2xl text-xs text-emerald-800 flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
               <span>You have won draws for all {totalSeats} of your registered seats in this committee.</span>
             </div>
           )}
@@ -282,7 +282,7 @@ export default function MemberCommittee() {
 
       {/* ── Committee Payment Reminder Card ── */}
       {currentPendingSchedule ? (
-        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border-2 border-amber-300 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border-2 border-amber-300 rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-sm">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200 shrink-0">
               <BellRing className="w-5 h-5 animate-bounce" />
@@ -365,49 +365,50 @@ export default function MemberCommittee() {
       {activeTab === 'payments' && (
         <div className="space-y-6">
           {/* Summary Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Pool Value</span>
-              <span className="text-xl font-black text-slate-900 font-mono mt-1 block">
-                ₹{parseFloat(committee.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xs">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Pool Value</span>
+              <span className="text-base sm:text-xl font-black text-slate-900 font-mono mt-0.5 block truncate">
+                ₹{parseFloat(committee.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
               </span>
-              <span className="text-xs text-slate-500 mt-0.5 block">{committee.total_members} Total Months</span>
+              <span className="text-[10px] sm:text-xs text-slate-500 mt-0.5 block">{committee.total_members} Total Months</span>
             </div>
 
-            <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 shadow-xs">
-              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Installments Paid</span>
-              <span className="text-xl font-black text-emerald-700 font-mono mt-1 block">
-                ₹{totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xs">
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Paid So Far</span>
+              <span className="text-base sm:text-xl font-black text-emerald-700 font-mono mt-0.5 block truncate">
+                ₹{totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
               </span>
-              <span className="text-xs text-emerald-600 mt-0.5 block">{paidMonthsCount} Month(s) Cleared</span>
+              <span className="text-[10px] sm:text-xs text-emerald-600 mt-0.5 block">{paidMonthsCount} Month(s) Paid</span>
             </div>
 
-            <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 shadow-xs">
-              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
+            <div className="col-span-2 sm:col-span-1 bg-amber-50/60 border border-amber-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xs">
+              <span className="text-[10px] sm:text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
                 {committee.show_future_installments ? 'Installments Pending' : 'Current Due Amount'}
               </span>
-              <span className="text-xl font-black text-rose-600 font-mono mt-1 block">
-                ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              <span className="text-base sm:text-xl font-black text-rose-600 font-mono mt-0.5 block">
+                ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
               </span>
-              <span className="text-xs text-amber-700 mt-0.5 block">
-                {pendingMonthsCount} Month(s) Remaining {!committee.show_future_installments && '• Next months on draw'}
+              <span className="text-[10px] sm:text-xs text-amber-700 mt-0.5 block">
+                {pendingMonthsCount} Month(s) Remaining {!committee.show_future_installments && '• Next on draw'}
               </span>
             </div>
           </div>
 
           {/* Payment Sheet Table */}
-          <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-5 sm:p-7 space-y-4">
+          <div className="bg-white border border-slate-200 shadow-sm rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-orange-600" />
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                 <span>My Committee Payment Ledger ({schedules.length} Months)</span>
               </h2>
-              <span className="text-xs text-slate-500 font-medium">
+              <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
                 {totalSeats} Registered Seat{totalSeats > 1 ? 's' : ''}
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
                   <tr>
@@ -560,6 +561,128 @@ export default function MemberCommittee() {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Member Payment Cards (FinTech style) */}
+            <div className="md:hidden space-y-3">
+              {schedules.map((s) => {
+                const payments = myPayments?.[s.id] || [];
+                const isCurrentDue = s.id === currentPendingSchedule?.id;
+
+                const hasPayments = payments.length > 0;
+                const seatsCount = hasPayments ? payments.length : (totalSeats || 1);
+                const totalBaseAmount = hasPayments
+                  ? payments.reduce((acc, p) => acc + parseFloat(p.amount_paid || 0), 0)
+                  : parseFloat(s.installment_per_member || 0) * seatsCount;
+                const totalPenalty = hasPayments
+                  ? payments.reduce((acc, p) => acc + parseFloat(p.penalty_amount || 0), 0)
+                  : 0;
+                const totalDue = totalBaseAmount + totalPenalty;
+
+                // Status across seats for this month
+                const allPaid = hasPayments && payments.every(p => p.payment_status === 'paid');
+                const anyPaid = hasPayments && payments.some(p => p.payment_status === 'paid');
+                const paidDate = payments.find(p => p.payment_date)?.payment_date;
+
+                const isInstallmentVisible = 
+                  allPaid || 
+                  isCurrentDue || 
+                  Boolean(s.winner_name) || 
+                  Boolean(s.is_custom_bid && s.custom_deduction_amount !== null && s.is_custom_bid !== '0' && s.is_custom_bid !== 0) || 
+                  Boolean(committee.show_future_installments && committee.show_future_installments !== '0' && committee.show_future_installments !== 0) || 
+                  Boolean(s.is_installment_visible && s.is_installment_visible !== '0' && s.is_installment_visible !== 0);
+
+                return (
+                  <div
+                    key={s.id}
+                    className={`rounded-2xl border transition-all p-3.5 space-y-2.5 ${
+                      isCurrentDue
+                        ? 'bg-amber-50/50 border-amber-300 ring-2 ring-amber-500/20 shadow-sm'
+                        : allPaid
+                          ? 'bg-white border-slate-200/90 shadow-2xs'
+                          : 'bg-white border-slate-200 shadow-2xs'
+                    }`}
+                  >
+                    {/* Top Row: Month, Date, Seats, Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg font-mono">
+                          Month {s.month_no}
+                        </span>
+                        {seatsCount > 1 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                            {seatsCount} Seats
+                          </span>
+                        )}
+                        <span className="text-xs text-slate-500 font-medium">
+                          {s.draw_date ? formatDate(s.draw_date) : 'Upcoming'}
+                        </span>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div>
+                        {allPaid ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> PAID
+                          </span>
+                        ) : isCurrentDue ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
+                            <Clock className="w-3 h-3 text-red-600" /> DUE NOW
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            PENDING
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 3-Column Financial Snapshot */}
+                    <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-center font-mono">
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Installment</span>
+                        <span className="text-xs font-bold text-slate-800 mt-0.5 block">
+                          {isInstallmentVisible ? `₹${totalBaseAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}` : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Penalty</span>
+                        <span className={`text-xs font-bold mt-0.5 block ${totalPenalty > 0 ? 'text-amber-600' : 'text-slate-500'}`}>
+                          {isInstallmentVisible ? (totalPenalty > 0 ? `+₹${totalPenalty.toLocaleString('en-IN')}` : '₹0') : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Total Due</span>
+                        <span className={`text-xs font-black mt-0.5 block ${allPaid ? 'text-emerald-700' : isCurrentDue ? 'text-rose-600' : 'text-slate-900'}`}>
+                          {isInstallmentVisible ? `₹${totalDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}` : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Details: Winner / Paid Date */}
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 text-slate-500">
+                      <div>
+                        {s.winner_name ? (
+                          <span className="flex items-center gap-1 font-semibold text-slate-800">
+                            <Award className="w-3.5 h-3.5 text-amber-500" />
+                            Winner: {s.winner_name}
+                          </span>
+                        ) : isInstallmentVisible ? (
+                          <span className="text-slate-400 italic">Round open</span>
+                        ) : (
+                          <span className="text-slate-400 italic">Decided after draw</span>
+                        )}
+                      </div>
+
+                      {allPaid && paidDate && (
+                        <span className="text-[10px] text-slate-400">
+                          Cleared on: {formatDate(paidDate)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {!committee.show_future_installments && (

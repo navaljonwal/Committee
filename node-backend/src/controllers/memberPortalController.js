@@ -5,7 +5,19 @@ import { getTodayDateStr, formatDbDate } from '../utils/dateUtils.js';
 export async function getMemberDashboard(req, res) {
   try {
     const user = req.user;
-    const memberId = user.member_id;
+    let memberId = user.member_id;
+    let allMembers = [];
+
+    if (user.role === 'admin') {
+      const [mList] = await pool.query('SELECT id, name, phone FROM members ORDER BY name ASC');
+      allMembers = mList;
+
+      if (req.query.memberId) {
+        memberId = parseInt(req.query.memberId, 10);
+      } else if (!memberId && allMembers.length > 0) {
+        memberId = allMembers[0].id;
+      }
+    }
 
     if (!memberId) {
       return res.json({
@@ -14,7 +26,8 @@ export async function getMemberDashboard(req, res) {
         member: null,
         committees: [],
         myBids: [],
-        pendingPayments: []
+        pendingPayments: [],
+        allMembers
       });
     }
 
@@ -68,7 +81,8 @@ export async function getMemberDashboard(req, res) {
       member,
       committees,
       myBids,
-      pendingPayments
+      pendingPayments,
+      allMembers
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -78,8 +92,17 @@ export async function getMemberDashboard(req, res) {
 export async function getMemberCommittee(req, res) {
   try {
     const user = req.user;
-    const memberId = user.member_id;
+    let memberId = user.member_id;
     const { committeeId } = req.params;
+
+    if (user.role === 'admin') {
+      if (req.query.memberId) {
+        memberId = parseInt(req.query.memberId, 10);
+      } else if (!memberId) {
+        const [firstEnrolled] = await pool.query('SELECT member_id FROM committee_member WHERE committee_id = ? LIMIT 1', [committeeId]);
+        if (firstEnrolled.length > 0) memberId = firstEnrolled[0].member_id;
+      }
+    }
 
     if (!memberId && user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'No member profile attached to this account' });

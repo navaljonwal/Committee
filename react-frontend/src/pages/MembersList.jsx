@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Users, 
   UserPlus, 
@@ -14,7 +15,8 @@ import {
   X, 
   AlertCircle,
   Award,
-  Layers
+  Layers,
+  MessageCircle
 } from 'lucide-react';
 import api from '../api/client';
 import { usePopup } from '../context/PopupContext';
@@ -78,6 +80,28 @@ export default function MembersList() {
 
   const togglePassword = (id) => {
     setShowPassMap(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleShareWhatsApp = (member) => {
+    const rawPass = member.plain_password || '';
+    const loginUser = member.phone || member.user_email || `member${member.id}@kameti.com`;
+    const loginUrl = `${window.location.origin}/login`;
+
+    const message = `Namaste ${member.name} ji! 🙏\n\nAapka Kameti / ChitFund Pro Portal Login Details:\n\n🌐 *Login Portal:* ${loginUrl}\n👤 *Login ID / Mobile:* ${loginUser}\n🔑 *Password:* ${rawPass || '(Aapka set kiya hua password)'}\n\nAap is link par login karke apni sabhi active kametis, mahine ki kist aur live auction bids dekh sakte hain.\n\nDhanyawad! ✨`;
+
+    let phoneClean = (member.phone || '').replace(/[^0-9]/g, '');
+    let waUrl = '';
+
+    if (phoneClean) {
+      if (phoneClean.length === 10) {
+        phoneClean = '91' + phoneClean;
+      }
+      waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(message)}`;
+    } else {
+      waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    }
+
+    window.open(waUrl, '_blank');
   };
 
   const handleSubmit = async (e) => {
@@ -228,13 +252,22 @@ export default function MembersList() {
                             {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                           {m.plain_password && (
-                            <button
-                              onClick={() => handleCopy(m.id, m.plain_password)}
-                              className="text-slate-400 hover:text-orange-600 p-0.5"
-                              title="Copy Password"
-                            >
-                              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleCopy(m.id, m.plain_password)}
+                                className="text-slate-400 hover:text-orange-600 p-0.5"
+                                title="Copy Password"
+                              >
+                                {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => handleShareWhatsApp(m)}
+                                className="text-emerald-500 hover:text-emerald-700 p-0.5 hover:scale-110 transition"
+                                title="Share ID & Password on WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -254,6 +287,20 @@ export default function MembersList() {
 
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end space-x-1">
+                          <button
+                            onClick={() => handleShareWhatsApp(m)}
+                            className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            title="Share ID & Password on WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                          <Link
+                            to={`/member/dashboard?memberId=${m.id}`}
+                            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                            title="View Member Portal Dashboard"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
                           <button
                             onClick={() => openEditModal(m)}
                             className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
@@ -348,28 +395,51 @@ export default function MembersList() {
                           {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                         {m.plain_password && (
-                          <button
-                            onClick={() => handleCopy(m.id, m.plain_password)}
-                            className="text-slate-400 hover:text-orange-600 p-0.5"
-                            title="Copy Password"
-                          >
-                            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleCopy(m.id, m.plain_password)}
+                              className="text-slate-400 hover:text-orange-600 p-0.5"
+                              title="Copy Password"
+                            >
+                              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              onClick={() => handleShareWhatsApp(m)}
+                              className="text-emerald-500 hover:text-emerald-700 p-0.5"
+                              title="Share on WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
                   </div>
 
                   {/* Card Bottom Actions */}
-                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
+                    <button
+                      onClick={() => handleShareWhatsApp(m)}
+                      className="py-1.5 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition shadow-xs"
+                      title="Share ID & Password on WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                    </button>
                     {m.phone && (
                       <a
                         href={`tel:${m.phone}`}
-                        className="py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition"
+                        className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition"
                       >
                         <Phone className="w-3.5 h-3.5 text-slate-500" /> Call
                       </a>
                     )}
+                    <Link
+                      to={`/member/dashboard?memberId=${m.id}`}
+                      className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 text-xs font-bold flex items-center gap-1 active:scale-95 transition border border-slate-200"
+                      title="View Member Portal"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-orange-600" /> Portal
+                    </Link>
                     <button
                       onClick={() => openEditModal(m)}
                       className="py-1.5 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition border border-orange-200"
@@ -444,21 +514,33 @@ export default function MembersList() {
                 </span>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-5 py-2 text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50"
-                >
-                  {submitting ? 'Saving...' : editingMember ? 'Update Member' : 'Create Member'}
-                </button>
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
+                {editingMember ? (
+                  <button
+                    type="button"
+                    onClick={() => handleShareWhatsApp(editingMember)}
+                    className="px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition flex items-center gap-1.5 active:scale-95"
+                    title="Share ID & Password on WhatsApp"
+                  >
+                    <MessageCircle className="w-4 h-4 text-emerald-600" /> WhatsApp
+                  </button>
+                ) : <div />}
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5 py-2 text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {submitting ? 'Saving...' : editingMember ? 'Update Member' : 'Create Member'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

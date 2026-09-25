@@ -10,7 +10,8 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  BellRing
+  BellRing,
+  Eye
 } from 'lucide-react';
 import api from '../api/client';
 
@@ -134,6 +135,19 @@ export default function Navbar() {
                     )}
                   </span>
                   Reminders
+                </Link>
+
+                <Link
+                  to="/member/dashboard"
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    isActive('/member/dashboard') 
+                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-xs' 
+                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50'
+                  }`}
+                  title="Preview Member Portal"
+                >
+                  <Eye className="w-4 h-4 text-orange-500" />
+                  Member Portal
                 </Link>
               </>
             ) : (
@@ -273,6 +287,19 @@ export default function Navbar() {
               >
                 <Users className="w-4 h-4 text-orange-500" />
                 Members Directory
+              </Link>
+
+              <Link
+                to="/member/dashboard"
+                onClick={closeMobile}
+                className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition ${
+                  isActive('/member/dashboard') 
+                    ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Eye className="w-4 h-4 text-orange-500" />
+                Member Portal View
               </Link>
             </>
           ) : (
