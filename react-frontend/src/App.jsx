@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { PopupProvider } from './context/PopupContext';
 
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import Login from './pages/Login';
 import CommitteesList from './pages/CommitteesList';
 import CommitteeCreate from './pages/CommitteeCreate';
@@ -48,7 +49,7 @@ export default function App() {
     <AuthProvider>
       <PopupProvider>
         <BrowserRouter>
-          <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+          <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white pb-24 md:pb-0">
             <Navbar />
             <main className="flex-1">
               <Routes>
@@ -127,6 +128,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
+            <BottomNav />
           </div>
         </BrowserRouter>
       </PopupProvider>

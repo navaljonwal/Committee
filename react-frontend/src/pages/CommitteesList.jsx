@@ -75,81 +75,81 @@ export default function CommitteesList() {
   const { stats, committees } = data;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-8">
       
       {/* Top Banner & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Committees Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
             Manage your ChitFund pools, scheduled draws, disbursements, and payment ledgers
           </p>
         </div>
 
         <Link
           to="/committees/create"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-bold shadow-lg shadow-orange-500/20 transition duration-150"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-orange-500/20 transition duration-150 active:scale-[0.98]"
         >
           <PlusCircle className="w-4 h-4" />
           Create New Committee
         </Link>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* KPI Stats Grid - 2x2 on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
         
-        <div className="bg-white border border-slate-200/90 p-5 rounded-3xl shadow-xs">
+        <div className="bg-white border border-slate-200/90 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pools</span>
-            <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600">
-              <Layers className="w-4 h-4" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pools</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
+          <div className="text-xl sm:text-3xl font-black text-slate-900 mt-1 sm:mt-2">
             {stats.total_committees || 0}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Registered chit schemes</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 sm:mt-1 block truncate">Registered schemes</span>
         </div>
 
-        <div className="bg-white border border-slate-200/90 p-5 rounded-3xl shadow-xs">
+        <div className="bg-white border border-slate-200/90 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Pools</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-              <Clock className="w-4 h-4" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Active Pools</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-2">
+          <div className="text-xl sm:text-3xl font-black text-emerald-600 mt-1 sm:mt-2">
             {stats.active_committees || 0}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">In progress & running</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 sm:mt-1 block truncate">In progress</span>
         </div>
 
-        <div className="bg-white border border-slate-200/90 p-5 rounded-3xl shadow-xs">
+        <div className="bg-white border border-slate-200/90 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pool Value</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
-              <IndianRupee className="w-4 h-4" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Pool Value</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+              <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono">
+          <div className="text-lg sm:text-3xl font-black text-slate-900 mt-1 sm:mt-2 font-mono truncate">
             ₹{(stats.total_pool_value || 0).toLocaleString('en-IN')}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Combined circulating volume</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 sm:mt-1 block truncate">Circulating volume</span>
         </div>
 
-        <div className="bg-white border border-slate-200/90 p-5 rounded-3xl shadow-xs">
+        <div className="bg-white border border-slate-200/90 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Members</span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600">
-              <Users className="w-4 h-4" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Total Members</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
+          <div className="text-xl sm:text-3xl font-black text-slate-900 mt-1 sm:mt-2">
             {stats.total_members || 0}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Enrolled contributors</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 sm:mt-1 block truncate">Contributors</span>
         </div>
 
       </div>
@@ -190,7 +190,7 @@ export default function CommitteesList() {
               return (
                 <div
                   key={c.id}
-                  className={`bg-white border rounded-3xl p-6 transition duration-200 hover:shadow-md hover:border-orange-300 flex flex-col justify-between shadow-xs ${
+                  className={`bg-white border rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition duration-200 hover:shadow-md hover:border-orange-300 flex flex-col justify-between shadow-xs ${
                     isCompleted ? 'border-slate-200/80 opacity-80' : 'border-slate-200'
                   }`}
                 >

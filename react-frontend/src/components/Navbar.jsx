@@ -49,28 +49,28 @@ export default function Navbar() {
 
   return (
     <nav className="no-print bg-white/95 backdrop-blur border-b border-slate-200/90 shadow-xs sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           
           {/* Logo & Mobile Menu Toggle */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-slate-600 hover:text-orange-600 hover:bg-orange-50 transition border border-slate-200"
+              className="md:hidden p-1.5 rounded-xl text-slate-600 hover:text-orange-600 hover:bg-orange-50 transition border border-slate-200"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5 text-orange-600" /> : <Menu className="w-5 h-5" />}
             </button>
 
-            <Link to={isAdmin ? "/" : "/member/dashboard"} className="flex items-center space-x-2.5" onClick={closeMobile}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                <Layers className="w-5 h-5 text-white" />
+            <Link to={isAdmin ? "/" : "/member/dashboard"} className="flex items-center space-x-2 sm:space-x-2.5" onClick={closeMobile}>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20 flex-shrink-0">
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <span className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-1">
+                <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 flex items-center gap-1">
                   ChitFund <span className="text-orange-600 font-extrabold">Pro</span>
                 </span>
-                <span className="text-[10px] uppercase font-mono font-semibold tracking-wider text-slate-400 block -mt-1">
+                <span className="text-[9px] sm:text-[10px] uppercase font-mono font-semibold tracking-wider text-slate-400 block -mt-1">
                   Kameti Management
                 </span>
               </div>

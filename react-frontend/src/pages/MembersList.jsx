@@ -143,34 +143,32 @@ export default function MembersList() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Users className="w-7 h-7 text-orange-600" />
+          <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600" />
             Members Directory
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5 sm:mt-1 font-medium">
             Manage member records, credentials, portal access passwords, and committee participation
           </p>
         </div>
 
         <button
           onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold shadow-lg shadow-orange-600/25 transition duration-150 active:scale-[0.98]"
+          className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-orange-600/25 transition duration-150 active:scale-[0.98]"
         >
           <UserPlus className="w-4 h-4" /> Add New Member
         </button>
       </div>
 
-      {/* Members Table */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">
-        <div className="sm:hidden text-[10px] text-slate-400 font-semibold px-1 flex items-center gap-1">
-          ← Scroll sideways to see all member columns & actions →
-        </div>
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+      {/* Members Section */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-3.5 sm:p-8 space-y-4 shadow-sm">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
@@ -278,6 +276,117 @@ export default function MembersList() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Member Cards (MNC App Style) */}
+        <div className="md:hidden space-y-3">
+          {members.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 font-medium text-xs">
+              No members found. Tap "Add New Member" to register your first contributor.
+            </div>
+          ) : (
+            members.map((m) => {
+              const pass = m.plain_password || '******';
+              const isVisible = showPassMap[m.id];
+              const isCopied = copiedId === m.id;
+
+              return (
+                <div key={m.id} className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-3.5 space-y-3">
+                  {/* Top: Avatar, Name, Phone */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-sm border border-orange-200 flex-shrink-0 shadow-2xs">
+                        {m.name ? m.name.substring(0, 2).toUpperCase() : 'M'}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-extrabold text-slate-900 text-sm truncate">{m.name}</h3>
+                        {m.phone ? (
+                          <div className="flex items-center gap-1 text-xs text-slate-500 font-mono mt-0.5">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            <span>{m.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">No phone</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Chips for committees & won draws */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200" title="Committees Enrolled">
+                        {m.committees_count || 0} Pool{m.committees_count !== 1 ? 's' : ''}
+                      </span>
+                      {m.won_schedules_count > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-0.5" title="Won Draws">
+                          <Award className="w-3 h-3 text-amber-500" />
+                          {m.won_schedules_count} Won
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Credentials Box */}
+                  <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-100 space-y-1.5 text-xs font-mono">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-sans">Login User:</span>
+                      <span className="text-slate-700 font-medium truncate max-w-[200px]">
+                        {m.user_email || `member${m.id}@kameti.com`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                      <span className="text-slate-400 font-sans text-[11px]">Password:</span>
+                      <div className="inline-flex items-center gap-2 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+                        <span className="text-slate-800 font-medium">
+                          {isVisible ? pass : '••••••••'}
+                        </span>
+                        <button
+                          onClick={() => togglePassword(m.id)}
+                          className="text-slate-400 hover:text-slate-700 p-0.5"
+                          title={isVisible ? 'Hide Password' : 'Show Password'}
+                        >
+                          {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        {m.plain_password && (
+                          <button
+                            onClick={() => handleCopy(m.id, m.plain_password)}
+                            className="text-slate-400 hover:text-orange-600 p-0.5"
+                            title="Copy Password"
+                          >
+                            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Bottom Actions */}
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                    {m.phone && (
+                      <a
+                        href={`tel:${m.phone}`}
+                        className="py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-slate-500" /> Call
+                      </a>
+                    )}
+                    <button
+                      onClick={() => openEditModal(m)}
+                      className="py-1.5 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition border border-orange-200"
+                    >
+                      <Edit className="w-3.5 h-3.5 text-orange-600" /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(m.id, m.name)}
+                      className="py-1.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1 active:scale-95 transition border border-rose-200"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

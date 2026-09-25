@@ -171,7 +171,7 @@ export default function CommitteeDetail() {
   const isCompleted = committee.status === 'completed';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-8">
       
       {/* Back and Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -209,7 +209,7 @@ export default function CommitteeDetail() {
       </div>
 
       {/* Top Banner Card */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-8 shadow-xs relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
           <div>
@@ -341,11 +341,8 @@ export default function CommitteeDetail() {
           </button>
         </div>
 
-        <div className="sm:hidden text-[10px] text-slate-400 font-semibold px-1 flex items-center gap-1">
-          ← Scroll sideways to see all columns & actions →
-        </div>
-
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+        {/* Desktop Schedule Table View */}
+        <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
           <table className="w-full text-left text-xs">
             <thead className="bg-orange-50/70 text-slate-800 uppercase tracking-wider font-bold border-b border-orange-200">
               <tr>
@@ -578,6 +575,233 @@ export default function CommitteeDetail() {
               </tr>
             </tfoot>
           </table>
+        </div>
+
+        {/* Mobile Fintech Round Cards */}
+        <div className="md:hidden space-y-3">
+          {schedules.map((s) => {
+            const isSpecial = (s.index_n === parseInt(committee.special_month_index, 10));
+            const pStats = s.payment_stats || { total: 0, paid_count: 0 };
+            const allPaid = pStats.total > 0 && pStats.paid_count === pStats.total;
+
+            return (
+              <div 
+                key={s.id} 
+                className={`bg-white rounded-2xl border transition-all p-3.5 space-y-3 shadow-2xs ${
+                  s.is_custom_bid 
+                    ? 'border-orange-300 ring-1 ring-orange-500/10' 
+                    : isSpecial 
+                      ? 'border-amber-300 bg-amber-50/20' 
+                      : 'border-slate-200'
+                }`}
+              >
+                {/* Card Top: Month #, Draw Date, Status Badge */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg font-mono">
+                      Month {s.month_no}
+                    </span>
+                    {s.is_custom_bid ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">
+                        Auction Bid
+                      </span>
+                    ) : isSpecial ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">
+                        Zero Ded.
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{s.draw_date ? new Date(s.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'N/A'}</span>
+                  </div>
+                </div>
+
+                {/* Winner / Live Bids Hero Section */}
+                <div className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-100 flex items-center justify-between gap-2">
+                  {s.winner_name ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                        <Award className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-900 truncate">{s.winner_name}</span>
+                          {s.is_custom_bid && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                              Won
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 block">Round Winner</span>
+                      </div>
+                    </div>
+                  ) : s.bids && s.bids.length > 0 ? (
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="relative flex h-2 w-2 flex-shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-black text-orange-700 font-mono">
+                            ₹{parseFloat(s.bids[0].bid_amount).toLocaleString('en-IN')}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-medium truncate">
+                            {s.bids[0].member_name}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleQuickApproveBid(s.bids[0], s.month_no)}
+                        disabled={isCompleted || approvingBidId === s.bids[0].id}
+                        className="text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Approve Bid</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs text-slate-400 italic font-medium">Draw Pending</span>
+                      <button
+                        onClick={() => setActiveWinnerSchedule(s)}
+                        disabled={isCompleted}
+                        className="text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200"
+                      >
+                        Set Winner
+                      </button>
+                    </div>
+                  )}
+
+                  {s.winner_name && (
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                      s.payout_status === 'paid'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {s.payout_status === 'paid' ? 'Disbursed' : 'Unpaid'}
+                    </span>
+                  )}
+                </div>
+
+                {/* 3-Column Financial Snapshot */}
+                <div className="grid grid-cols-3 gap-2 bg-orange-50/30 p-2 rounded-xl border border-orange-100/80 text-center font-mono">
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Deduction</span>
+                    <span className="text-xs font-bold text-slate-800 mt-0.5 block">
+                      ₹{parseFloat(s.deduction_amount).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-orange-600 tracking-wider block font-sans">Net Payout</span>
+                    <span className="text-xs font-black text-orange-600 mt-0.5 block">
+                      ₹{parseFloat(s.net_payout).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Kist / Member</span>
+                    <span className="text-xs font-bold text-slate-900 mt-0.5 block">
+                      ₹{parseFloat(s.installment_per_member).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Collection Progress & Action Buttons */}
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                  <Link
+                    to={`/schedules/${encodeId(s.id)}/payments`}
+                    className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-98 ${
+                      allPaid
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-orange-600 text-white border-orange-600 hover:bg-orange-700 shadow-orange-600/20 shadow-xs'
+                    }`}
+                  >
+                    <span>{allPaid ? '✓ All Paid' : 'Payments'} ({pStats.paid_count}/{pStats.total})</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </Link>
+
+                  <div className="flex items-center gap-1">
+                    {/* Winner Modal */}
+                    <button
+                      onClick={() => setActiveWinnerSchedule(s)}
+                      disabled={isCompleted}
+                      className="p-2 text-slate-500 hover:text-amber-600 bg-slate-50 hover:bg-amber-50 rounded-xl border border-slate-200 transition"
+                      title="Assign Winner"
+                    >
+                      <Award className="w-4 h-4 text-amber-600" />
+                    </button>
+
+                    {/* Bids Modal */}
+                    <button
+                      onClick={() => setActiveBiddingSchedule(s)}
+                      disabled={isCompleted}
+                      className="relative p-2 text-slate-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50 rounded-xl border border-slate-200 transition"
+                      title="Live Bids"
+                    >
+                      <Gavel className="w-4 h-4 text-orange-600" />
+                      {s.bids && s.bids.length > 0 && !s.winner_name && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white">
+                          {s.bids.length}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Payout Modal */}
+                    <button
+                      onClick={() => setActivePayoutSchedule(s)}
+                      disabled={isCompleted}
+                      className="p-2 text-slate-500 hover:text-emerald-600 bg-slate-50 hover:bg-emerald-50 rounded-xl border border-slate-200 transition"
+                      title="Disburse Payout"
+                    >
+                      <Banknote className="w-4 h-4 text-emerald-600" />
+                    </button>
+
+                    {/* Visibility Toggle */}
+                    <button
+                      onClick={() => handleToggleScheduleVisibility(s.id)}
+                      disabled={isCompleted}
+                      className="p-2 text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition"
+                      title="Toggle Member Visibility"
+                    >
+                      {s.is_installment_visible || committee.show_future_installments ? (
+                        <Eye className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Grand Totals Summary Card for Mobile */}
+          <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-sm space-y-2 font-mono mt-4">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">Grand Totals Summary</div>
+            <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800 text-center">
+              <div>
+                <span className="text-[9px] text-slate-400 block font-sans">Total Deductions</span>
+                <span className="text-xs font-bold text-amber-400 mt-0.5 block">
+                  ₹{totals.grand_total_deductions.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-400 block font-sans">Total Net Payout</span>
+                <span className="text-xs font-black text-orange-400 mt-0.5 block">
+                  ₹{totals.grand_total_net_payout.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-400 block font-sans">Total Kist</span>
+                <span className="text-xs font-bold text-white mt-0.5 block">
+                  ₹{totals.grand_total_kist_per_member.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
