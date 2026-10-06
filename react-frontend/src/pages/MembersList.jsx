@@ -219,7 +219,7 @@ export default function MembersList() {
                   const isCopied = copiedId === m.id;
 
                   return (
-                    <tr key={m.id} className="hover:bg-orange-50/40 transition duration-150">
+                    <tr key={m.id} className="row-hover-subtle transition duration-150">
                       <td className="py-3 px-4 font-bold text-slate-900">
                         {m.name}
                       </td>
@@ -325,13 +325,13 @@ export default function MembersList() {
               No members found. Tap "Add New Member" to register your first contributor.
             </div>
           ) : (
-            members.map((m) => {
+            members.map((m, index) => {
               const pass = m.plain_password || '******';
               const isVisible = showPassMap[m.id];
               const isCopied = copiedId === m.id;
 
               return (
-                <div key={m.id} className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-3.5 space-y-3">
+                <div key={m.id} className={`bg-white rounded-2xl border border-slate-200 shadow-2xs p-3.5 space-y-3 card-hover-lift-subtle animate-fade-in-up stagger-${(index % 6) + 1}`}>
                   {/* Top: Avatar, Name, Phone */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -448,8 +448,8 @@ export default function MembersList() {
 
       {/* Add / Edit Member Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-orange-600" />

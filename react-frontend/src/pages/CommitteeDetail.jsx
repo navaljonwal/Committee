@@ -209,7 +209,7 @@ export default function CommitteeDetail() {
       </div>
 
       {/* Top Banner Card */}
-      <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-8 shadow-xs relative overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-8 shadow-xs relative overflow-hidden card-hover-lift-subtle animate-fade-in-up">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
           <div>
@@ -366,7 +366,7 @@ export default function CommitteeDetail() {
                 return (
                   <tr 
                     key={s.id} 
-                    className={`hover:bg-orange-50/30 transition ${
+                    className={`row-hover-subtle transition-colors duration-150 ${
                       s.is_custom_bid 
                         ? 'bg-orange-50/40' 
                         : isSpecial 
@@ -499,7 +499,7 @@ export default function CommitteeDetail() {
                         <button
                           onClick={() => setActiveWinnerSchedule(s)}
                           disabled={isCompleted}
-                          className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition disabled:opacity-40"
+                          className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all btn-press hover:scale-110 disabled:opacity-40"
                           title="Assign Winner"
                         >
                           <Award className="w-4 h-4" />
@@ -509,12 +509,12 @@ export default function CommitteeDetail() {
                         <button
                           onClick={() => setActiveBiddingSchedule(s)}
                           disabled={isCompleted}
-                          className="relative p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition disabled:opacity-40"
+                          className="relative p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all btn-press hover:scale-110 disabled:opacity-40"
                           title={`Auction Bidding & Deduction (${s.bids?.length || 0} bids)`}
                         >
                           <Gavel className="w-4 h-4" />
                           {s.bids && s.bids.length > 0 && !s.winner_name && (
-                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white shadow-xs">
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-600 text-[9px] font-bold text-white shadow-xs animate-pop-in animate-live-glow">
                               {s.bids.length}
                             </span>
                           )}
@@ -524,7 +524,7 @@ export default function CommitteeDetail() {
                         <button
                           onClick={() => setActivePayoutSchedule(s)}
                           disabled={isCompleted}
-                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-40"
+                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all btn-press hover:scale-110 disabled:opacity-40"
                           title="Disburse Payout"
                         >
                           <Banknote className="w-4 h-4" />
@@ -534,7 +534,7 @@ export default function CommitteeDetail() {
                         <button
                           onClick={() => handleToggleScheduleVisibility(s.id)}
                           disabled={isCompleted}
-                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition disabled:opacity-40 cursor-pointer"
+                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all btn-press hover:scale-110 disabled:opacity-40 cursor-pointer"
                           title={
                             s.is_installment_visible || committee.show_future_installments
                               ? `Month ${s.month_no} installment is VISIBLE to members. Click to toggle.`
@@ -579,7 +579,7 @@ export default function CommitteeDetail() {
 
         {/* Mobile Fintech Round Cards */}
         <div className="md:hidden space-y-3">
-          {schedules.map((s) => {
+          {schedules.map((s, idx) => {
             const isSpecial = (s.index_n === parseInt(committee.special_month_index, 10));
             const pStats = s.payment_stats || { total: 0, paid_count: 0 };
             const allPaid = pStats.total > 0 && pStats.paid_count === pStats.total;
@@ -587,7 +587,7 @@ export default function CommitteeDetail() {
             return (
               <div 
                 key={s.id} 
-                className={`bg-white rounded-2xl border transition-all p-3.5 space-y-3 shadow-2xs ${
+                className={`bg-white rounded-2xl border transition-all p-3.5 space-y-3 shadow-2xs card-hover-lift-subtle animate-fade-in-up stagger-${(idx % 6) + 1} ${
                   s.is_custom_bid 
                     ? 'border-orange-300 ring-1 ring-orange-500/10' 
                     : isSpecial 

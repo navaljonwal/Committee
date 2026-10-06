@@ -123,35 +123,35 @@ export default function Sidebar({ mobileOpen, onCloseMobile, onOpenSearch }) {
                 <Link
                   to="/"
                   onClick={onCloseMobile}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all btn-press ${
                     isActive('/') && location.pathname === '/'
-                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs'
-                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50'
+                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs translate-x-1'
+                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50 hover:translate-x-1'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Layers className={`w-4 h-4 ${isActive('/') && location.pathname === '/' ? 'text-orange-600' : 'text-slate-400'}`} />
+                    <Layers className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive('/') && location.pathname === '/' ? 'text-orange-600' : 'text-slate-400'}`} />
                     <span>Committees List</span>
                   </div>
                   {isActive('/') && location.pathname === '/' && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
                   )}
                 </Link>
 
                 <Link
                   to="/committees/create"
                   onClick={onCloseMobile}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all btn-press ${
                     isActive('/committees/create')
-                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs'
-                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50'
+                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs translate-x-1'
+                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50 hover:translate-x-1'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <PlusCircle className={`w-4 h-4 ${isActive('/committees/create') ? 'text-orange-600' : 'text-slate-400'}`} />
                     <span>Create Committee</span>
                   </div>
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700">
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 animate-pulse">
                     New
                   </span>
                 </Link>
@@ -159,10 +159,10 @@ export default function Sidebar({ mobileOpen, onCloseMobile, onOpenSearch }) {
                 <Link
                   to="/members"
                   onClick={onCloseMobile}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all btn-press ${
                     isActive('/members')
-                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs'
-                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50'
+                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs translate-x-1'
+                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50 hover:translate-x-1'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -170,29 +170,29 @@ export default function Sidebar({ mobileOpen, onCloseMobile, onOpenSearch }) {
                     <span>Members Directory</span>
                   </div>
                   {isActive('/members') && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
                   )}
                 </Link>
 
                 <Link
                   to="/reminders"
                   onClick={onCloseMobile}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all btn-press ${
                     isActive('/reminders')
-                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs'
-                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50'
+                      ? 'bg-orange-50 text-orange-600 border border-orange-200 shadow-2xs translate-x-1'
+                      : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50/50 hover:translate-x-1'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <BellRing className={`w-4 h-4 ${isActive('/reminders') ? 'text-orange-600' : 'text-slate-400'}`} />
+                    <BellRing className={`w-4 h-4 ${reminderCount > 0 ? 'text-orange-600 animate-bell-shake' : isActive('/reminders') ? 'text-orange-600' : 'text-slate-400'}`} />
                     <span>Reminders Center</span>
                   </div>
                   {reminderCount > 0 ? (
-                    <span className="min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                    <span className="min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pop-in animate-live-red">
                       {reminderCount > 9 ? '9+' : reminderCount}
                     </span>
                   ) : isActive('/reminders') && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
                   )}
                 </Link>
               </>

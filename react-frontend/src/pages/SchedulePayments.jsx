@@ -242,7 +242,7 @@ export default function SchedulePayments() {
           <button
             onClick={handleMarkAllPaid}
             disabled={actionLoading}
-            className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-lg shadow-emerald-600/25 transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+            className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-1.5 btn-press shimmer-sweep disabled:opacity-50"
           >
             <Check className="w-4 h-4" /> Mark All as Paid
           </button>
@@ -251,7 +251,7 @@ export default function SchedulePayments() {
 
       {/* Summary KPI Cards - 2x2 on mobile, 4-col on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl">
+        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl card-hover-lift-subtle animate-fade-in-up stagger-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paid Seats</span>
             <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -266,7 +266,7 @@ export default function SchedulePayments() {
           </span>
         </div>
 
-        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl">
+        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl card-hover-lift-subtle animate-fade-in-up stagger-2">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending</span>
             <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
@@ -281,7 +281,7 @@ export default function SchedulePayments() {
           </span>
         </div>
 
-        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl">
+        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl card-hover-lift-subtle animate-fade-in-up stagger-3">
           <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Collected</span>
           <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1 font-mono truncate">
             ₹{(stats.total_collected || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
@@ -289,7 +289,7 @@ export default function SchedulePayments() {
           <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">With penalties</span>
         </div>
 
-        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl">
+        <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl card-hover-lift-subtle animate-fade-in-up stagger-4">
           <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Pending</span>
           <div className="text-lg sm:text-2xl font-black text-rose-600 mt-1 font-mono truncate">
             ₹{(stats.total_pending || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}

@@ -34,9 +34,9 @@ function daysFromNow(dateStr) {
 function DueBadge({ dateStr }) {
   const days = daysFromNow(dateStr);
   if (days === null) return null;
-  if (days < 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Overdue by {Math.abs(days)}d</span>;
-  if (days === 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-pulse">Due Today!</span>;
-  if (days <= 3) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">In {days}d</span>;
+  if (days < 0) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 animate-live-red">Overdue by {Math.abs(days)}d</span>;
+  if (days === 0) return <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-live-glow">Due Today!</span>;
+  if (days <= 3) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 animate-pulse">In {days}d</span>;
   return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{formatDate(dateStr)}</span>;
 }
 
@@ -142,8 +142,8 @@ export default function Reminders() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-200">
-            <BellRing className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+            <BellRing className="w-5 h-5 text-white animate-bell-shake" />
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Reminder Center</h1>
@@ -154,7 +154,7 @@ export default function Reminders() {
         </div>
         <button
           onClick={() => setShowForm(v => !v)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-bold shadow-lg shadow-orange-200 transition active:scale-[0.97]"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-bold shadow-lg shadow-orange-500/25 transition-all btn-press shimmer-sweep"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {showForm ? 'Cancel' : 'New Reminder'}
@@ -163,7 +163,7 @@ export default function Reminders() {
 
       {/* Create Form */}
       {showForm && (
-        <div className="bg-white rounded-3xl border border-orange-100 shadow-xl shadow-orange-50 overflow-hidden">
+        <div className="bg-white rounded-3xl border border-orange-100 shadow-xl shadow-orange-50 overflow-hidden animate-scale-in">
           <div className="bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-4">
             <h2 className="text-white font-bold text-sm flex items-center gap-2">
               <Plus className="w-4 h-4" /> Create New Reminder

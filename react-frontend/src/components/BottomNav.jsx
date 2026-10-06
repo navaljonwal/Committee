@@ -54,16 +54,16 @@ export default function BottomNav() {
             {/* Pools */}
             <Link
               to="/"
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all btn-press ${
                 isActive('/') && location.pathname === '/' 
                   ? 'text-orange-600 font-bold scale-105' 
                   : 'text-slate-500 hover:text-slate-800 font-medium'
               }`}
             >
               <div className="relative">
-                <Layers className="w-5 h-5" />
+                <Layers className="w-5 h-5 transition-transform" />
                 {isActive('/') && location.pathname === '/' && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full" />
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse" />
                 )}
               </div>
               <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Committees</span>
@@ -72,16 +72,16 @@ export default function BottomNav() {
             {/* Members */}
             <Link
               to="/members"
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all btn-press ${
                 isActive('/members') 
                   ? 'text-orange-600 font-bold scale-105' 
                   : 'text-slate-500 hover:text-slate-800 font-medium'
               }`}
             >
               <div className="relative">
-                <Users className="w-5 h-5" />
+                <Users className="w-5 h-5 transition-transform" />
                 {isActive('/members') && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full" />
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse" />
                 )}
               </div>
               <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Members</span>
@@ -90,10 +90,10 @@ export default function BottomNav() {
             {/* Raised Center Create Action */}
             <Link
               to="/committees/create"
-              className="flex flex-col items-center justify-center -mt-6 flex-shrink-0 group"
+              className="flex flex-col items-center justify-center -mt-6 flex-shrink-0 group btn-press"
               aria-label="Create New Committee"
             >
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 shadow-lg shadow-orange-500/35 flex items-center justify-center text-white active:scale-90 transition-transform border-2 border-white">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 shadow-lg shadow-orange-500/35 flex items-center justify-center text-white active:scale-90 transition-all border-2 border-white animate-live-glow group-hover:scale-105">
                 <PlusCircle className="w-6 h-6 stroke-[2.2]" />
               </div>
               <span className="text-[10px] font-black text-orange-600 mt-0.5 tracking-tight">Create</span>
@@ -102,21 +102,21 @@ export default function BottomNav() {
             {/* Reminders */}
             <Link
               to="/reminders"
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all btn-press ${
                 isActive('/reminders') 
                   ? 'text-orange-600 font-bold scale-105' 
                   : 'text-slate-500 hover:text-slate-800 font-medium'
               }`}
             >
               <div className="relative">
-                <BellRing className="w-5 h-5" />
+                <BellRing className={`w-5 h-5 ${reminderCount > 0 ? 'text-orange-600 animate-bell-shake' : ''}`} />
                 {reminderCount > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[15px] h-[15px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 border border-white">
+                  <span className="absolute -top-1 -right-2 min-w-[15px] h-[15px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 border border-white animate-pop-in animate-live-red">
                     {reminderCount > 9 ? '9+' : reminderCount}
                   </span>
                 )}
                 {isActive('/reminders') && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full" />
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse" />
                 )}
               </div>
               <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Reminders</span>
@@ -125,16 +125,16 @@ export default function BottomNav() {
             {/* Profile */}
             <Link
               to="/profile"
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all btn-press ${
                 isActive('/profile') 
                   ? 'text-orange-600 font-bold scale-105' 
                   : 'text-slate-500 hover:text-slate-800 font-medium'
               }`}
             >
               <div className="relative">
-                <Shield className="w-5 h-5" />
+                <Shield className="w-5 h-5 transition-transform" />
                 {isActive('/profile') && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full" />
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse" />
                 )}
               </div>
               <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Profile</span>

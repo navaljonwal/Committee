@@ -44,9 +44,9 @@ function daysFromNow(dateStr) {
 function DueBadge({ dateStr }) {
   const days = daysFromNow(dateStr);
   if (days === null) return null;
-  if (days < 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Overdue by {Math.abs(days)}d</span>;
-  if (days === 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-pulse">Due Today!</span>;
-  if (days <= 3) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">In {days}d</span>;
+  if (days < 0) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 animate-live-red">Overdue by {Math.abs(days)}d</span>;
+  if (days === 0) return <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-live-glow">Due Today!</span>;
+  if (days <= 3) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 animate-pulse">In {days}d</span>;
   return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{formatDate(dateStr)}</span>;
 }
 
@@ -234,8 +234,8 @@ export default function MemberDashboard() {
         <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-amber-500/5 border-2 border-amber-300 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm space-y-3.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md shadow-orange-200 shrink-0">
-                <BellRing className="w-5 h-5 text-white animate-bounce" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md shadow-orange-500/25 shrink-0">
+                <BellRing className="w-5 h-5 text-white animate-bell-shake" />
               </div>
               <div>
                 <div className="flex items-center gap-2">

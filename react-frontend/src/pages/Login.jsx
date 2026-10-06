@@ -41,8 +41,8 @@ export default function Login() {
       <div className="w-full max-w-md relative z-10">
         
         {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 shadow-xl shadow-orange-500/20 mb-4">
+        <div className="text-center mb-8 animate-fade-in-down">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 shadow-xl shadow-orange-500/25 mb-4 animate-float">
             <Layers className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
@@ -54,7 +54,7 @@ export default function Login() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-8 shadow-xl shadow-slate-200/50">
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-8 shadow-xl shadow-slate-200/50 animate-scale-in">
           <h2 className="text-xl font-bold text-slate-900 mb-1">Welcome back</h2>
           <p className="text-xs text-slate-500 mb-6">
             Login with your Email, Phone Number, or Full Name
@@ -102,7 +102,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-lg shadow-orange-500/25 transition duration-150 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-lg shadow-orange-500/25 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 btn-press shimmer-sweep"
             >
               {loading ? 'Authenticating...' : (
                 <>

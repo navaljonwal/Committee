@@ -91,7 +91,11 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         
         {/* Tamper-proof verified badge (desktop) */}
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold shadow-2xs">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Verified Ledger</span>
         </div>
@@ -100,7 +104,7 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
         {isAdmin && (
           <Link
             to="/committees/create"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-md shadow-orange-600/20 active:scale-95"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white text-xs font-bold transition-all shadow-md shadow-orange-600/20 btn-press shimmer-sweep hover:shadow-orange-500/30"
           >
             <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Kameti</span>
@@ -111,12 +115,12 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
         {isAdmin && (
           <Link
             to="/reminders"
-            className="relative p-2 rounded-xl text-slate-500 hover:text-orange-600 hover:bg-orange-50 border border-transparent hover:border-orange-200 transition"
+            className="relative p-2 rounded-xl text-slate-500 hover:text-orange-600 hover:bg-orange-50 border border-transparent hover:border-orange-200 transition-all btn-press"
             title="Payment Reminders Center"
           >
-            <BellRing className="w-4 h-4 sm:w-5 sm:h-5" />
+            <BellRing className={`w-4 h-4 sm:w-5 sm:h-5 ${reminderCount > 0 ? 'text-orange-600 animate-bell-shake' : ''}`} />
             {reminderCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-pop-in animate-live-red">
                 {reminderCount > 9 ? '9+' : reminderCount}
               </span>
             )}
@@ -129,11 +133,11 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
           className="flex items-center gap-2 pl-1.5 sm:pl-2.5 border-l border-slate-200 group"
           title="Profile Settings"
         >
-          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 border border-orange-200 group-hover:border-orange-300 flex items-center justify-center text-xs font-extrabold shadow-2xs transition">
+          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 border border-orange-200 group-hover:border-orange-400 group-hover:scale-105 flex items-center justify-center text-xs font-extrabold shadow-2xs transition-all duration-200">
             {user.name?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="hidden xl:block text-left">
-            <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[100px]">
+            <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[100px] group-hover:text-orange-600 transition-colors">
               {user.name}
             </div>
             <div className="text-[10px] text-slate-400 font-medium">

@@ -98,7 +98,7 @@ function AppLayout() {
           />
         )}
 
-        <main className="flex-1 overflow-x-hidden">
+        <main key={location.pathname} className="flex-1 overflow-x-hidden animate-page-enter">
           <Routes>
             {/* Admin Routes */}
             <Route path="/" element={

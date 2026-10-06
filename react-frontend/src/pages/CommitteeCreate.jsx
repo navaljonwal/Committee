@@ -506,7 +506,7 @@ export default function CommitteeCreate() {
           <button
             type="submit"
             disabled={submitting}
-            className="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xl shadow-orange-500/25 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xl shadow-orange-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2 btn-press shimmer-sweep"
           >
             {submitting ? 'Generating Committee & Schedules...' : (
               <>
