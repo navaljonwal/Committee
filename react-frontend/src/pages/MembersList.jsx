@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Award,
   Layers,
-  MessageCircle
+  MessageCircle,
+  Search
 } from 'lucide-react';
 import api from '../api/client';
 import { usePopup } from '../context/PopupContext';
@@ -29,6 +30,7 @@ export default function MembersList() {
   // Password visibility toggle tracker
   const [showPassMap, setShowPassMap] = useState({});
   const [copiedId, setCopiedId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Add / Edit modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -166,6 +168,16 @@ export default function MembersList() {
     }
   };
 
+  const filteredMembers = members.filter((m) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (m.name && m.name.toLowerCase().includes(q)) ||
+      (m.phone && m.phone.includes(q)) ||
+      (m.user_email && m.user_email.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
       
@@ -191,6 +203,33 @@ export default function MembersList() {
 
       {/* Members Section */}
       <div className="bg-white border border-slate-200 rounded-3xl p-3.5 sm:p-8 space-y-4 shadow-sm">
+        
+        {/* Quick Search Bar & Count (App-Style) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search member by name or phone..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9.5 pr-8 py-2 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-200 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="text-xs text-slate-500 font-medium">
+            Showing <strong className="text-slate-900">{filteredMembers.length}</strong> of {members.length} members
+          </div>
+        </div>
+
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
           <table className="w-full text-left text-xs">
@@ -206,14 +245,14 @@ export default function MembersList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {members.length === 0 ? (
+              {filteredMembers.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-8 text-center text-slate-400 font-medium">
-                    No members found. Click "Add New Member" to register your first contributor.
+                    {searchQuery ? `No members matching "${searchQuery}".` : 'No members found. Click "Add New Member" to register your first contributor.'}
                   </td>
                 </tr>
               ) : (
-                members.map((m) => {
+                filteredMembers.map((m) => {
                   const pass = m.plain_password || '******';
                   const isVisible = showPassMap[m.id];
                   const isCopied = copiedId === m.id;
@@ -320,12 +359,12 @@ export default function MembersList() {
 
         {/* Mobile Member Cards (MNC App Style) */}
         <div className="md:hidden space-y-3">
-          {members.length === 0 ? (
+          {filteredMembers.length === 0 ? (
             <div className="py-8 text-center text-slate-400 font-medium text-xs">
-              No members found. Tap "Add New Member" to register your first contributor.
+              {searchQuery ? `No members matching "${searchQuery}".` : 'No members found. Tap "Add New Member" to register your first contributor.'}
             </div>
           ) : (
-            members.map((m, index) => {
+            filteredMembers.map((m, index) => {
               const pass = m.plain_password || '******';
               const isVisible = showPassMap[m.id];
               const isCopied = copiedId === m.id;

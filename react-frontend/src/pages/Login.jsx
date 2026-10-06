@@ -45,16 +45,16 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 shadow-xl shadow-orange-500/25 mb-4 animate-float">
             <Layers className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            ChitFund <span className="text-orange-600">Pro</span>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Kameti <span className="text-orange-600">Pro</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1.5 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
             Transparent, secure & verified Kameti ledger system
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-8 shadow-xl shadow-slate-200/50 animate-scale-in">
+        <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-200/50 animate-scale-in">
           <h2 className="text-xl font-bold text-slate-900 mb-1">Welcome back</h2>
           <p className="text-xs text-slate-500 mb-6">
             Login with your Email, Phone Number, or Full Name

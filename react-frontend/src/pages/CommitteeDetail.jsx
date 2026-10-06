@@ -182,7 +182,7 @@ export default function CommitteeDetail() {
           <ArrowLeft className="w-4 h-4" /> Back to All Committees
         </Link>
 
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar">
           <Link
             to={`/committees/${id}/edit`}
             className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 text-xs font-bold border border-slate-200 transition flex items-center gap-1.5 shadow-xs"

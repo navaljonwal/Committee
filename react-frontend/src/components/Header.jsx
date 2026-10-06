@@ -41,13 +41,13 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
   const isAdmin = user.role === 'admin';
 
   return (
-    <header className="no-print h-14 sm:h-16 px-3.5 sm:px-6 lg:px-8 border-b border-slate-200/90 bg-white/95 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between gap-3 shadow-2xs">
+    <header className="no-print h-14 sm:h-16 px-3 sm:px-6 lg:px-8 border-b border-slate-200/90 bg-white/95 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between gap-2 sm:gap-4 shadow-2xs pt-[env(safe-area-inset-top,0px)]">
       
       {/* Left: Mobile hamburger & Brand */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <button
           onClick={onOpenMobileSidebar}
-          className="md:hidden p-2 rounded-xl text-slate-600 hover:text-orange-600 hover:bg-orange-50 border border-slate-200 transition"
+          className="md:hidden p-2 rounded-xl text-slate-600 hover:text-orange-600 hover:bg-orange-50 border border-slate-200/90 transition active:scale-95"
           aria-label="Open navigation sidebar"
         >
           <Menu className="w-5 h-5" />
@@ -56,19 +56,19 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
         {/* Mobile brand title */}
         <Link 
           to={isAdmin ? "/" : "/member/dashboard"}
-          className="md:hidden flex items-center gap-2"
+          className="md:hidden flex items-center gap-2 active:scale-98 transition"
         >
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xs">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xs">
             <Layers className="w-4 h-4" />
           </div>
-          <span className="font-extrabold text-sm text-slate-900">
-            ChitFund <span className="text-orange-600">Pro</span>
+          <span className="font-extrabold text-sm text-slate-900 tracking-tight">
+            Kameti <span className="text-orange-600 font-black">Pro</span>
           </span>
         </Link>
       </div>
 
-      {/* Center: Search Bar (Desktop & Mobile) */}
-      <div className="flex-1 max-w-xl mx-auto px-2">
+      {/* Center: Search Bar (Desktop) */}
+      <div className="hidden sm:block flex-1 max-w-xl mx-auto px-2">
         <button
           onClick={onOpenSearch}
           className="w-full flex items-center justify-between px-3.5 py-2 sm:py-2.5 rounded-2xl bg-slate-50 hover:bg-orange-50/50 border border-slate-200 hover:border-orange-200 text-xs sm:text-sm text-slate-400 hover:text-slate-600 transition shadow-2xs group"
@@ -88,7 +88,17 @@ export default function Header({ onOpenMobileSidebar, onOpenSearch }) {
       </div>
 
       {/* Right: Quick Actions */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        
+        {/* Quick Search Button (Mobile Only) */}
+        <button
+          onClick={onOpenSearch}
+          className="sm:hidden p-2 rounded-xl text-slate-600 hover:text-orange-600 bg-slate-50 hover:bg-orange-50 border border-slate-200/90 transition active:scale-95"
+          aria-label="Search"
+          title="Search"
+        >
+          <Search className="w-4 h-4" />
+        </button>
         
         {/* Tamper-proof verified badge (desktop) */}
         <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold shadow-2xs">
