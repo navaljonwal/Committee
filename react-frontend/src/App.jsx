@@ -1,9 +1,11 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PopupProvider } from './context/PopupContext';
 
-import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import CommandPalette from './components/CommandPalette';
 import BottomNav from './components/BottomNav';
 import Login from './pages/Login';
 import CommitteesList from './pages/CommitteesList';
@@ -44,92 +46,149 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
+function AppLayout() {
+  const { user } = useAuth();
+  const location = useLocation();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Global shortcut: ⌘K or Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const isLoginPage = location.pathname === '/login';
+  const isPrintPage = location.pathname.includes('/print');
+
+  if (!user || isLoginPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 flex font-sans selection:bg-orange-500 selection:text-white">
+      {/* Multi-Section Executive Sidebar (Desktop Fixed + Mobile Sliding Drawer) */}
+      {!isPrintPage && (
+        <Sidebar 
+          mobileOpen={mobileSidebarOpen} 
+          onCloseMobile={() => setMobileSidebarOpen(false)} 
+          onOpenSearch={() => setSearchOpen(true)} 
+        />
+      )}
+
+      {/* Main Workspace (Header + Content + Mobile Bottom Nav) */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen pb-24 md:pb-0">
+        {!isPrintPage && (
+          <Header 
+            onOpenMobileSidebar={() => setMobileSidebarOpen(true)} 
+            onOpenSearch={() => setSearchOpen(true)} 
+          />
+        )}
+
+        <main className="flex-1 overflow-x-hidden">
+          <Routes>
+            {/* Admin Routes */}
+            <Route path="/" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CommitteesList />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/committees/create" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CommitteeCreate />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/committees/:id" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CommitteeDetail />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/committees/:id/edit" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CommitteeEdit />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/committees/:id/print" element={
+              <ProtectedRoute allowedRoles={['admin', 'member']}>
+                <PrintView />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/members" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <MembersList />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/schedules/:scheduleId/payments" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <SchedulePayments />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/profile" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/reminders" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Reminders />
+              </ProtectedRoute>
+            } />
+
+            {/* Member Portal Routes */}
+            <Route path="/member/dashboard" element={
+              <ProtectedRoute allowedRoles={['member']}>
+                <MemberDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/member/committees/:id" element={
+              <ProtectedRoute allowedRoles={['member']}>
+                <MemberCommittee />
+              </ProtectedRoute>
+            } />
+
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+
+      {/* Mobile Floating Bottom Bar */}
+      {!isPrintPage && <BottomNav />}
+
+      {/* Global Command Palette / Search Bar Modal */}
+      <CommandPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <PopupProvider>
         <BrowserRouter>
-          <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white pb-24 md:pb-0">
-            <Navbar />
-            <main className="flex-1">
-              <Routes>
-                {/* Public route */}
-                <Route path="/login" element={<Login />} />
-
-                {/* Admin Routes */}
-                <Route path="/" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <CommitteesList />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/committees/create" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <CommitteeCreate />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/committees/:id" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <CommitteeDetail />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/committees/:id/edit" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <CommitteeEdit />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/committees/:id/print" element={
-                  <ProtectedRoute allowedRoles={['admin', 'member']}>
-                    <PrintView />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/members" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <MembersList />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/schedules/:scheduleId/payments" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <SchedulePayments />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/profile" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <ProfileSettings />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/reminders" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Reminders />
-                  </ProtectedRoute>
-                } />
-
-                {/* Member Portal Routes */}
-                <Route path="/member/dashboard" element={
-                  <ProtectedRoute allowedRoles={['member']}>
-                    <MemberDashboard />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/member/committees/:id" element={
-                  <ProtectedRoute allowedRoles={['member']}>
-                    <MemberCommittee />
-                  </ProtectedRoute>
-                } />
-
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
-            <BottomNav />
-          </div>
+          <AppLayout />
         </BrowserRouter>
       </PopupProvider>
     </AuthProvider>
