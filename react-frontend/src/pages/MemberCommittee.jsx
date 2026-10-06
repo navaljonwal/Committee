@@ -201,13 +201,27 @@ export default function MemberCommittee() {
   );
 
   // Overall payment statistics for this committee
+  let totalPaidBase = 0;
+  let totalPaidPenalty = 0;
   let totalPaidAmount = 0;
+
+  let totalPendingBase = 0;
+  let totalPendingPenalty = 0;
   let totalPendingAmount = 0;
-  let totalPenaltyAmount = 0;
+
+  let totalExpectedBase = 0;
+  let totalAllPenalty = 0;
+  let totalExpectedGrand = 0;
 
   if (schedules && myPayments) {
     for (const s of schedules) {
       const pList = myPayments[s.id] || [];
+      const hasPayments = pList.length > 0;
+      const seatsCount = hasPayments ? pList.length : (totalSeats || 1);
+      
+      const sBaseExpected = parseFloat(s.installment_per_member || 0) * seatsCount;
+      totalExpectedBase += sBaseExpected;
+
       const isPastOrDue = !currentPendingSchedule || s.month_no <= currentPendingSchedule.month_no;
       const isSchedVisible = 
         isPastOrDue || 
@@ -220,13 +234,18 @@ export default function MemberCommittee() {
         const amt = parseFloat(p.amount_paid || 0);
         const pen = parseFloat(p.penalty_amount || 0);
         if (p.payment_status === 'paid') {
-          totalPaidAmount += amt;
+          totalPaidBase += amt;
+          totalPaidPenalty += pen;
+          totalPaidAmount += (amt + pen);
         } else if (isSchedVisible) {
+          totalPendingBase += amt;
+          totalPendingPenalty += pen;
           totalPendingAmount += (amt + pen);
-          totalPenaltyAmount += pen;
         }
       }
     }
+    totalAllPenalty = totalPaidPenalty + totalPendingPenalty;
+    totalExpectedGrand = totalExpectedBase + totalAllPenalty;
   }
 
   const paidMonthsCount = schedules?.filter(s => {
@@ -561,6 +580,82 @@ export default function MemberCommittee() {
                     );
                   })}
                 </tbody>
+                <tfoot className="border-t-2 border-slate-300 bg-slate-50/90 font-mono text-slate-800">
+                  {/* Row 1: Total Paid So Far (अब तक कुल जमा राशि) */}
+                  <tr className="bg-emerald-50/60 border-b border-emerald-100">
+                    <td colSpan="3" className="py-3.5 px-4 font-sans font-bold text-slate-900 text-right uppercase text-[11px] tracking-wide">
+                      <div className="flex items-center justify-end gap-1.5 text-emerald-800">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                        <span>Total Paid So Far (अब तक कुल जमा):</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800">
+                      ₹{totalPaidBase.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-slate-600">
+                      {totalPaidPenalty > 0 ? `₹${totalPaidPenalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-700 bg-emerald-100/70 text-sm border-x border-emerald-200">
+                      ₹{totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        {paidMonthsCount} of {schedules.length} Paid
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-xs font-sans text-emerald-700 font-medium">
+                      Total Cleared Installments
+                    </td>
+                  </tr>
+
+                  {/* Row 2: Pending Due (बकाया राशि) - only if pending exists */}
+                  {totalPendingAmount > 0 && (
+                    <tr className="bg-amber-50/50 border-b border-amber-100">
+                      <td colSpan="3" className="py-2.5 px-4 font-sans font-bold text-slate-800 text-right uppercase text-[11px] tracking-wide">
+                        <div className="flex items-center justify-end gap-1.5 text-amber-800">
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Pending Due (वर्तमान बकाया):</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono font-semibold text-slate-700">
+                        ₹{totalPendingBase.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono font-semibold text-amber-600">
+                        {totalPendingPenalty > 0 ? `₹${totalPendingPenalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono font-extrabold text-amber-800 bg-amber-100/50 border-x border-amber-200">
+                        ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-2.5 px-4 text-center">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                          {pendingMonthsCount} Pending
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 text-xs font-sans text-amber-700">
+                        Current round dues
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Row 3: Estimated Committee Scheme Total */}
+                  <tr className="bg-slate-100/70">
+                    <td colSpan="3" className="py-2.5 px-4 font-sans font-bold text-slate-700 text-right uppercase text-[11px] tracking-wide">
+                      <span>Scheme Total Value ({totalSeats || 1} Seat{totalSeats > 1 ? 's' : ''}):</span>
+                    </td>
+                    <td className="py-2.5 px-4 text-right font-mono text-slate-600 text-xs">
+                      ₹{totalExpectedBase.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-2.5 px-4 text-right font-mono text-slate-600 text-xs">
+                      {totalAllPenalty > 0 ? `₹${totalAllPenalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                    </td>
+                    <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-900 bg-slate-200/50 border-x border-slate-200">
+                      ₹{totalExpectedGrand.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td colSpan="2" className="py-2.5 px-4 text-[11px] font-sans text-slate-500 italic">
+                      All {schedules.length} months estimated total
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
@@ -684,6 +779,62 @@ export default function MemberCommittee() {
                   </div>
                 );
               })}
+
+              {/* Mobile Member Payment Ledger Totals Card */}
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-700/60 space-y-3 mt-4">
+                <div className="flex items-center justify-between border-b border-slate-700/60 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">Payment Ledger Summary</div>
+                      <div className="text-[10px] text-slate-400">Total payments so far & pending dues</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {paidMonthsCount}/{schedules.length} Paid
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  {/* Total Paid So Far */}
+                  <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3">
+                    <span className="text-[10px] uppercase font-bold text-emerald-300 tracking-wider block">
+                      Total Paid (कुल जमा)
+                    </span>
+                    <span className="text-lg font-black font-mono text-emerald-400 block mt-0.5">
+                      ₹{totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                    <span className="text-[10px] text-emerald-200/70 block mt-0.5">
+                      Abhi tak jama kiya gaya
+                    </span>
+                  </div>
+
+                  {/* Pending Due */}
+                  <div className="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3">
+                    <span className="text-[10px] uppercase font-bold text-amber-300 tracking-wider block">
+                      Pending Due (बकाया)
+                    </span>
+                    <span className="text-lg font-black font-mono text-amber-400 block mt-0.5">
+                      ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                    <span className="text-[10px] text-amber-200/70 block mt-0.5">
+                      {pendingMonthsCount} installments remaining
+                    </span>
+                  </div>
+                </div>
+
+                {/* Scheme grand expected total */}
+                <div className="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-slate-700/60 font-mono">
+                  <span className="text-[11px] text-slate-400 font-sans">
+                    Estimated Scheme Value ({totalSeats || 1} Seat):
+                  </span>
+                  <span className="font-bold text-white">
+                    ₹{totalExpectedGrand.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {!committee.show_future_installments && (
