@@ -24,10 +24,13 @@ import Reminders from './pages/Reminders';
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-8 h-8 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+          <span className="text-xs text-slate-500 font-semibold">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -47,7 +50,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 }
 
 function AppLayout() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -64,6 +67,18 @@ function AppLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Wait for session verification if token exists but user isn't loaded yet
+  if (loading && !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+          <span className="text-xs text-slate-500 font-semibold">Restoring session...</span>
+        </div>
+      </div>
+    );
+  }
+
   const isLoginPage = location.pathname === '/login';
   const isPrintPage = location.pathname.includes('/print');
 
@@ -71,7 +86,10 @@ function AppLayout() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route 
+            path="/login" 
+            element={user ? <Navigate to={user.role === 'member' ? "/member/dashboard" : "/"} replace /> : <Login />} 
+          />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

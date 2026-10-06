@@ -21,8 +21,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // If unauthorized and not already on login page
-      if (!window.location.pathname.includes('/login')) {
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      // If unauthorized on protected routes and not already on login page
+      if (!isLoginRequest && !window.location.pathname.includes('/login')) {
         localStorage.removeItem('kameti_token');
         localStorage.removeItem('kameti_user');
         window.location.href = '/login';
