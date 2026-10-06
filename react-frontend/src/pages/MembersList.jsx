@@ -448,59 +448,71 @@ export default function MembersList() {
 
       {/* Add / Edit Member Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-hidden animate-fade-in"
+          onClick={() => setModalOpen(false)}
+        >
+          <div 
+            className="relative w-full max-w-md max-h-[90vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-orange-600" />
                 {editingMember ? 'Edit Member Credentials' : 'Register New Member'}
               </h3>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+              <button 
+                type="button"
+                onClick={() => setModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition active:scale-95"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                />
+            <form onSubmit={handleSubmit} className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number (10 Digits)</label>
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    placeholder="e.g. 9876543210"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Portal Login Password {editingMember ? '(Leave empty to keep current)' : '(Auto-generated if empty)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formPassword}
+                    onChange={(e) => setFormPassword(e.target.value)}
+                    placeholder={editingMember ? 'Leave empty to keep existing password' : 'e.g. rahul3210 (or leave empty)'}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                  />
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Default format: First word of name + last 4 digits of phone number.
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number (10 Digits)</label>
-                <input
-                  type="text"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  placeholder="e.g. 9876543210"
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Portal Login Password {editingMember ? '(Leave empty to keep current)' : '(Auto-generated if empty)'}
-                </label>
-                <input
-                  type="text"
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                  placeholder={editingMember ? 'Leave empty to keep existing password' : 'e.g. rahul3210 (or leave empty)'}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                />
-                <span className="text-[11px] text-slate-500 mt-1 block">
-                  Default format: First word of name + last 4 digits of phone number.
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
+              <div className="shrink-0 flex items-center justify-between pt-4 border-t border-slate-100 gap-2">
                 {editingMember ? (
                   <button
                     type="button"

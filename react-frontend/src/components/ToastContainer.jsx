@@ -6,7 +6,7 @@ export default function ToastContainer({ toasts, removeToast }) {
 
   return (
     <div 
-      className="fixed top-5 right-5 z-[10000] flex flex-col gap-2.5 pointer-events-none max-w-md w-full px-4 sm:px-0"
+      className="fixed top-4 sm:top-5 left-3 right-3 sm:left-auto sm:right-5 z-[10000] flex flex-col gap-2.5 pointer-events-none sm:max-w-md w-auto sm:w-full"
       role="region"
       aria-label="Notifications"
     >

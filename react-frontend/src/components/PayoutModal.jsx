@@ -108,13 +108,19 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200 my-auto">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-hidden animate-fade-in"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-2xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+        <div className="shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
           <div>
-            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
               <Banknote className="w-5 h-5 text-orange-600" />
               Disbursement Settlement — Month {schedule.month_no}
             </h3>
@@ -123,14 +129,16 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
             </p>
           </div>
           <button 
+            type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition"
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
           
           {/* Status & Date */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -286,8 +294,10 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
             </span>
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-2 border-t border-slate-100">
+          </div> {/* End scrollable body */}
+
+          {/* Fixed Footer Actions */}
+          <div className="shrink-0 flex items-center justify-end space-x-3 p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70">
             <button
               type="button"
               onClick={onClose}

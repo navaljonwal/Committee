@@ -208,15 +208,15 @@ export default function CommandPalette({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-950/65 backdrop-blur-sm overflow-hidden transition-opacity duration-200 animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transition-all animate-scale-in"
+        className="relative w-full max-w-2xl max-h-[85vh] sm:max-h-[80vh] bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden transition-all animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Bar Input */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-200/90 bg-slate-50/70">
+        <div className="shrink-0 flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200/90 bg-slate-50/70">
           <Search className="w-5 h-5 text-orange-600 shrink-0" />
           <input
             ref={inputRef}
@@ -387,7 +387,7 @@ export default function CommandPalette({ isOpen, onClose }) {
         </div>
 
         {/* Footer Shortcut Guide */}
-        <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+        <div className="shrink-0 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between font-mono">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
