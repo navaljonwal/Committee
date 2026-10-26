@@ -1,58 +1,64 @@
 /**
  * WhatsApp Reminder Utility
  * 
- * Generates a wa.me link that opens WhatsApp with a pre-filled message.
- * Works on both mobile (opens WhatsApp app) and desktop (opens WhatsApp Web).
+ * Generates official, professional WhatsApp reminder messages and wa.me links.
+ * Works seamlessly on mobile (WhatsApp App) and desktop (WhatsApp Web).
  */
 
 /**
- * Clean phone number — remove spaces, dashes, brackets; ensure starts with 91
+ * Clean phone number — remove spaces, dashes, brackets; ensure starts with country code 91
  * @param {string} phone 
- * @returns {string}
+ * @returns {string|null}
  */
-function cleanPhone(phone) {
+export function cleanPhone(phone) {
   if (!phone) return null;
-  // Remove all non-digits
   let digits = String(phone).replace(/\D/g, '');
-  // If 10 digits, prepend India country code
   if (digits.length === 10) digits = '91' + digits;
-  // If starts with 0, replace with 91
-  if (digits.startsWith('0')) digits = '91' + digits.slice(1);
+  if (digits.length === 11 && digits.startsWith('0')) digits = '91' + digits.slice(1);
   return digits.length >= 10 ? digits : null;
 }
 
 /**
- * Generate a WhatsApp reminder link for a pending payment
- * @param {Object} params
- * @param {string} params.phone - Member phone number
- * @param {string} params.memberName - Member name
- * @param {string} params.committeeName - Committee name
- * @param {number} params.monthNo - Month number
- * @param {number} params.amountDue - Total amount due
- * @param {string} [params.drawDate] - Draw date (optional)
- * @param {number} [params.seatsCount] - Number of seats (optional, default 1)
- * @param {string} [params.seatNumbers] - Seat number or formatted list of seats (optional)
- * @returns {string|null} - wa.me URL or null if no valid phone
+ * Cleanly format member name with "ji", preventing duplicate "ji" if name already contains it
+ * e.g. "chhuttan lal ji" -> "chhuttan lal ji" (NOT "chhuttan lal ji ji")
+ *      "chhuttan lal"    -> "chhuttan lal ji"
+ * @param {string} name
+ * @returns {string}
  */
-export function makeWhatsAppPaymentReminder({ 
-  phone, 
-  memberName, 
-  committeeName, 
-  monthNo, 
-  amountDue, 
+export function formatMemberName(name) {
+  if (!name || typeof name !== 'string') return 'Member ji';
+  let cleaned = name.trim();
+  // Strip trailing "ji" (one or more times) case-insensitively
+  cleaned = cleaned.replace(/([\s\-_]+ji)+$/i, '').trim();
+  return cleaned ? `${cleaned} ji` : 'Member ji';
+}
+
+/**
+ * Build the enhanced, official payment reminder text message
+ * @param {Object} params
+ * @returns {string}
+ */
+export function buildPaymentReminderMessage({
+  memberName,
+  committeeName,
+  monthNo,
+  amountDue,
   drawDate,
   seatsCount = 1,
-  seatNumbers = null 
+  seatNumbers = null,
+  organizerName = null,
+  organizerPhone = null,
+  customNote = null
 }) {
-  const cleanedPhone = phone ? cleanPhone(phone) : null;
-
+  const cleanName = formatMemberName(memberName);
   const amount = parseFloat(amountDue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
   let drawInfo = '';
   if (drawDate) {
     try {
       const d = new Date(drawDate);
       if (!isNaN(d.getTime())) {
-        drawInfo = `\n📅 Draw Date: ${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        drawInfo = `\n📅 *Draw / Boli Tareekh:* ${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
       }
     } catch (_) {}
   }
@@ -65,20 +71,51 @@ export function makeWhatsAppPaymentReminder({
     seatInfo = `\n🎫 *Seat:* ${seatNumbers}`;
   }
 
-  const message = `🔔 *Kameti Payment Reminder*
+  // Authentic Organizer contact & verification info
+  let organizerSection = '';
+  if (organizerName && organizerPhone) {
+    organizerSection = `🙏 *Organizer (आयोजक):* ${organizerName}\n📞 *Sampark / GPay / PhonePe:* ${organizerPhone}`;
+  } else if (organizerName) {
+    organizerSection = `🙏 *Organizer (आयोजक):* ${organizerName}`;
+  } else if (organizerPhone) {
+    organizerSection = `📞 *Sampark / UPI:* ${organizerPhone}`;
+  } else {
+    organizerSection = `🙏 *Committee Prabandhan (Management)*`;
+  }
 
-Namaskar ${memberName || 'Member'} ji,
+  const noteSection = customNote ? `\n\n📝 *Note:* ${customNote}` : '';
 
-Aapka is mahine ka Kameti installment pending hai:
+  return `🔔 *कमैटी किस्त भुगतान सूचना*
+*(Kameti Installment Reminder)*
 
-🏦 *Committee:* ${committeeName}
-📆 *Month:* ${monthNo}${seatInfo}
-💰 *Total Amount Due:* ₹${amount}${drawInfo}
+नमस्ते *${cleanName}*, 🙏
 
-Kripya jald se jald payment karein.
+Aapki *${committeeName || 'Kameti'}* ki is mahine ki kist (installment) jama karwane hetu suchna:
 
-Shukriya 🙏
-_Kameti Pro_`;
+━━━━━━━━━━━━━━━━━━━━━
+🏦 *Committee:* ${committeeName || 'Kameti'}
+📆 *Kist / Mahina:* Month ${monthNo}${seatInfo}
+💰 *Total Due (कुल बकाया):* ₹${amount}${drawInfo}
+━━━━━━━━━━━━━━━━━━━━━
+
+💳 *Payment Kaise Karein:*
+Kripya apni kist Cash ya UPI / Online (GPay / PhonePe / Paytm) dwara samay par jama karwayen.
+_(Yadi aap payment kar chuke hain, to kripya receipt / screenshot share karein.)_${noteSection}
+
+${organizerSection}
+━━━━━━━━━━━━━━━━━━━━━
+_Official Committee Notice_`;
+}
+
+/**
+ * Generate a WhatsApp reminder link for a pending payment
+ * @param {Object} params
+ * @returns {string|null} - wa.me URL
+ */
+export function makeWhatsAppPaymentReminder(params) {
+  const { phone } = params || {};
+  const cleanedPhone = phone ? cleanPhone(phone) : null;
+  const message = buildPaymentReminderMessage(params || {});
 
   if (cleanedPhone) {
     return `https://wa.me/${cleanedPhone}?text=${encodeURIComponent(message)}`;
@@ -87,14 +124,19 @@ _Kameti Pro_`;
 }
 
 /**
- * Generate a WhatsApp reminder for a draw date
+ * Build the draw reminder text message
  * @param {Object} params
- * @returns {string|null}
+ * @returns {string}
  */
-export function makeWhatsAppDrawReminder({ phone, memberName, committeeName, monthNo, drawDate }) {
-  const cleanedPhone = cleanPhone(phone);
-  if (!cleanedPhone) return null;
-
+export function buildDrawReminderMessage({
+  memberName,
+  committeeName,
+  monthNo,
+  drawDate,
+  organizerName = null,
+  organizerPhone = null
+}) {
+  const cleanName = formatMemberName(memberName);
   let dateStr = 'Jald hi';
   if (drawDate) {
     try {
@@ -105,21 +147,43 @@ export function makeWhatsAppDrawReminder({ phone, memberName, committeeName, mon
     } catch (_) {}
   }
 
-  const message = `🎯 *Kameti Draw Reminder*
+  let organizerSection = '';
+  if (organizerName && organizerPhone) {
+    organizerSection = `\n🙏 *Organizer (आयोजक):* ${organizerName}\n📞 *Sampark:* ${organizerPhone}`;
+  } else if (organizerName) {
+    organizerSection = `\n🙏 *Organizer (आयोजक):* ${organizerName}`;
+  } else {
+    organizerSection = `\n🙏 *Committee Prabandhan (Management)*`;
+  }
 
-Namaskar ${memberName || 'Member'} ji,
+  return `🎯 *कमैटी ड्रा / बोली सूचना (Draw Alert)* 🎯
 
-Aapki Kameti ka draw hone wala hai!
+नमस्ते *${cleanName}*, 🙏
 
+Aapki *${committeeName}* ka Month ${monthNo} ka Draw / Bidding hone wala hai!
+
+━━━━━━━━━━━━━━━━━━━━━
 🏦 *Committee:* ${committeeName}
-📆 *Month:* ${monthNo}
-🗓️ *Draw Date:* ${dateStr}
+📆 *Kist / Mahina:* Month ${monthNo}
+🗓️ *Draw Tareekh:* ${dateStr}
+━━━━━━━━━━━━━━━━━━━━━
 
-Bidding ke liye taiyaar rahein!
+📢 Bidding / Draw ke liye taiyaar rahein!
 
-Shukriya 🙏
-_Kameti Pro_`;
+${organizerSection}
+━━━━━━━━━━━━━━━━━━━━━
+_Official Committee Notice_`;
+}
 
+/**
+ * Generate a WhatsApp reminder for a draw date
+ * @param {Object} params
+ * @returns {string|null}
+ */
+export function makeWhatsAppDrawReminder(params) {
+  const cleanedPhone = cleanPhone(params?.phone);
+  if (!cleanedPhone) return null;
+  const message = buildDrawReminderMessage(params || {});
   return `https://wa.me/${cleanedPhone}?text=${encodeURIComponent(message)}`;
 }
 

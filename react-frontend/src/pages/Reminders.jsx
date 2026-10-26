@@ -7,7 +7,9 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { usePopup } from '../context/PopupContext';
+import { useAuth } from '../context/AuthContext';
 import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
+import WhatsAppModal from '../components/WhatsAppModal';
 
 const TYPE_META = {
   urgent:  { label: 'Urgent',  color: 'bg-red-100 text-red-700 border-red-200',   dot: 'bg-red-500',    icon: AlertTriangle },
@@ -42,10 +44,35 @@ function DueBadge({ dateStr }) {
 
 export default function Reminders() {
   const { showConfirm, toast } = usePopup();
+  const { user } = useAuth();
   const [data, setData] = useState({ reminders: [], auto_alerts: { pending_payments: [], upcoming_draws: [] }, counts: {} });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [showForm, setShowForm] = useState(false);
+
+  // WhatsApp Reminder modal & sent tracking
+  const [activeReminderData, setActiveReminderData] = useState(null);
+  const [remindedMap, setRemindedMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kameti_reminders_sent');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleMarkReminded = (key) => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const stamp = `${dateStr}, ${timeStr}`;
+    const newMap = { ...remindedMap, [key]: stamp };
+    setRemindedMap(newMap);
+    try {
+      localStorage.setItem('kameti_reminders_sent', JSON.stringify(newMap));
+    } catch (_) {}
+    toast.success('WhatsApp reminder marked as sent!');
+  };
 
   // Form state
   const [form, setForm] = useState({ title: '', description: '', due_date: '', reminder_type: 'custom' });
@@ -339,17 +366,39 @@ export default function Reminders() {
                       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                         {p.draw_date && <DueBadge dateStr={p.draw_date} />}
 
-                        {waLink && (
-                          <a
-                            href={waLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`Send WhatsApp Reminder to ${p.member_name}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 text-xs font-bold transition shadow-xs active:scale-95"
+                        {p.member_phone && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const pKey = `${p.schedule_id || p.committee_id}_${p.member_id}`;
+                              setActiveReminderData({
+                                memberId: pKey,
+                                memberName: p.member_name,
+                                phone: p.member_phone,
+                                committeeName: p.committee_name,
+                                monthNo: p.month_no,
+                                amountDue: p.total_due,
+                                drawDate: p.draw_date,
+                                seatsCount,
+                                seatNumbers,
+                                organizerName: user?.name,
+                                organizerPhone: user?.phone,
+                                lastReminded: remindedMap[pKey]
+                              });
+                            }}
+                            title={remindedMap[`${p.schedule_id || p.committee_id}_${p.member_id}`] ? `Sent: ${remindedMap[`${p.schedule_id || p.committee_id}_${p.member_id}`]}` : `Send WhatsApp Reminder to ${p.member_name}`}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-xs active:scale-95 ${
+                              remindedMap[`${p.schedule_id || p.committee_id}_${p.member_id}`]
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border-emerald-200 hover:border-emerald-600'
+                            }`}
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             <span>WhatsApp</span>
-                          </a>
+                            {remindedMap[`${p.schedule_id || p.committee_id}_${p.member_id}`] && (
+                              <span className="text-[10px] bg-emerald-200 text-emerald-950 px-1 rounded font-bold">✓ Sent</span>
+                            )}
+                          </button>
                         )}
 
                         <Link
@@ -447,6 +496,14 @@ export default function Reminders() {
           )}
         </div>
       )}
+
+      {/* WhatsApp Preview & Edit Reminder Modal */}
+      <WhatsAppModal
+        isOpen={!!activeReminderData}
+        data={activeReminderData}
+        onClose={() => setActiveReminderData(null)}
+        onSent={handleMarkReminded}
+      />
     </div>
   );
 }

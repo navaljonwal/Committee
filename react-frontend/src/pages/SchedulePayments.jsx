@@ -21,10 +21,13 @@ import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
 import { usePopup } from '../context/PopupContext';
+import { useAuth } from '../context/AuthContext';
+import WhatsAppModal from '../components/WhatsAppModal';
 
 export default function SchedulePayments() {
   const { scheduleId } = useParams();
   const { showConfirm, toast } = usePopup();
+  const { user } = useAuth();
 
   const [schedule, setSchedule] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -37,6 +40,47 @@ export default function SchedulePayments() {
   const [editingPenaltyId, setEditingPenaltyId] = useState(null);
   const [penaltyAmount, setPenaltyAmount] = useState(0);
   const [penaltyRemarks, setPenaltyRemarks] = useState('');
+
+  // WhatsApp Reminder modal & sent tracking
+  const [activeReminderData, setActiveReminderData] = useState(null);
+  const [remindedMap, setRemindedMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`kameti_reminded_${scheduleId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleMarkReminded = (memberId) => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const stamp = `${dateStr}, ${timeStr}`;
+    const newMap = { ...remindedMap, [memberId]: stamp };
+    setRemindedMap(newMap);
+    try {
+      localStorage.setItem(`kameti_reminded_${scheduleId}`, JSON.stringify(newMap));
+    } catch (_) {}
+    toast.success('WhatsApp reminder marked as sent!');
+  };
+
+  const handleOpenReminder = (g) => {
+    setActiveReminderData({
+      memberId: g.member_id,
+      memberName: g.member_name,
+      phone: g.member_phone,
+      committeeName: schedule?.committee_name,
+      monthNo: schedule?.month_no,
+      amountDue: g.pending_due,
+      drawDate: schedule?.draw_date,
+      seatsCount: g.pending_count,
+      seatNumbers: g.pending_seat_numbers.join(', '),
+      organizerName: user?.name,
+      organizerPhone: user?.phone,
+      lastReminded: remindedMap[g.member_id]
+    });
+  };
 
   const loadPayments = async () => {
     try {
@@ -491,17 +535,31 @@ export default function SchedulePayments() {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right font-sans">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* WhatsApp Reminder (Totals all pending seats) */}
-                          {waLink && (
-                            <a
-                              href={waLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={`Send WhatsApp reminder to ${g.member_name} for ₹${g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}${hasMultipleSeats ? ` (${g.pending_count} seat${g.pending_count > 1 ? 's' : ''})` : ''}`}
-                              className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 transition"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                            </a>
+                          {/* WhatsApp Reminder Button with preview/edit modal & status */}
+                          {!g.isAllPaid && (
+                            <div className="flex items-center gap-1.5">
+                              {remindedMap[g.member_id] && (
+                                <span 
+                                  className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md"
+                                  title={`Reminder sent: ${remindedMap[g.member_id]}`}
+                                >
+                                  <Check className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
+                                  Sent
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenReminder(g)}
+                                title={remindedMap[g.member_id] ? `Reminder sent on ${remindedMap[g.member_id]}. Click to view/edit or send again.` : `Send WhatsApp reminder to ${g.member_name}`}
+                                className={`p-1.5 rounded-lg border transition flex items-center gap-1 ${
+                                  remindedMap[g.member_id]
+                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300'
+                                    : 'bg-green-50 hover:bg-green-100 text-green-600 border-green-200'
+                                }`}
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           )}
 
                           {/* Member Status Toggle Button */}
@@ -828,17 +886,21 @@ export default function SchedulePayments() {
                   )}
 
                   {/* WhatsApp Reminder (Totals all pending seats) */}
-                  {waLink ? (
-                    <a
-                      href={waLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {!g.isAllPaid && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReminder(g)}
                       className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition shadow-2xs"
                     >
                       <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>WhatsApp (₹{g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 0 })})</span>
-                    </a>
-                  ) : null}
+                      <span>WhatsApp</span>
+                      {remindedMap[g.member_id] ? (
+                        <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded-full font-bold">✓ Sent</span>
+                      ) : (
+                        <span className="text-[11px] text-emerald-600 font-mono">(₹{g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 0 })})</span>
+                      )}
+                    </button>
+                  )}
 
                   {/* Primary Toggle Action Button */}
                   <button
@@ -868,6 +930,14 @@ export default function SchedulePayments() {
           })}
         </div>
       </div>
+
+      {/* WhatsApp Preview & Edit Reminder Modal */}
+      <WhatsAppModal
+        isOpen={!!activeReminderData}
+        data={activeReminderData}
+        onClose={() => setActiveReminderData(null)}
+        onSent={handleMarkReminded}
+      />
 
     </div>
   );
