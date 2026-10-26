@@ -41,16 +41,17 @@ export default function PopupModal({ modalState, onConfirm, onCancel }) {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3.5 sm:p-6 bg-slate-950/65 backdrop-blur-xs overflow-hidden transition-opacity duration-200"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-6 transition-opacity duration-200"
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
       aria-labelledby="popup-modal-title"
     >
-      <div
-        className="relative w-full max-w-md max-h-[90vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden transform transition-all duration-200 animate-popup-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="min-h-full flex items-center justify-center">
+        <div
+          className="relative w-full max-w-md sm:max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden transform transition-all duration-200 animate-popup-scale-in"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Top Header / Close */}
         <div className="shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
           <div
@@ -122,6 +123,7 @@ export default function PopupModal({ modalState, onConfirm, onCancel }) {
             {confirmText}
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

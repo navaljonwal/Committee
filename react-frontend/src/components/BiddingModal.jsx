@@ -86,13 +86,14 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-hidden animate-fade-in"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-6 transition-opacity animate-fade-in"
       onClick={onClose}
     >
-      <div 
-        className="relative w-full max-w-xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="min-h-full flex items-center justify-center">
+        <div 
+          className="relative w-full max-w-xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
+          onClick={(e) => e.stopPropagation()}
+        >
         
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
@@ -206,21 +207,22 @@ export default function BiddingModal({ isOpen, onClose, schedule, onSaveSuccess 
         </div>
 
         {/* Lock at Formula Default - pinned footer */}
-        <div className="shrink-0 border-t border-slate-100 p-4 sm:p-5 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2.5">
-          <span className="text-xs text-slate-500 font-medium">
+        <div className="shrink-0 border-t border-slate-100 p-3.5 sm:p-5 bg-slate-50/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <span className="text-xs text-slate-500 font-medium text-center sm:text-left">
             No auction bidding for this month?
           </span>
           <button
             type="button"
             onClick={handleLockDefault}
             disabled={submitting}
-            className="px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition flex items-center gap-1.5 active:scale-[0.98]"
+            className="w-full sm:w-auto px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
           >
             <Lock className="w-3.5 h-3.5 text-amber-500" />
             Lock at Formula Default (₹{parseFloat(schedule.formula_deduction || 0).toLocaleString('en-IN')})
           </button>
         </div>
 
+      </div>
       </div>
     </div>
   );

@@ -208,13 +208,16 @@ export default function CommandPalette({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-950/65 backdrop-blur-sm overflow-hidden transition-opacity duration-200 animate-fade-in"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 backdrop-blur-sm p-2.5 sm:p-6 transition-opacity duration-200 animate-fade-in"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
-      <div 
-        className="relative w-full max-w-2xl max-h-[85vh] sm:max-h-[80vh] bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden transition-all animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="min-h-full flex items-center justify-center">
+        <div 
+          className="relative w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[82vh] bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden transition-all animate-scale-in"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Search Bar Input */}
         <div className="shrink-0 flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200/90 bg-slate-50/70">
           <Search className="w-5 h-5 text-orange-600 shrink-0" />
@@ -395,6 +398,7 @@ export default function CommandPalette({ isOpen, onClose }) {
           </div>
           <span className="text-slate-400 font-sans font-medium hidden sm:inline">ChitFund Pro Live Search</span>
         </div>
+      </div>
       </div>
     </div>
   );

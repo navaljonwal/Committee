@@ -39,13 +39,14 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-hidden animate-fade-in"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-6 transition-opacity animate-fade-in"
       onClick={onClose}
     >
-      <div 
-        className="relative w-full max-w-md max-h-[90vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="min-h-full flex items-center justify-center">
+        <div 
+          className="relative w-full max-w-md sm:max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-orange-600" />
@@ -62,8 +63,8 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1 flex flex-col">
+          <div className="space-y-4 flex-1">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Select Winner Member</label>
               <select
@@ -94,23 +95,24 @@ export default function WinnerModal({ isOpen, onClose, schedule, members, onSave
             </div>
           </div>
 
-          <div className="shrink-0 flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+          <div className="shrink-0 flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
+              className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-2 text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
             >
               {submitting ? 'Saving...' : 'Save Winner'}
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   );

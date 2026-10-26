@@ -33,16 +33,17 @@ export default function WhatsAppModal({
     }
   }, [data, isOpen]);
 
-  // Prevent background scrolling when modal is open
+  // Lock background scroll when open
   useEffect(() => {
     if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       const handleEscape = (e) => {
         if (e.key === 'Escape') onClose();
       };
       window.addEventListener('keydown', handleEscape);
       return () => {
-        document.body.style.overflow = '';
+        document.body.style.overflow = prevOverflow;
         window.removeEventListener('keydown', handleEscape);
       };
     }
@@ -95,15 +96,16 @@ export default function WhatsAppModal({
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-xs transition-opacity duration-200"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-950/75 backdrop-blur-xs p-2.5 sm:p-4 md:p-6 transition-opacity duration-200"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
-      <div 
-        className="relative w-full sm:max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden transform transition-all duration-200 animate-scale-up"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="min-h-full flex items-center justify-center">
+        <div 
+          className="relative w-full max-w-lg sm:max-w-xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden transform transition-all duration-200 animate-scale-up"
+          onClick={e => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -230,7 +232,7 @@ export default function WhatsAppModal({
           </div>
         </div>
 
-        {/* Footer Actions (Phone: Stacked thumb-friendly; Desktop: Clean flex row) */}
+        {/* Footer Actions */}
         <div className="p-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/90 shrink-0">
           
           {/* Mobile Layout (< sm) */}
@@ -297,6 +299,7 @@ export default function WhatsAppModal({
 
         </div>
 
+      </div>
       </div>
     </div>
   );
