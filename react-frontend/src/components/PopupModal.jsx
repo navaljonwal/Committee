@@ -94,12 +94,12 @@ export default function PopupModal({ modalState, onConfirm, onCancel }) {
         </div>
 
         {/* Modal Actions */}
-        <div className="shrink-0 p-4 sm:p-5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2.5 sm:gap-3">
+        <div className="shrink-0 p-3.5 sm:p-5 bg-slate-50/80 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
           {!isAlert && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 text-xs sm:text-sm font-semibold transition active:scale-[0.98]"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 text-xs sm:text-sm font-semibold transition active:scale-[0.98] text-center"
             >
               {cancelText}
             </button>
@@ -109,7 +109,7 @@ export default function PopupModal({ modalState, onConfirm, onCancel }) {
             ref={confirmBtnRef}
             type="button"
             onClick={onConfirm}
-            className={`px-5 py-2 sm:py-2.5 rounded-xl text-white text-xs sm:text-sm font-bold shadow-lg transition duration-150 active:scale-[0.98] ${
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-bold shadow-lg transition duration-150 active:scale-[0.98] text-center ${
               isDanger
                 ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
                 : isWarning
