@@ -89,6 +89,38 @@
   animation: popupSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Bottom sheet on mobile (slide up from bottom) */
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Slide-over drawer on desktop (slide in from right) */
+@keyframes drawerSlideRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-sheet-up {
+  animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-right {
+  animation: drawerSlideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* =========================================================================
    Ultra-Smooth Modern Animations System (ChitFund Pro Orange Theme)
    ========================================================================= */

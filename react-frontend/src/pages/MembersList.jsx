@@ -22,6 +22,7 @@ import {
 import api from '../api/client';
 import { usePopup } from '../context/PopupContext';
 import { formatMemberName } from '../utils/whatsapp';
+import ActionDrawer from '../components/ActionDrawer';
 
 export default function MembersList() {
   const { showConfirm, toast } = usePopup();
@@ -487,108 +488,86 @@ export default function MembersList() {
         </div>
       </div>
 
-      {/* Add / Edit Member Modal */}
-      {modalOpen && (
-        <div 
-          className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-6 transition-opacity duration-200 animate-fade-in"
-          onClick={() => setModalOpen(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="min-h-full flex items-center justify-center">
-            <div 
-              className="relative w-full max-w-md sm:max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-orange-600" />
-                  {editingMember ? 'Edit Member Credentials' : 'Register New Member'}
-                </h3>
-                <button 
-                  type="button"
-                  onClick={() => setModalOpen(false)} 
-                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition active:scale-95"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Add / Edit Member ActionDrawer (Mobile Bottom Sheet / Desktop Slide-over Drawer) */}
+      <ActionDrawer
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        icon={UserPlus}
+        title={editingMember ? 'Edit Member Credentials' : 'Register New Member'}
+        subtitle={editingMember ? 'Update details or credentials for this member' : 'Add a new member to your committee ledger'}
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+          <div className="p-4 sm:p-6 space-y-4 flex-1">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
+            </div>
 
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                <div className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      placeholder="e.g. Rahul Sharma"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                    />
-                  </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number (10 Digits)</label>
+              <input
+                type="text"
+                value={formPhone}
+                onChange={(e) => setFormPhone(e.target.value)}
+                placeholder="e.g. 9876543210"
+                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
+            </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number (10 Digits)</label>
-                    <input
-                      type="text"
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="e.g. 9876543210"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Portal Login Password {editingMember ? '(Leave empty to keep current)' : '(Auto-generated if empty)'}
-                    </label>
-                    <input
-                      type="text"
-                      value={formPassword}
-                      onChange={(e) => setFormPassword(e.target.value)}
-                      placeholder={editingMember ? 'Leave empty to keep existing password' : 'e.g. rahul3210 (or leave empty)'}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                    />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Default format: First word of name + last 4 digits of phone number.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/70 gap-2.5">
-                  {editingMember ? (
-                    <button
-                      type="button"
-                      onClick={() => handleShareWhatsApp(editingMember)}
-                      className="w-full sm:w-auto px-3.5 py-2.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95"
-                      title="Share ID & Password on WhatsApp"
-                    >
-                      <MessageCircle className="w-4 h-4 text-emerald-600" /> WhatsApp Login Info
-                    </button>
-                  ) : <div className="hidden sm:block" />}
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setModalOpen(false)}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition text-center"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="flex-1 sm:flex-initial px-5 py-2.5 text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
-                    >
-                      {submitting ? 'Saving...' : editingMember ? 'Update Member' : 'Create Member'}
-                    </button>
-                  </div>
-                </div>
-              </form>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Portal Login Password {editingMember ? '(Leave empty to keep current)' : '(Auto-generated if empty)'}
+              </label>
+              <input
+                type="text"
+                value={formPassword}
+                onChange={(e) => setFormPassword(e.target.value)}
+                placeholder={editingMember ? 'Leave empty to keep existing password' : 'e.g. rahul3210 (or leave empty)'}
+                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Default format: First word of name + last 4 digits of phone number.
+              </span>
             </div>
           </div>
-        </div>
-      )}
+
+          <div className="shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/70 gap-2.5 pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
+            {editingMember ? (
+              <button
+                type="button"
+                onClick={() => handleShareWhatsApp(editingMember)}
+                className="w-full sm:w-auto px-3.5 py-2.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95"
+                title="Share ID & Password on WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" /> WhatsApp Login Info
+              </button>
+            ) : <div className="hidden sm:block" />}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="flex-1 sm:flex-initial px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 sm:flex-initial px-5 py-2.5 text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
+              >
+                {submitting ? 'Saving...' : editingMember ? 'Update Member' : 'Create Member'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </ActionDrawer>
 
     </div>
   );

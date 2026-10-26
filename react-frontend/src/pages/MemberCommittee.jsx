@@ -19,6 +19,7 @@ import {
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { usePopup } from '../context/PopupContext';
+import ActionDrawer from '../components/ActionDrawer';
 
 function formatDate(dateStr) {
   if (!dateStr) return null;
@@ -1008,88 +1009,67 @@ export default function MemberCommittee() {
         </div>
       )}
 
-      {/* Bid Submission Modal */}
-      {activeBidScheduleId && (
-        <div 
-          className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs p-2.5 sm:p-6 transition-opacity duration-200 animate-fade-in"
-          onClick={() => setActiveBidScheduleId(null)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="min-h-full flex items-center justify-center">
-            <div 
-              className="relative w-full max-w-md sm:max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] bg-white border border-slate-200 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-scale-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <Gavel className="w-5 h-5 text-orange-600" />
-                  <h3 className="text-base font-bold text-slate-900">Place Auction Bid</h3>
-                </div>
-                <button 
-                  type="button"
-                  onClick={() => setActiveBidScheduleId(null)} 
-                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition active:scale-95"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Bid Submission ActionDrawer (Mobile Bottom Sheet / Desktop Slide-over Drawer) */}
+      <ActionDrawer
+        isOpen={!!activeBidScheduleId}
+        onClose={() => setActiveBidScheduleId(null)}
+        icon={Gavel}
+        title="Place Auction Bid"
+        subtitle="Submit your deduction bid for this round"
+        maxWidth="sm:max-w-md md:max-w-lg"
+      >
+        <form onSubmit={handleBidSubmit} className="flex flex-col flex-1">
+          <div className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Deduction Bid Amount (₹) *
+              </label>
+              <input
+                type="number"
+                step="1"
+                required
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+                placeholder="Enter bid amount"
+                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Rule: Your bid must be strictly higher than the current highest bid.
+              </span>
+            </div>
 
-              <form onSubmit={handleBidSubmit} className="flex flex-col flex-1 overflow-hidden">
-                <div className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Deduction Bid Amount (₹) *
-                    </label>
-                    <input
-                      type="number"
-                      step="1"
-                      required
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(e.target.value)}
-                      placeholder="Enter bid amount"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                    />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Rule: Your bid must be strictly higher than the current highest bid.
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Remarks / Notes (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={bidRemarks}
-                      onChange={(e) => setBidRemarks(e.target.value)}
-                      placeholder="Optional remarks"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                    />
-                  </div>
-                </div>
-
-                <div className="shrink-0 flex items-center justify-end gap-2.5 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/70">
-                  <button
-                    type="button"
-                    onClick={() => setActiveBidScheduleId(null)}
-                    className="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition text-center"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submittingBid}
-                    className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
-                  >
-                    {submittingBid ? 'Submitting...' : 'Confirm Bid'}
-                  </button>
-                </div>
-              </form>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Remarks / Notes (Optional)
+              </label>
+              <input
+                type="text"
+                value={bidRemarks}
+                onChange={(e) => setBidRemarks(e.target.value)}
+                placeholder="Optional remarks"
+                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
             </div>
           </div>
-        </div>
-      )}
+
+          <div className="shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/70 pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
+            <button
+              type="button"
+              onClick={() => setActiveBidScheduleId(null)}
+              className="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition text-center"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submittingBid}
+              className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
+            >
+              {submittingBid ? 'Submitting...' : 'Confirm Bid'}
+            </button>
+          </div>
+        </form>
+      </ActionDrawer>
 
     </div>
   );
