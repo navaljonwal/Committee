@@ -495,50 +495,9 @@ export default function MembersList() {
         icon={UserPlus}
         title={editingMember ? 'Edit Member Credentials' : 'Register New Member'}
         subtitle={editingMember ? 'Update details or credentials for this member' : 'Add a new member to your committee ledger'}
-      >
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-          <div className="p-4 sm:p-6 space-y-4 flex-1">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
-              <input
-                type="text"
-                required
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="e.g. Rahul Sharma"
-                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number (10 Digits)</label>
-              <input
-                type="text"
-                value={formPhone}
-                onChange={(e) => setFormPhone(e.target.value)}
-                placeholder="e.g. 9876543210"
-                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Portal Login Password {editingMember ? '(Leave empty to keep current)' : '(Auto-generated if empty)'}
-              </label>
-              <input
-                type="text"
-                value={formPassword}
-                onChange={(e) => setFormPassword(e.target.value)}
-                placeholder={editingMember ? 'Leave empty to keep existing password' : 'e.g. rahul3210 (or leave empty)'}
-                className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-              />
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                Default format: First word of name + last 4 digits of phone number.
-              </span>
-            </div>
-          </div>
-
-          <div className="shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/70 gap-2.5 pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
+        onSubmit={handleSubmit}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             {editingMember ? (
               <button
                 type="button"
@@ -566,7 +525,48 @@ export default function MembersList() {
               </button>
             </div>
           </div>
-        </form>
+        }
+      >
+        <div className="p-4 sm:p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
+            <input
+              type="text"
+              required
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="e.g. Rahul Sharma"
+              className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number (10 Digits)</label>
+            <input
+              type="text"
+              value={formPhone}
+              onChange={(e) => setFormPhone(e.target.value)}
+              placeholder="e.g. 9876543210"
+              className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Portal Login Password {editingMember ? '(Leave empty to keep current)' : '(Auto-generated if empty)'}
+            </label>
+            <input
+              type="text"
+              value={formPassword}
+              onChange={(e) => setFormPassword(e.target.value)}
+              placeholder={editingMember ? 'Leave empty to keep existing password' : 'e.g. rahul3210 (or leave empty)'}
+              className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+            />
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Default format: First word of name + last 4 digits of phone number.
+            </span>
+          </div>
+        </div>
       </ActionDrawer>
 
     </div>

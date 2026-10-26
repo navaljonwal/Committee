@@ -116,9 +116,27 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
       title={`Disbursement Settlement — Month ${schedule.month_no}`}
       subtitle={`Winner: ${schedule.winner_name || 'Pending Draw Assignment'} • Target: ₹${netPayoutTarget.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
       maxWidth="sm:max-w-xl md:max-w-2xl"
+      onSubmit={handleSubmit}
+      footer={
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition text-center"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
+          >
+            {submitting ? 'Saving...' : 'Save Disbursement'}
+          </button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-        <div className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
+      <div className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
           {/* Status & Date & Mode */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
@@ -273,25 +291,6 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
             </span>
           </div>
         </div>
-
-        {/* Pinned Footer Actions */}
-        <div className="shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/70 pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition text-center"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
-          >
-            {submitting ? 'Saving...' : 'Save Disbursement'}
-          </button>
-        </div>
-      </form>
     </ActionDrawer>
   );
 }

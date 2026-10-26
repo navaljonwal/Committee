@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /**
  * ActionDrawer
- * A world-class responsive component:
- * - Mobile (< sm): Premium iOS/CRED style Bottom Sheet (slides up from bottom, thumb-friendly drag bar, rounded top)
- * - Desktop (>= sm): Sleek Slide-over Panel (slides in from right, leaves dashboard visible, rounded left)
+ * A world-class responsive drawer component rendered directly to document.body via Portal:
+ * - Mobile (< sm): Premium iOS / CRED style Bottom Sheet (slides up from bottom, drag handle, rounded top, pinned sticky footer)
+ * - Desktop (>= sm): Sleek Slide-over Panel (slides in from right edge, full height, leaves dashboard visible, rounded left)
  */
 export default function ActionDrawer({
   isOpen,
@@ -18,8 +19,15 @@ export default function ActionDrawer({
   footer,
   maxWidth = 'sm:max-w-lg md:max-w-xl',
   headerActions,
-  headerBg = 'bg-slate-50/70'
+  headerBg = 'bg-slate-50/70',
+  onSubmit
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Close on ESC key and lock body scroll while open
   useEffect(() => {
     if (!isOpen) return;
@@ -40,10 +48,10 @@ export default function ActionDrawer({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+  const content = (
+    <div className="fixed inset-0 z-[9999] isolate" role="dialog" aria-modal="true">
       {/* Blurred Dim Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-fade-in"
@@ -53,12 +61,12 @@ export default function ActionDrawer({
 
       {/* Responsive Sheet (Mobile: Bottom Sheet | Desktop: Slide-over Drawer) */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl max-h-[92dvh] flex flex-col shadow-2xl border-t border-slate-200/90 animate-sheet-up overflow-hidden sm:fixed sm:top-0 sm:bottom-0 sm:right-0 sm:inset-x-auto sm:rounded-none sm:rounded-l-3xl sm:max-h-full sm:border-t-0 sm:border-l sm:border-slate-200/90 sm:animate-drawer-right w-full ${maxWidth}`}
+        className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl max-h-[92dvh] h-auto flex flex-col shadow-2xl border-t border-slate-200/90 animate-sheet-up overflow-hidden sm:fixed sm:top-0 sm:bottom-0 sm:right-0 sm:inset-x-auto sm:rounded-none sm:rounded-l-3xl sm:h-full sm:max-h-full sm:border-t-0 sm:border-l sm:border-slate-200/90 sm:animate-drawer-right w-full ${maxWidth}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Pull Bar Drag Handle */}
-        <div className="pt-2 pb-1 sm:hidden flex justify-center shrink-0 bg-white">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        <div className="pt-2.5 pb-1 sm:hidden flex justify-center shrink-0 bg-white cursor-pointer" onClick={onClose}>
+          <div className="w-12 h-1.5 bg-slate-300 hover:bg-slate-400 transition rounded-full" />
         </div>
 
         {/* Pinned Header */}
@@ -100,18 +108,33 @@ export default function ActionDrawer({
           </div>
         </div>
 
-        {/* Scrollable Body Content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain flex flex-col">
-          {children}
-        </div>
-
-        {/* Optional Pinned Footer (Safe for Mobile Safe Area) */}
-        {footer && (
-          <div className="shrink-0 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/80 pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
-            {footer}
+        {/* Form or Container wrapping scrollable body and pinned footer */}
+        {onSubmit ? (
+          <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+              {children}
+            </div>
+            {footer && (
+              <div className="shrink-0 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/90 backdrop-blur-xs pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
+                {footer}
+              </div>
+            )}
+          </form>
+        ) : (
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+              {children}
+            </div>
+            {footer && (
+              <div className="shrink-0 p-3.5 sm:p-5 border-t border-slate-100 bg-slate-50/90 backdrop-blur-xs pb-[max(env(safe-area-inset-bottom,0px),1rem)]">
+                {footer}
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
