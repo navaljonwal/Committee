@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, Trophy, X, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 
 const SLICE_COLORS = [
@@ -54,6 +55,7 @@ function playWinFanfare() {
 }
 
 export default function LiveSpinModal({ spinData, onClose }) {
+  const [mounted, setMounted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [rotationDeg, setRotationDeg] = useState(0);
   const [transitionDurationSec, setTransitionDurationSec] = useState((spinData?.duration_ms || 7000) / 1000);
@@ -72,6 +74,20 @@ export default function LiveSpinModal({ spinData, onClose }) {
   const duration_ms = spinData?.duration_ms || 7000;
   const started_at = spinData?.started_at || Date.now();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll while modal is active so background cannot move
+  useEffect(() => {
+    if (!spinData) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow || '';
+    };
+  }, [spinData]);
+
   // Find winner slice index
   const numCandidates = Math.max(1, candidates.length);
   const winnerIndex = candidates.findIndex(c => Number(c.id) === Number(winner_id));
@@ -81,7 +97,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
   const sliceAngle = 360 / numCandidates;
   const winnerMidAngle = (safeWinnerIndex + 0.5) * sliceAngle;
   const targetAngle = (360 - winnerMidAngle) % 360;
-  const fullRounds = 8 * 360; // 8 full spins for suspense
+  const fullRounds = 8 * 360; // 8 full spins for exciting suspense
   const finalRotation = fullRounds + targetAngle;
 
   // High-performance Canvas Confetti Particle Generator
@@ -93,7 +109,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
     canvas.height = window.innerHeight;
 
     const colors = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
-    const particles = Array.from({ length: 70 }).map(() => ({
+    const particles = Array.from({ length: 75 }).map(() => ({
       x: canvas.width / 2,
       y: canvas.height * 0.4,
       r: Math.random() * 5 + 3,
@@ -239,19 +255,19 @@ export default function LiveSpinModal({ spinData, onClose }) {
     ].join(' ');
   };
 
-  if (!spinData) return null;
+  if (!spinData || !mounted) return null;
 
-  return (
+  const modalContent = (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/90 backdrop-blur-md select-none overflow-hidden"
+      className="fixed inset-0 z-[999999] flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/90 backdrop-blur-md select-none overflow-hidden"
       style={{ touchAction: 'none' }}
     >
       {/* Confetti Canvas */}
-      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50 w-full h-full" />
+      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-[999999] w-full h-full" />
 
-      {/* Main Zero-Scroll Modal Card: Fits 100% inside screen on all phones and desktops */}
+      {/* Main Zero-Scroll Modal Card: Pinned dead-center directly on document.body */}
       <div 
-        className="relative w-full max-w-[340px] sm:max-w-[390px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/40 rounded-3xl p-3 sm:p-4 shadow-2xl text-center flex flex-col justify-between overflow-hidden my-auto"
+        className="relative w-full max-w-[340px] sm:max-w-[390px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-3 sm:p-4 shadow-[0_0_50px_rgba(245,158,11,0.25)] text-center flex flex-col justify-between overflow-hidden my-auto"
         style={{ maxHeight: 'min(92vh, 480px)' }}
       >
         {/* Glow Effects */}
@@ -481,4 +497,6 @@ export default function LiveSpinModal({ spinData, onClose }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
