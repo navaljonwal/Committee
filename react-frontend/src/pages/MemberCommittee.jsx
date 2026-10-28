@@ -443,7 +443,7 @@ export default function MemberCommittee() {
                     <th className="py-3 px-4 text-right">Penalty (₹)</th>
                     <th className="py-3 px-4 text-right">Total (₹)</th>
                     <th className="py-3 px-4 text-center">Payment Status</th>
-                    <th className="py-3 px-4">Round Winner / Remarks</th>
+                    <th className="py-3 px-4">Round Status / Winner</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
@@ -576,9 +576,17 @@ export default function MemberCommittee() {
                         </td>
 
                         {/* Round Winner / Remarks */}
-                        <td className="py-3.5 px-4 font-sans text-xs text-slate-600">
-                          {s.winner_name ? (
-                            <span className="text-slate-800 font-medium">Winner: <strong>{s.winner_name}</strong></span>
+                        <td className="py-3.5 px-4 font-sans text-xs">
+                          {s.is_my_win || (s.member_id && Number(s.member_id) === Number(memberId)) ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs shadow-2xs">
+                              <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Aapne jeeta (You Won)</span>
+                            </span>
+                          ) : (s.is_winner_assigned || s.member_id || s.winner_name) ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 font-medium text-xs">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span>Draw Completed</span>
+                            </span>
                           ) : isInstallmentVisible ? (
                             <span className="text-slate-400 italic">Round open</span>
                           ) : (
@@ -772,10 +780,15 @@ export default function MemberCommittee() {
                     {/* Bottom Details: Winner / Paid Date */}
                     <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 text-slate-500">
                       <div>
-                        {s.winner_name ? (
-                          <span className="flex items-center gap-1 font-semibold text-slate-800">
-                            <Award className="w-3.5 h-3.5 text-amber-500" />
-                            Winner: {s.winner_name}
+                        {s.is_my_win || (s.member_id && Number(s.member_id) === Number(memberId)) ? (
+                          <span className="flex items-center gap-1 font-bold text-emerald-700">
+                            <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            Aapne jeeta (You Won)
+                          </span>
+                        ) : (s.is_winner_assigned || s.member_id || s.winner_name) ? (
+                          <span className="flex items-center gap-1 font-medium text-slate-600">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            Draw Completed
                           </span>
                         ) : isInstallmentVisible ? (
                           <span className="text-slate-400 italic">Round open</span>
@@ -958,9 +971,18 @@ export default function MemberCommittee() {
 
                     {/* Status / Winner message */}
                     {isWinnerAssigned && (
-                      <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2 font-medium">
-                        <Award className="w-4 h-4 text-amber-500" />
-                        <span>Winner Assigned: <strong>{s.winner_name || 'Member'}</strong></span>
+                      <div className={`mb-4 p-2.5 rounded-xl text-xs flex items-center gap-2 font-medium border ${
+                        (s.is_my_win || Number(s.member_id) === Number(memberId))
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}>
+                        <Award className={`w-4 h-4 ${(s.is_my_win || Number(s.member_id) === Number(memberId)) ? 'text-emerald-600' : 'text-slate-400'}`} />
+                        <span>
+                          {(s.is_my_win || Number(s.member_id) === Number(memberId))
+                            ? <strong>Aapne ye round jeeta hai! (You Won this round)</strong>
+                            : <span>Draw Completed / Winner Decided</span>
+                          }
+                        </span>
                       </div>
                     )}
 

@@ -163,11 +163,27 @@ export async function getMemberCommittee(req, res) {
       const grace = cs.payment_grace_days !== undefined && cs.payment_grace_days !== null ? Number(cs.payment_grace_days) : 5;
       const penaltyAmt = cs.late_penalty_amount !== undefined && cs.late_penalty_amount !== null ? Number(cs.late_penalty_amount) : 100.00;
       const dueDate = cs.draw_date ? addDaysToDate(cs.draw_date, grace) : null;
+
+      const isMyWin = cs.member_id && Number(cs.member_id) === Number(memberId);
+      const isWinnerAssigned = Boolean(cs.member_id);
+
+      // Privacy: If regular member, only reveal winner if the viewing member themselves won!
+      // Other members see 'Draw Completed' and never see another member's name or phone.
+      const safeWinnerName = (user.role === 'admin')
+        ? cs.winner_name
+        : (isMyWin ? 'Aapne jeeta (You Won)' : (isWinnerAssigned ? 'Draw Completed' : null));
+
+      const safeWinnerPhone = (user.role === 'admin' || isMyWin) ? cs.winner_phone : null;
+
       return {
         ...cs,
         payment_grace_days: grace,
         late_penalty_amount: penaltyAmt,
-        due_date: dueDate
+        due_date: dueDate,
+        is_my_win: isMyWin,
+        is_winner_assigned: isWinnerAssigned,
+        winner_name: safeWinnerName,
+        winner_phone: safeWinnerPhone
       };
     });
 
@@ -320,13 +336,14 @@ export async function buildLiveBidsPayload(committeeId, memberId = null) {
 
   for (const b of bids) {
     if (!allBids[b.schedule_id]) allBids[b.schedule_id] = [];
+    const isMyBid = memberId ? (Number(b.member_id) === Number(memberId)) : false;
     allBids[b.schedule_id].push({
       id: b.id,
-      member_id: b.member_id,
-      my_bid: memberId ? (b.member_id === memberId) : false,
-      name: b.member_name,
+      member_id: isMyBid ? b.member_id : null,
+      my_bid: isMyBid,
+      name: isMyBid ? 'You (Aap)' : 'Member',
       bid_amount: parseFloat(b.bid_amount),
-      remarks: b.remarks,
+      remarks: isMyBid ? b.remarks : null,
       status: b.status
     });
   }
@@ -341,7 +358,7 @@ export async function buildLiveBidsPayload(committeeId, memberId = null) {
 
     highestBids[s.id] = {
       amount: top ? parseFloat(top.bid_amount) : null,
-      name: top ? top.name : null,
+      name: top ? (top.my_bid ? 'You (Aap)' : 'Top Bidder') : null,
       id: top ? top.id : null,
       base_deduction: baseDeduct,
       min_next_bid: minNextBid
@@ -369,10 +386,13 @@ export async function buildLiveBidsPayload(committeeId, memberId = null) {
       }
     }
 
+    const isMyWin = s.member_id && Number(s.member_id) === Number(memberId);
     lockStatus[s.id] = {
       is_locked: Boolean(s.is_custom_bid),
       month_no: s.month_no,
-      winner_id: s.member_id,
+      winner_id: isMyWin ? s.member_id : (s.member_id ? 'ASSIGNED' : null),
+      has_winner: Boolean(s.member_id),
+      is_my_win: isMyWin,
       date_status: dateStatus,
       draw_date: effectiveDrawDate
     };
