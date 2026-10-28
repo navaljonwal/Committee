@@ -50,6 +50,7 @@ router.post('/schedules/bids/:bidId/approve', decodeHash('bidId'), approveMember
 
 // Live Lucky Draw Random Spin (Real-time synchronized across all members)
 router.get('/:committeeId/eligible-spin-members', decodeHash('committeeId'), getEligibleSpinMembers);
+router.get('/:id/eligible-spin-members', decodeHash('id'), getEligibleSpinMembers);
 router.post('/schedules/:scheduleId/live-spin', decodeHash('scheduleId'), triggerLiveSpin);
 
 // Export CSV

@@ -24,6 +24,10 @@ const hashids = new Hashids(SECRET, MIN_LENGTH, ALPHABET);
  * @returns {string}
  */
 export function encodeId(id) {
+  if (id === null || id === undefined || id === '') return '';
+  if (typeof id === 'string' && isNaN(Number(id))) {
+    return id;
+  }
   return hashids.encode(Number(id));
 }
 

@@ -12,6 +12,7 @@ import {
   clearActiveSpin 
 } from './memberPortalController.js';
 import { addDaysToDate } from '../utils/dateUtils.js';
+import { decodeId } from '../utils/hashids.js';
 
 export async function getCommitteesDashboard(req, res) {
   try {
@@ -980,7 +981,15 @@ export async function toggleScheduleInstallmentVisibility(req, res) {
  */
 export async function getEligibleSpinMembers(req, res) {
   try {
-    const { committeeId } = req.params;
+    let committeeId = req.params.committeeId || req.params.id;
+    if (typeof committeeId === 'string' && isNaN(Number(committeeId))) {
+      const decoded = decodeId(committeeId);
+      if (decoded) committeeId = decoded;
+    }
+
+    if (!committeeId) {
+      return res.status(400).json({ success: false, message: 'Committee ID is required' });
+    }
 
     const [committees] = await pool.query('SELECT * FROM committees WHERE id = ?', [committeeId]);
     if (committees.length === 0) {
@@ -1041,7 +1050,11 @@ export async function getEligibleSpinMembers(req, res) {
  */
 export async function triggerLiveSpin(req, res) {
   try {
-    const { scheduleId } = req.params;
+    let scheduleId = req.params.scheduleId || req.params.id;
+    if (typeof scheduleId === 'string' && isNaN(Number(scheduleId))) {
+      const decoded = decodeId(scheduleId);
+      if (decoded) scheduleId = decoded;
+    }
     const { target_member_id, duration_seconds } = req.body;
 
     const [schedules] = await pool.query(`

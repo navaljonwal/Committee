@@ -943,7 +943,7 @@ export default function CommitteeDetail() {
           setIsSpinModalOpen(false);
           setSpinSchedule(null);
         }}
-        committeeId={id}
+        committeeId={data?.committee?.id ? encodeId(data.committee.id) : id}
         preselectedSchedule={spinSchedule}
         onSpinLaunched={(spin) => {
           setActiveSpinData(spin);

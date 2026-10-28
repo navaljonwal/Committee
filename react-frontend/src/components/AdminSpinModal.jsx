@@ -22,9 +22,13 @@ export default function AdminSpinModal({ isOpen, onClose, committeeId, preselect
 
   useEffect(() => {
     async function loadEligible() {
+      if (!committeeId) return;
       try {
         setLoading(true);
-        const res = await api.get(`/committees/${encodeId(committeeId)}/eligible-spin-members`);
+        const commParam = typeof committeeId === 'string' && isNaN(Number(committeeId))
+          ? committeeId
+          : encodeId(committeeId);
+        const res = await api.get(`/committees/${commParam}/eligible-spin-members`);
         if (res.data?.success) {
           setCandidates(res.data.candidates || []);
           setSchedules(res.data.schedules || []);
@@ -41,7 +45,7 @@ export default function AdminSpinModal({ isOpen, onClose, committeeId, preselect
         }
       } catch (err) {
         console.error('Failed to load eligible spin candidates:', err);
-        toast.error('Failed to load eligible members for spin');
+        toast.error(err.response?.data?.message || err.message || 'Failed to load eligible members for spin');
       } finally {
         setLoading(false);
       }
@@ -70,7 +74,11 @@ export default function AdminSpinModal({ isOpen, onClose, committeeId, preselect
         duration_seconds: parseInt(durationSeconds, 10) || 7
       };
 
-      const res = await api.post(`/committees/schedules/${encodeId(selectedScheduleId)}/live-spin`, payload);
+      const schedParam = typeof selectedScheduleId === 'string' && isNaN(Number(selectedScheduleId))
+        ? selectedScheduleId
+        : encodeId(selectedScheduleId);
+
+      const res = await api.post(`/committees/schedules/${schedParam}/live-spin`, payload);
       if (res.data?.success) {
         toast.success(res.data.message || 'Live Lucky Draw Spin started!');
         if (onSpinLaunched) {
