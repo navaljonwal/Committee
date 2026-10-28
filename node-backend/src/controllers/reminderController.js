@@ -1,10 +1,14 @@
 import pool from '../config/db.js';
 import { encodeId, decodeId } from '../utils/hashids.js';
+import { applyAutoPenaltiesGlobal } from '../services/penaltyService.js';
 
 // ─── GET all reminders + auto-generate from pending payments & upcoming draws ───
 export async function getReminders(req, res) {
   try {
     const userId = req.user.id;
+
+    // Apply auto-penalties across active committees
+    await applyAutoPenaltiesGlobal();
 
     // 1. Manual reminders (admin-created)
     const [manualRows] = await pool.query(`
@@ -31,6 +35,9 @@ export async function getReminders(req, res) {
         cs.id as schedule_id,
         cs.month_no,
         cs.draw_date,
+        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
+        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
+        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
         c.id as committee_id,
         c.name as committee_name
       FROM committee_member_payments cmp

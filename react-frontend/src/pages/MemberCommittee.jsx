@@ -318,9 +318,12 @@ export default function MemberCommittee() {
                 </span>
               </div>
               <p className="text-xs text-slate-600 mt-1 font-medium flex items-center gap-2 flex-wrap">
-                <span>Draw Date: <strong className="text-slate-800">{currentPendingSchedule.draw_date ? formatDate(currentPendingSchedule.draw_date) : 'Upcoming'}</strong></span>
-                {daysFromNow(currentPendingSchedule.draw_date) !== null && (
-                  <DueBadge dateStr={currentPendingSchedule.draw_date} />
+                <span>Bidding: <strong className="text-slate-800">{currentPendingSchedule.draw_date ? formatDate(currentPendingSchedule.draw_date) : 'Upcoming'}</strong></span>
+                {currentPendingSchedule.due_date && (
+                  <span>Due: <strong className="text-amber-700 font-bold">{formatDate(currentPendingSchedule.due_date)}</strong> ({currentPendingSchedule.payment_grace_days || 5}d grace)</span>
+                )}
+                {daysFromNow(currentPendingSchedule.due_date || currentPendingSchedule.draw_date) !== null && (
+                  <DueBadge dateStr={currentPendingSchedule.due_date || currentPendingSchedule.draw_date} />
                 )}
                 {pendingPaymentsForCurrentMonth.length > 1 && (
                   <span className="text-slate-500 font-semibold">({pendingPaymentsForCurrentMonth.length} Seats Combined)</span>
@@ -490,9 +493,14 @@ export default function MemberCommittee() {
                           Month {s.month_no}
                         </td>
 
-                        {/* Draw Date */}
+                        {/* Draw Date & Due Date */}
                         <td className="py-3.5 px-4 font-sans text-slate-600">
-                          {s.draw_date ? formatDate(s.draw_date) : 'N/A'}
+                          <div>{s.draw_date ? formatDate(s.draw_date) : 'N/A'}</div>
+                          {s.due_date && (
+                            <span className="text-[10px] text-amber-700 font-bold block">
+                              Due: {formatDate(s.due_date)}
+                            </span>
+                          )}
                         </td>
 
                         {/* Seats */}
@@ -712,7 +720,12 @@ export default function MemberCommittee() {
                           </span>
                         )}
                         <span className="text-xs text-slate-500 font-medium">
-                          {s.draw_date ? formatDate(s.draw_date) : 'Upcoming'}
+                          <div>{s.draw_date ? formatDate(s.draw_date) : 'Upcoming'}</div>
+                          {s.due_date && (
+                            <span className="text-[10px] text-amber-700 font-bold block">
+                              Due: {formatDate(s.due_date)}
+                            </span>
+                          )}
                         </span>
                       </div>
 

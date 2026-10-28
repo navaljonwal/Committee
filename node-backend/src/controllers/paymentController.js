@@ -1,9 +1,13 @@
 import pool from '../config/db.js';
-import { getTodayDateStr } from '../utils/dateUtils.js';
+import { getTodayDateStr, getDaysDifference } from '../utils/dateUtils.js';
+import { applyAutoPenaltiesForSchedule } from '../services/penaltyService.js';
 
 export async function getSchedulePayments(req, res) {
   try {
     const { scheduleId } = req.params;
+
+    // Apply auto-penalties if due date has passed
+    await applyAutoPenaltiesForSchedule(scheduleId);
 
     const [schedules] = await pool.query(`
       SELECT 
@@ -11,6 +15,9 @@ export async function getSchedulePayments(req, res) {
         c.name as committee_name, 
         c.total_amount, 
         c.status as committee_status,
+        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
+        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
+        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
         m.name as winner_name,
         m.phone as winner_phone
       FROM committee_schedules cs
@@ -24,6 +31,10 @@ export async function getSchedulePayments(req, res) {
     }
 
     const schedule = schedules[0];
+    const todayStr = getTodayDateStr();
+    const dueDateStr = schedule.due_date ? String(schedule.due_date).slice(0, 10) : null;
+    const isOverdue = dueDateStr ? todayStr > dueDateStr : false;
+    const daysUntilDue = dueDateStr ? getDaysDifference(todayStr, dueDateStr) : null;
 
     // Fetch payments for enrolled members only
     const [payments] = await pool.query(`
@@ -47,11 +58,19 @@ export async function getSchedulePayments(req, res) {
       .filter(p => p.payment_status === 'pending')
       .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0) + parseFloat(p.penalty_amount || 0), 0);
 
+    const totalPenalty = payments
+      .reduce((sum, p) => sum + parseFloat(p.penalty_amount || 0), 0);
+
     const uniqueMemberIds = new Set(payments.map(p => p.member_id));
 
     return res.json({
       success: true,
-      schedule,
+      schedule: {
+        ...schedule,
+        due_date: dueDateStr,
+        is_overdue: isOverdue,
+        days_until_due: daysUntilDue
+      },
       payments,
       stats: {
         total_payments: payments.length,
@@ -59,7 +78,9 @@ export async function getSchedulePayments(req, res) {
         paid_count: payments.filter(p => p.payment_status === 'paid').length,
         pending_count: payments.filter(p => p.payment_status === 'pending').length,
         total_collected: parseFloat(totalCollected.toFixed(2)),
-        total_pending: parseFloat(totalPending.toFixed(2))
+        total_pending: parseFloat(totalPending.toFixed(2)),
+        total_penalty: parseFloat(totalPenalty.toFixed(2)),
+        is_overdue: isOverdue
       }
     });
   } catch (error) {
@@ -132,9 +153,10 @@ export async function updatePenalty(req, res) {
 
     const penaltyVal = Math.max(0, parseFloat(penalty_amount || 0));
 
+    // Admin manually editing penalty -> set is_penalty_manual = 1
     await pool.query(`
       UPDATE committee_member_payments 
-      SET penalty_amount = ?, remarks = ?, updated_at = NOW() 
+      SET penalty_amount = ?, remarks = ?, is_penalty_manual = 1, updated_at = NOW() 
       WHERE id = ?
     `, [penaltyVal, remarks || null, paymentId]);
 
@@ -145,6 +167,101 @@ export async function updatePenalty(req, res) {
       penalty_amount: penaltyVal,
       total_due: parseFloat(totalDue.toFixed(2)),
       message: 'Late payment penalty updated successfully!'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function waivePenalty(req, res) {
+  try {
+    const { paymentId } = req.params;
+
+    const [payments] = await pool.query(`
+      SELECT cmp.*, c.status as committee_status 
+      FROM committee_member_payments cmp
+      JOIN committee_schedules cs ON cmp.schedule_id = cs.id
+      JOIN committees c ON cs.committee_id = c.id
+      WHERE cmp.id = ?
+    `, [paymentId]);
+
+    if (payments.length === 0) {
+      return res.status(404).json({ success: false, message: 'Payment record not found' });
+    }
+
+    const payment = payments[0];
+    if (payment.committee_status === 'completed') {
+      return res.status(422).json({ success: false, message: 'This committee is Completed & Closed.' });
+    }
+
+    // Waive penalty to 0 and mark is_penalty_manual = 1 so auto penalty won't re-apply
+    await pool.query(`
+      UPDATE committee_member_payments 
+      SET penalty_amount = 0.00, remarks = 'Penalty waived by admin', is_penalty_manual = 1, updated_at = NOW() 
+      WHERE id = ?
+    `, [paymentId]);
+
+    return res.json({
+      success: true,
+      penalty_amount: 0,
+      total_due: parseFloat(payment.amount_paid),
+      message: 'Late penalty waived successfully!'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function resetPenalty(req, res) {
+  try {
+    const { paymentId } = req.params;
+
+    const [payments] = await pool.query(`
+      SELECT cmp.*, c.status as committee_status 
+      FROM committee_member_payments cmp
+      JOIN committee_schedules cs ON cmp.schedule_id = cs.id
+      JOIN committees c ON cs.committee_id = c.id
+      WHERE cmp.id = ?
+    `, [paymentId]);
+
+    if (payments.length === 0) {
+      return res.status(404).json({ success: false, message: 'Payment record not found' });
+    }
+
+    const payment = payments[0];
+    if (payment.committee_status === 'completed') {
+      return res.status(422).json({ success: false, message: 'This committee is Completed & Closed.' });
+    }
+
+    // Reset is_penalty_manual to 0 so auto-rule applies
+    await pool.query(`
+      UPDATE committee_member_payments 
+      SET is_penalty_manual = 0, remarks = NULL, updated_at = NOW() 
+      WHERE id = ?
+    `, [paymentId]);
+
+    // Re-apply auto penalties for this schedule
+    await applyAutoPenaltiesForSchedule(payment.schedule_id);
+
+    return res.json({
+      success: true,
+      message: 'Penalty reset to automatic calculation!'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export async function applySchedulePenaltiesAction(req, res) {
+  try {
+    const { scheduleId } = req.params;
+    const result = await applyAutoPenaltiesForSchedule(scheduleId);
+    return res.json({
+      success: true,
+      result,
+      message: result.updated > 0
+        ? `Applied late penalty of ₹${result.penaltyPerSeat} to ${result.updated} seat(s)!`
+        : 'All penalties are up to date!'
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

@@ -354,17 +354,33 @@ export default function Reminders() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            <span className="font-semibold text-slate-700">{p.committee_name}</span> · Month {p.month_no} · Due: <span className="font-bold text-rose-600 font-mono">₹{parseFloat(p.total_due).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            {parseFloat(p.penalty_amount || 0) > 0 && (
-                              <span className="text-amber-600 text-[11px] ml-1">(+₹{p.penalty_amount} penalty)</span>
-                            )}
-                          </p>
+                          <div className="text-xs text-slate-500 mt-0.5 space-y-0.5">
+                            <div>
+                              <span className="font-semibold text-slate-700">{p.committee_name}</span> · Month {p.month_no} · Due: <span className="font-bold text-rose-600 font-mono">₹{parseFloat(p.total_due).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                              {parseFloat(p.penalty_amount || 0) > 0 ? (
+                                <span className="text-rose-700 font-bold text-[11px] ml-1.5 px-1.5 py-0.5 rounded-md bg-rose-50 border border-rose-200">
+                                  +₹{p.penalty_amount} Late Penalty ({p.seats_count || 1} seat{p.seats_count > 1 ? 's' : ''})
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[10px] ml-1.5">
+                                  (₹{p.late_penalty_amount || 100}/seat penalty after {p.payment_grace_days || 5}d)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+                              {p.draw_date && (
+                                <span>Bidding: <strong className="text-slate-600 font-medium">{new Date(p.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</strong></span>
+                              )}
+                              {p.due_date && (
+                                <span>Due: <strong className="text-amber-700 font-bold">{new Date(p.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</strong></span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                        {p.draw_date && <DueBadge dateStr={p.draw_date} />}
+                        {p.due_date ? <DueBadge dateStr={p.due_date} /> : p.draw_date ? <DueBadge dateStr={p.draw_date} /> : null}
 
                         {p.member_phone && (
                           <button
@@ -379,6 +395,10 @@ export default function Reminders() {
                                 monthNo: p.month_no,
                                 amountDue: p.total_due,
                                 drawDate: p.draw_date,
+                                dueDate: p.due_date,
+                                graceDays: p.payment_grace_days || 5,
+                                penaltyPerSeat: p.late_penalty_amount || 100,
+                                penaltyAmount: p.penalty_amount || 0,
                                 seatsCount,
                                 seatNumbers,
                                 organizerName: user?.name,

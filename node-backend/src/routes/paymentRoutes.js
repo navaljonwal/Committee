@@ -4,6 +4,9 @@ import {
   togglePayment,
   toggleMemberPayments,
   updatePenalty,
+  waivePenalty,
+  resetPenalty,
+  applySchedulePenaltiesAction,
   markAllPaid
 } from '../controllers/paymentController.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
@@ -16,8 +19,11 @@ router.use(requireAdmin);
 
 router.get('/schedules/:scheduleId/payments', decodeHash('scheduleId'), getSchedulePayments);
 router.post('/schedules/:scheduleId/mark-all-paid', decodeHash('scheduleId'), markAllPaid);
+router.post('/schedules/:scheduleId/apply-auto-penalties', decodeHash('scheduleId'), applySchedulePenaltiesAction);
 router.post('/schedules/:scheduleId/members/:memberId/toggle', decodeHash('scheduleId', 'memberId'), toggleMemberPayments);
 router.post('/:paymentId/toggle', decodeHash('paymentId'), togglePayment);
 router.post('/:paymentId/penalty', decodeHash('paymentId'), updatePenalty);
+router.post('/:paymentId/waive-penalty', decodeHash('paymentId'), waivePenalty);
+router.post('/:paymentId/reset-penalty', decodeHash('paymentId'), resetPenalty);
 
 export default router;

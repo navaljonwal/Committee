@@ -15,7 +15,11 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  Phone
+  Phone,
+  AlertTriangle,
+  RotateCcw,
+  X,
+  Sparkles
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
@@ -74,6 +78,10 @@ export default function SchedulePayments() {
       monthNo: schedule?.month_no,
       amountDue: g.pending_due,
       drawDate: schedule?.draw_date,
+      dueDate: schedule?.due_date,
+      graceDays: schedule?.payment_grace_days || 5,
+      penaltyPerSeat: schedule?.late_penalty_amount || 100,
+      penaltyAmount: g.total_penalty,
       seatsCount: g.pending_count,
       seatNumbers: g.pending_seat_numbers.join(', '),
       organizerName: user?.name,
@@ -241,6 +249,47 @@ export default function SchedulePayments() {
     }
   };
 
+  const handleWaivePenalty = async (paymentId) => {
+    try {
+      const res = await api.post(`/payments/${encodeId(paymentId)}/waive-penalty`);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        setEditingPenaltyId(null);
+        loadPayments();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to waive penalty');
+    }
+  };
+
+  const handleResetPenalty = async (paymentId) => {
+    try {
+      const res = await api.post(`/payments/${encodeId(paymentId)}/reset-penalty`);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        setEditingPenaltyId(null);
+        loadPayments();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reset penalty');
+    }
+  };
+
+  const handleApplyAutoPenalties = async () => {
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/payments/schedules/${scheduleId}/apply-auto-penalties`);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        loadPayments();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to apply penalties');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
@@ -282,16 +331,78 @@ export default function SchedulePayments() {
           </div>
         </div>
 
-        {!isCompleted && stats.pending_count > 0 && (
-          <button
-            onClick={handleMarkAllPaid}
-            disabled={actionLoading}
-            className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-1.5 btn-press shimmer-sweep disabled:opacity-50"
-          >
-            <Check className="w-4 h-4" /> Mark All as Paid
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {!isCompleted && schedule?.draw_date && (
+            <button
+              onClick={handleApplyAutoPenalties}
+              disabled={actionLoading}
+              className="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+              title="Check and apply late penalties according to the 5-day grace period rule"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Auto Apply Penalties</span>
+            </button>
+          )}
+
+          {!isCompleted && stats.pending_count > 0 && (
+            <button
+              onClick={handleMarkAllPaid}
+              disabled={actionLoading}
+              className="w-full sm:w-auto justify-center px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-1.5 btn-press shimmer-sweep disabled:opacity-50"
+            >
+              <Check className="w-4 h-4" /> Mark All as Paid
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Due Date & Late Penalty Information Banner */}
+      {schedule && (
+        <div className={`p-4 rounded-2xl border transition-all ${
+          schedule.is_overdue
+            ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+            : 'bg-amber-50/70 border-amber-200 text-amber-950'
+        }`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                schedule.is_overdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                {schedule.is_overdue ? <AlertTriangle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-extrabold tracking-tight">
+                    {schedule.is_overdue ? 'Due Date Overdue — Late Fee Active' : 'Payment Window & Grace Period Active'}
+                  </span>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                    schedule.is_overdue
+                      ? 'bg-rose-100 text-rose-800 border-rose-300'
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  }`}>
+                    {schedule.is_overdue 
+                      ? 'Overdue' 
+                      : schedule.days_until_due !== null
+                        ? `${schedule.days_until_due} Day${schedule.days_until_due === 1 ? '' : 's'} Remaining`
+                        : 'Active'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Bidding Date: <strong className="text-slate-800 font-semibold">{schedule.draw_date ? new Date(schedule.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}</strong>
+                  {' '}· Due Date (5 din ke baad): <strong className="text-amber-800 font-bold">{schedule.due_date ? new Date(schedule.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}</strong>
+                  {' '}· Penalty: <strong className="text-rose-700 font-bold">₹{schedule.late_penalty_amount || 100}/seat</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start md:self-center text-xs font-medium">
+              <span className="text-[11px] text-slate-500">
+                Rule: Bidding ke {schedule.payment_grace_days || 5} din baad tak payment na aane par ₹{schedule.late_penalty_amount || 100} per seat penalty lagti hai.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary KPI Cards - 2x2 on mobile, 4-col on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
@@ -453,7 +564,7 @@ export default function SchedulePayments() {
                       <td className="py-3.5 px-4 text-right font-sans">
                         {singlePayment ? (
                           isEditingThisPenalty ? (
-                            <div className="flex items-center justify-end gap-1 font-mono">
+                            <div className="flex items-center justify-end gap-1.5 font-mono">
                               <input
                                 type="number"
                                 min="0"
@@ -463,28 +574,65 @@ export default function SchedulePayments() {
                               />
                               <button
                                 onClick={() => handleSavePenalty(singlePayment.id)}
-                                className="p-1 text-emerald-600 hover:text-emerald-700"
+                                className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded"
                                 title="Save Penalty"
                               >
                                 <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleWaivePenalty(singlePayment.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                                title="Waive Penalty (₹0)"
+                              >
+                                <span className="text-[10px] font-bold">Waive</span>
+                              </button>
+                              {singlePayment.is_penalty_manual ? (
+                                <button
+                                  onClick={() => handleResetPenalty(singlePayment.id)}
+                                  className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded"
+                                  title="Reset to Auto Penalty"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                              ) : null}
+                              <button
+                                onClick={() => setEditingPenaltyId(null)}
+                                className="p-1 text-slate-400 hover:text-slate-600"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           ) : (
                             <div 
                               onClick={() => !isCompleted && handleOpenPenalty(singlePayment)} 
-                              className="cursor-pointer hover:underline text-amber-600 font-mono font-semibold"
-                              title="Click to edit penalty"
+                              className="cursor-pointer hover:underline text-amber-600 font-mono font-semibold flex items-center justify-end gap-1"
+                              title="Click to edit or waive penalty"
                             >
-                              ₹{g.total_penalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              <span>₹{g.total_penalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                              {singlePayment.penalty_amount > 0 && (
+                                <span className={`text-[9px] px-1 py-0.2 rounded font-sans font-bold ${
+                                  singlePayment.is_penalty_manual
+                                    ? 'bg-purple-100 text-purple-700'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {singlePayment.is_penalty_manual ? 'Manual' : 'Auto'}
+                                </span>
+                              )}
                             </div>
                           )
                         ) : (
                           <div 
                             onClick={() => toggleExpand(g.member_id)}
-                            className="cursor-pointer hover:underline text-amber-600 font-mono font-semibold"
+                            className="cursor-pointer hover:underline text-amber-600 font-mono font-semibold flex items-center justify-end gap-1"
                             title="Click to expand and edit penalty per seat"
                           >
-                            ₹{g.total_penalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            <span>₹{g.total_penalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                            {g.total_penalty > 0 && (
+                              <span className="text-[9px] px-1 py-0.2 rounded font-sans font-bold bg-amber-100 text-amber-800">
+                                {g.payments.filter(p => p.penalty_amount > 0).length} seat(s)
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -629,14 +777,44 @@ export default function SchedulePayments() {
                                             >
                                               <Check className="w-3.5 h-3.5" />
                                             </button>
+                                            <button 
+                                              onClick={() => handleWaivePenalty(p.id)} 
+                                              className="p-0.5 text-slate-400 hover:text-rose-600 text-[10px] font-bold"
+                                              title="Waive (₹0)"
+                                            >
+                                              Waive
+                                            </button>
+                                            {p.is_penalty_manual ? (
+                                              <button 
+                                                onClick={() => handleResetPenalty(p.id)} 
+                                                className="p-0.5 text-slate-400 hover:text-amber-600"
+                                                title="Reset to Auto"
+                                              >
+                                                <RotateCcw className="w-3 h-3" />
+                                              </button>
+                                            ) : null}
+                                            <button 
+                                              onClick={() => setEditingPenaltyId(null)} 
+                                              className="p-0.5 text-slate-400 hover:text-slate-600"
+                                              title="Cancel"
+                                            >
+                                              <X className="w-3.5 h-3.5" />
+                                            </button>
                                           </div>
                                         ) : (
                                           <span 
                                             onClick={() => !isCompleted && handleOpenPenalty(p)}
-                                            className="cursor-pointer hover:underline text-amber-600 font-semibold"
+                                            className="cursor-pointer hover:underline text-amber-600 font-semibold inline-flex items-center gap-1"
                                             title="Click to edit penalty"
                                           >
-                                            ₹{parseFloat(p.penalty_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            <span>₹{parseFloat(p.penalty_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            {p.penalty_amount > 0 && (
+                                              <span className={`text-[9px] px-1 py-0.2 rounded font-sans font-bold ${
+                                                p.is_penalty_manual ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-800'
+                                              }`}>
+                                                {p.is_penalty_manual ? 'Manual' : 'Auto'}
+                                              </span>
+                                            )}
                                           </span>
                                         )}
                                       </div>
@@ -780,7 +958,7 @@ export default function SchedulePayments() {
                       <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Penalty</span>
                       {singlePayment ? (
                         isEditingThisPenalty ? (
-                          <div className="flex items-center justify-center gap-1 mt-0.5">
+                          <div className="flex items-center justify-center gap-1 mt-0.5 flex-wrap">
                             <input
                               type="number"
                               min="0"
@@ -788,8 +966,14 @@ export default function SchedulePayments() {
                               onChange={(e) => setPenaltyAmount(e.target.value)}
                               className="w-14 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs text-orange-700 text-center font-mono focus:outline-none"
                             />
-                            <button onClick={() => handleSavePenalty(singlePayment.id)} className="p-0.5 text-emerald-600">
+                            <button onClick={() => handleSavePenalty(singlePayment.id)} className="p-0.5 text-emerald-600" title="Save">
                               <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleWaivePenalty(singlePayment.id)} className="p-0.5 text-rose-600 text-[9px] font-bold" title="Waive">
+                              Waive
+                            </button>
+                            <button onClick={() => setEditingPenaltyId(null)} className="p-0.5 text-slate-400" title="Cancel">
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (

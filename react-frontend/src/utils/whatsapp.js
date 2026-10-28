@@ -44,6 +44,10 @@ export function buildPaymentReminderMessage({
   monthNo,
   amountDue,
   drawDate,
+  dueDate = null,
+  graceDays = 5,
+  penaltyPerSeat = 100,
+  penaltyAmount = 0,
   seatsCount = 1,
   seatNumbers = null,
   organizerName = null,
@@ -58,9 +62,27 @@ export function buildPaymentReminderMessage({
     try {
       const d = new Date(drawDate);
       if (!isNaN(d.getTime())) {
-        drawInfo = `\n📅 *Draw / Boli Tareekh:* ${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        drawInfo = `\n📅 *Boli / Draw Tareekh:* ${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
       }
     } catch (_) {}
+  }
+
+  let dueInfo = '';
+  if (dueDate) {
+    try {
+      const d = new Date(dueDate);
+      if (!isNaN(d.getTime())) {
+        dueInfo = `\n⏰ *Antim Tareekh (Due Date):* ${d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} (${graceDays} din ke andar)`;
+      }
+    } catch (_) {}
+  }
+
+  let penaltySection = '';
+  const penalty = parseFloat(penaltyAmount || 0);
+  if (penalty > 0) {
+    penaltySection = `\n⚠️ *Late Penalty Alert:* Due date nikal chuki hai (+₹${penalty.toLocaleString('en-IN', { minimumFractionDigits: 2 })} penalty jodi gayi hai).`;
+  } else if (penaltyPerSeat > 0) {
+    penaltySection = `\n⚠️ *Late Penalty Niyam:* ${graceDays} din ke baad payment par ₹${penaltyPerSeat}/seat late fee lagegi.`;
   }
 
   let seatInfo = '';
@@ -95,7 +117,7 @@ Aapki *${committeeName || 'Kameti'}* ki is mahine ki kist (installment) jama kar
 ━━━━━━━━━━━━━━━━━━━━━
 🏦 *Committee:* ${committeeName || 'Kameti'}
 📆 *Kist / Mahina:* Month ${monthNo}${seatInfo}
-💰 *Total Due (कुल बकाया):* ₹${amount}${drawInfo}
+💰 *Total Due (कुल बकाया):* ₹${amount}${drawInfo}${dueInfo}${penaltySection}
 ━━━━━━━━━━━━━━━━━━━━━
 
 💳 *Payment Kaise Karein:*

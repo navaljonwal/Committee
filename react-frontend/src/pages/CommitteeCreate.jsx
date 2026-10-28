@@ -24,6 +24,8 @@ export default function CommitteeCreate() {
   const [deductionRate, setDeductionRate] = useState(1.5);
   const [specialMonthNumber, setSpecialMonthNumber] = useState(2); // Month 2 by default
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentGraceDays, setPaymentGraceDays] = useState(5);
+  const [latePenaltyAmount, setLatePenaltyAmount] = useState(100);
 
   // Compute specialMonthIndex: Index N = M - Month + 1
   const mVal = parseInt(totalMembers, 10) || 20;
@@ -123,6 +125,8 @@ export default function CommitteeCreate() {
         deduction_rate: parseFloat(deductionRate),
         special_month_index: parseInt(specialMonthIndex, 10),
         start_date: startDate,
+        payment_grace_days: parseInt(paymentGraceDays, 10) || 5,
+        late_penalty_amount: parseFloat(latePenaltyAmount || 0),
         members: selectedMembers,
         seats: seatsMap
       });
@@ -347,6 +351,48 @@ export default function CommitteeCreate() {
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
               />
+            </div>
+
+            {/* Payment Grace Days */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                <span>Payment Due Days (Grace Period) *</span>
+                <span className="text-[10px] text-amber-600 font-bold">Bidding + {paymentGraceDays} din</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="30"
+                required
+                value={paymentGraceDays}
+                onChange={(e) => setPaymentGraceDays(e.target.value)}
+                placeholder="Default: 5 days"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 font-mono focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
+              <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                Bidding hone ke kitne din ke andar members ko kist jama karwani hogi (default: 5 din).
+              </span>
+            </div>
+
+            {/* Late Penalty Amount (₹ per seat) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                <span>Late Penalty (₹ per seat) *</span>
+                <span className="text-[10px] text-rose-600 font-bold">₹{latePenaltyAmount} / seat</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="10"
+                required
+                value={latePenaltyAmount}
+                onChange={(e) => setLatePenaltyAmount(e.target.value)}
+                placeholder="Default: 100"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 font-mono focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+              />
+              <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                Grace period nikalne ke baad pending seats par kitni penalty lagegi (default: ₹100 per seat).
+              </span>
             </div>
 
           </div>

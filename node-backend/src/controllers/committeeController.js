@@ -73,6 +73,8 @@ export async function createCommittee(req, res) {
       deduction_rate,
       special_month_index,
       start_date,
+      payment_grace_days,
+      late_penalty_amount,
       members, // array of member IDs
       seats    // object { memberId: count }
     } = req.body;
@@ -88,17 +90,26 @@ export async function createCommittee(req, res) {
       ? parseInt(special_month_index, 10)
       : Math.max(1, totalMembersInt - 1);
 
+    const graceDays = payment_grace_days !== undefined && !isNaN(parseInt(payment_grace_days, 10))
+      ? Math.max(0, parseInt(payment_grace_days, 10))
+      : 5;
+    const penaltyAmt = late_penalty_amount !== undefined && !isNaN(parseFloat(late_penalty_amount))
+      ? Math.max(0, parseFloat(late_penalty_amount))
+      : 100.00;
+
     const [commResult] = await conn.query(`
       INSERT INTO committees 
-      (name, total_amount, total_members, deduction_rate, special_month_index, start_date, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
+      (name, total_amount, total_members, deduction_rate, special_month_index, start_date, payment_grace_days, late_penalty_amount, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
     `, [
       name.trim(),
       parseFloat(total_amount),
       totalMembersInt,
       parseFloat(deduction_rate || 0),
       specialMonthIdx,
-      start_date
+      start_date,
+      graceDays,
+      penaltyAmt
     ]);
 
     const committeeId = commResult.insertId;
@@ -155,13 +166,17 @@ export async function getCommitteeDetail(req, res) {
     }
     const committee = committees[0];
 
-    // Schedules with winner name and bids
+    // Schedules with winner name, due_date and bids
     const [schedules] = await pool.query(`
       SELECT 
         cs.*,
+        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
+        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
+        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
         m.name as winner_name,
         m.phone as winner_phone
       FROM committee_schedules cs
+      JOIN committees c ON cs.committee_id = c.id
       LEFT JOIN members m ON cs.member_id = m.id
       WHERE cs.committee_id = ?
       ORDER BY cs.month_no ASC
@@ -273,6 +288,8 @@ export async function updateCommittee(req, res) {
       deduction_rate,
       special_month_index,
       start_date,
+      payment_grace_days,
+      late_penalty_amount,
       status,
       members,
       seats
@@ -294,9 +311,16 @@ export async function updateCommittee(req, res) {
       ? parseInt(special_month_index, 10)
       : Math.max(1, totalMembersInt - 1);
 
+    const graceDays = payment_grace_days !== undefined && !isNaN(parseInt(payment_grace_days, 10))
+      ? Math.max(0, parseInt(payment_grace_days, 10))
+      : (existing[0].payment_grace_days !== undefined ? existing[0].payment_grace_days : 5);
+    const penaltyAmt = late_penalty_amount !== undefined && !isNaN(parseFloat(late_penalty_amount))
+      ? Math.max(0, parseFloat(late_penalty_amount))
+      : (existing[0].late_penalty_amount !== undefined ? existing[0].late_penalty_amount : 100.00);
+
     await conn.query(`
       UPDATE committees 
-      SET name = ?, total_amount = ?, total_members = ?, deduction_rate = ?, special_month_index = ?, start_date = ?, status = ?, updated_at = NOW()
+      SET name = ?, total_amount = ?, total_members = ?, deduction_rate = ?, special_month_index = ?, start_date = ?, payment_grace_days = ?, late_penalty_amount = ?, status = ?, updated_at = NOW()
       WHERE id = ?
     `, [
       name.trim(),
@@ -305,6 +329,8 @@ export async function updateCommittee(req, res) {
       parseFloat(deduction_rate),
       specialMonthIdx,
       start_date,
+      graceDays,
+      penaltyAmt,
       status || 'active',
       id
     ]);

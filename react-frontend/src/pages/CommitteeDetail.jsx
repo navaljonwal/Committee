@@ -236,6 +236,10 @@ export default function CommitteeDetail() {
               <span>Rate: <strong className="text-orange-600 font-sans">{committee.deduction_rate}%</strong></span>
               <span>•</span>
               <span>Zero-Deduct Round: <strong className="text-amber-600 font-sans">{committee.special_month_index > 0 ? `Month ${committee.total_members - committee.special_month_index + 1}` : 'None'}</strong></span>
+              <span>•</span>
+              <span>Grace Period: <strong className="text-amber-700 font-sans">{committee.payment_grace_days || 5} Days</strong></span>
+              <span>•</span>
+              <span>Late Penalty: <strong className="text-rose-600 font-sans">₹{committee.late_penalty_amount || 100}/seat</strong></span>
             </p>
           </div>
 
@@ -351,7 +355,7 @@ export default function CommitteeDetail() {
                 <th className="py-3 px-3 text-right">Net Payout (₹)</th>
                 <th className="py-3 px-3 text-right">Kist / Member (₹)</th>
                 <th className="py-3 px-4">Winner / Live Bids</th>
-                <th className="py-3 px-3 text-center">Draw Date</th>
+                <th className="py-3 px-3 text-center">Draw & Due Date</th>
                 <th className="py-3 px-3 text-center">Disbursement</th>
                 <th className="py-3 px-3 text-center">Payments</th>
                 <th className="py-3 px-3 text-right">Actions</th>
@@ -460,9 +464,14 @@ export default function CommitteeDetail() {
                       )}
                     </td>
 
-                    {/* Draw Date */}
+                    {/* Draw Date & Due Date */}
                     <td className="py-3 px-3 text-center font-sans text-slate-600 font-medium whitespace-nowrap">
-                      {s.draw_date ? new Date(s.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      <div>{s.draw_date ? new Date(s.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
+                      {s.due_date && (
+                        <span className="text-[10px] text-amber-700 font-bold block" title="Payment Due Date (Grace period over after this)">
+                          Due: {new Date(s.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                        </span>
+                      )}
                     </td>
 
                     {/* Payout Status */}
@@ -612,9 +621,14 @@ export default function CommitteeDetail() {
                     ) : null}
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium flex-wrap">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
                     <span>{s.draw_date ? new Date(s.draw_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'N/A'}</span>
+                    {s.due_date && (
+                      <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1 rounded border border-amber-200">
+                        Due: {new Date(s.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      </span>
+                    )}
                   </div>
                 </div>
 

@@ -110,6 +110,9 @@ export default function MemberDashboard() {
       0
     );
     const drawDate = thisMonthPayments[0]?.draw_date;
+    const dueDate = thisMonthPayments[0]?.due_date;
+    const graceDays = thisMonthPayments[0]?.payment_grace_days || 5;
+    const penaltyPerSeat = thisMonthPayments[0]?.late_penalty_amount || 100;
     const seatsCount = thisMonthPayments.length;
 
     return {
@@ -118,6 +121,9 @@ export default function MemberDashboard() {
       totalDue,
       penalty,
       drawDate,
+      dueDate,
+      graceDays,
+      penaltyPerSeat,
       seatsCount
     };
   }).filter(Boolean);
@@ -288,19 +294,28 @@ export default function MemberDashboard() {
                       <div className="font-black text-lg text-rose-600 font-mono leading-none">
                         ₹{r.totalDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                       </div>
-                      {r.penalty > 0 && (
-                        <div className="text-[10px] font-bold text-amber-600 mt-1">
+                      {r.penalty > 0 ? (
+                        <div className="text-[10px] font-bold text-rose-600 mt-1 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
                           +₹{r.penalty} late fee
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-400 mt-1">
+                          ₹{r.penaltyPerSeat}/seat penalty after {r.graceDays}d
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <DueBadge dateStr={r.drawDate} />
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                    {r.drawDate && (
+                      <span>Bidding: <strong className="text-slate-700">{new Date(r.drawDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</strong></span>
+                    )}
+                    {r.dueDate && (
+                      <span>Due: <strong className="text-amber-700">{new Date(r.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</strong></span>
+                    )}
+                    <DueBadge dateStr={r.dueDate || r.drawDate} />
                   </div>
 
                   <Link

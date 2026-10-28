@@ -62,6 +62,8 @@ export async function initializeDatabase() {
         deduction_rate decimal(5,2) NOT NULL DEFAULT 1.50,
         special_month_index int(11) NOT NULL DEFAULT 19,
         start_date date NOT NULL,
+        payment_grace_days int(11) NOT NULL DEFAULT 5,
+        late_penalty_amount decimal(15,2) NOT NULL DEFAULT 100.00,
         status enum('active','completed') NOT NULL DEFAULT 'active',
         created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -123,6 +125,7 @@ export async function initializeDatabase() {
         seat_no int(11) NOT NULL DEFAULT 1,
         amount_paid decimal(15,2) NOT NULL,
         penalty_amount decimal(15,2) NOT NULL DEFAULT 0.00,
+        is_penalty_manual tinyint(1) NOT NULL DEFAULT 0,
         remarks varchar(255) DEFAULT NULL,
         payment_status enum('pending','paid') NOT NULL DEFAULT 'pending',
         payment_date date DEFAULT NULL,
@@ -198,6 +201,38 @@ export async function initializeDatabase() {
     } catch (colErr) {
       try {
         await pool.query('ALTER TABLE committee_schedules ADD COLUMN is_installment_visible tinyint(1) DEFAULT 0');
+      } catch (e) {
+        // column already exists
+      }
+    }
+
+    // Ensure payment_grace_days and late_penalty_amount exist on committees
+    try {
+      await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS payment_grace_days int(11) NOT NULL DEFAULT 5');
+    } catch (colErr) {
+      try {
+        await pool.query('ALTER TABLE committees ADD COLUMN payment_grace_days int(11) NOT NULL DEFAULT 5');
+      } catch (e) {
+        // column already exists
+      }
+    }
+
+    try {
+      await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS late_penalty_amount decimal(15,2) NOT NULL DEFAULT 100.00');
+    } catch (colErr) {
+      try {
+        await pool.query('ALTER TABLE committees ADD COLUMN late_penalty_amount decimal(15,2) NOT NULL DEFAULT 100.00');
+      } catch (e) {
+        // column already exists
+      }
+    }
+
+    // Ensure is_penalty_manual exists on committee_member_payments
+    try {
+      await pool.query('ALTER TABLE committee_member_payments ADD COLUMN IF NOT EXISTS is_penalty_manual tinyint(1) NOT NULL DEFAULT 0');
+    } catch (colErr) {
+      try {
+        await pool.query('ALTER TABLE committee_member_payments ADD COLUMN is_penalty_manual tinyint(1) NOT NULL DEFAULT 0');
       } catch (e) {
         // column already exists
       }

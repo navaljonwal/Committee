@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import { addMonthsToDate } from '../services/formula.js';
 import { getTodayDateStr, formatDbDate } from '../utils/dateUtils.js';
+import { applyAutoPenaltiesGlobal } from '../services/penaltyService.js';
 
 export async function getMemberDashboard(req, res) {
   try {
@@ -60,12 +61,18 @@ export async function getMemberDashboard(req, res) {
       ORDER BY mb.created_at DESC
     `, [memberId]);
 
+    // Apply auto-penalties so member sees accurate status
+    await applyAutoPenaltiesGlobal();
+
     // Member's pending payments
     const [pendingPayments] = await pool.query(`
       SELECT 
         cmp.*,
         cs.month_no,
         cs.draw_date,
+        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
+        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
+        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
         c.name as committee_name,
         (cmp.amount_paid + cmp.penalty_amount) as total_due
       FROM committee_member_payments cmp
@@ -130,9 +137,13 @@ export async function getMemberCommittee(req, res) {
     const [schedules] = await pool.query(`
       SELECT 
         cs.*,
+        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
+        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
+        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
         m.name as winner_name,
         m.phone as winner_phone
       FROM committee_schedules cs
+      JOIN committees c ON cs.committee_id = c.id
       LEFT JOIN members m ON cs.member_id = m.id
       WHERE cs.committee_id = ?
       ORDER BY cs.month_no ASC
