@@ -346,6 +346,7 @@ export async function getMemberCommittee(req, res) {
 
     return res.json({
       success: true,
+      memberId,
       committee,
       schedules,
       totalSeats,

@@ -19,6 +19,7 @@ import {
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { usePopup } from '../context/PopupContext';
+import { useAuth } from '../context/AuthContext';
 import ActionDrawer from '../components/ActionDrawer';
 
 function formatDate(dateStr, options = { day: '2-digit', month: 'short', year: 'numeric' }) {
@@ -60,6 +61,7 @@ function DueBadge({ dateStr }) {
 }
 
 export default function MemberCommittee() {
+  const { user } = useAuth();
   const { id } = useParams();
   const { toast } = usePopup();
   const [searchParams] = useSearchParams();
@@ -205,6 +207,7 @@ export default function MemberCommittee() {
 
   const { committee, schedules, totalSeats, wonCount, remainingSeats, alreadyWonAllSeats, myPayments } = data;
   const { bids, highest_bids, lock_status } = liveBidsData;
+  const memberId = data?.memberId || queryMemberId || user?.member_id || null;
 
   // Calculate current active month reminder for this committee (first pending month)
   const currentPendingSchedule = schedules?.find((s) => {
@@ -994,21 +997,24 @@ export default function MemberCommittee() {
                     </div>
 
                     {/* Status / Winner message */}
-                    {isWinnerAssigned && (
-                      <div className={`mb-4 p-2.5 rounded-xl text-xs flex items-center gap-2 font-medium border ${
-                        (s.is_my_win || Number(s.member_id) === Number(memberId))
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                          : 'bg-slate-50 border-slate-200 text-slate-700'
-                      }`}>
-                        <Award className={`w-4 h-4 ${(s.is_my_win || Number(s.member_id) === Number(memberId)) ? 'text-emerald-600' : 'text-slate-400'}`} />
-                        <span>
-                          {(s.is_my_win || Number(s.member_id) === Number(memberId))
-                            ? <strong>Aapne ye round jeeta hai! (You Won this round)</strong>
-                            : <span>Draw Completed / Winner Decided</span>
-                          }
-                        </span>
-                      </div>
-                    )}
+                    {isWinnerAssigned && (() => {
+                      const isMyWin = Boolean(s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId)));
+                      return (
+                        <div className={`mb-4 p-2.5 rounded-xl text-xs flex items-center gap-2 font-medium border ${
+                          isMyWin
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                        }`}>
+                          <Award className={`w-4 h-4 ${isMyWin ? 'text-emerald-600' : 'text-slate-400'}`} />
+                          <span>
+                            {isMyWin
+                              ? <strong>Aapne ye round jeeta hai! (You Won this round)</strong>
+                              : <span>Draw Completed / Winner Decided</span>
+                            }
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* My Bid info if placed */}
                     {myBid && (
