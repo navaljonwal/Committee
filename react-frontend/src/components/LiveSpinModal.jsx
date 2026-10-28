@@ -93,12 +93,12 @@ export default function LiveSpinModal({ spinData, onClose }) {
     canvas.height = window.innerHeight;
 
     const colors = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
-    const particles = Array.from({ length: 90 }).map(() => ({
+    const particles = Array.from({ length: 80 }).map(() => ({
       x: canvas.width / 2,
-      y: canvas.height * 0.45,
-      r: Math.random() * 6 + 3,
-      dx: (Math.random() - 0.5) * 16,
-      dy: (Math.random() - 0.7) * 18,
+      y: canvas.height * 0.4,
+      r: Math.random() * 5 + 3,
+      dx: (Math.random() - 0.5) * 15,
+      dy: (Math.random() - 0.7) * 16,
       color: colors[Math.floor(Math.random() * colors.length)],
       tilt: Math.random() * 10,
       tiltSpeed: Math.random() * 0.1 + 0.05,
@@ -109,7 +109,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
 
     function render() {
       const elapsed = Date.now() - startTime;
-      if (elapsed > 4500) {
+      if (elapsed > 4000) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
@@ -121,7 +121,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
         p.dy += 0.35; // gravity
         p.dx *= 0.985; // friction
         p.tilt += p.tiltSpeed;
-        p.opacity = Math.max(0, 1 - (elapsed / 4500));
+        p.opacity = Math.max(0, 1 - (elapsed / 4000));
 
         ctx.save();
         ctx.globalAlpha = p.opacity;
@@ -216,7 +216,6 @@ export default function LiveSpinModal({ spinData, onClose }) {
   // SVG Wheel geometry calculations (360x360 coordinate space)
   const size = 360;
   const center = size / 2; // 180
-  const rimRadius = 176;
   const wheelRadius = 152;
 
   const polarToCartesian = (cx, cy, r, angleInDegrees) => {
@@ -243,70 +242,67 @@ export default function LiveSpinModal({ spinData, onClose }) {
   if (!spinData) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 xs:p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md select-none overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/90 backdrop-blur-md select-none overflow-hidden">
       {/* Confetti Canvas */}
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50 w-full h-full" />
 
-      {/* Main Responsive App Card */}
-      <div className="relative w-full max-w-[340px] xs:max-w-[380px] sm:max-w-md md:max-w-lg bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/35 rounded-3xl p-3 xs:p-4 sm:p-6 shadow-2xl text-center space-y-3 sm:space-y-4 overflow-hidden my-auto">
+      {/* Main Zero-Scroll Modal Card: Fits 100% inside screen on all phones and desktops */}
+      <div className="relative w-full max-w-[340px] xs:max-w-[370px] sm:max-w-[420px] max-h-[96dvh] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/35 rounded-3xl p-3 xs:p-4 sm:p-5 shadow-2xl text-center flex flex-col justify-between overflow-hidden">
+        
         {/* Glow Effects */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 right-0 w-48 h-48 bg-orange-500/15 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-8 right-0 w-36 h-36 bg-orange-500/15 rounded-full blur-xl pointer-events-none" />
 
-        {/* Top Header: Live Badge & Sound Toggle */}
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="inline-flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] xs:text-xs font-bold shadow-xs">
-            <span className="relative flex h-2 w-2">
+        {/* 1. Header: Compact Single-Line Bar (Height ~34px) */}
+        <div className="relative z-10 flex items-center justify-between gap-1.5 pb-2 border-b border-white/10 shrink-0">
+          {/* Live Badge */}
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-wider shrink-0">
+            <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
             </span>
-            <span className="tracking-wider uppercase font-black">Live Lucky Draw</span>
+            <span>LIVE DRAW</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Month Title */}
+          <div className="flex-1 min-w-0 px-1 text-center truncate">
+            <span className="text-xs xs:text-sm font-black text-white tracking-tight flex items-center justify-center gap-1 truncate">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">Month {month_no} Lucky Draw</span>
+            </span>
+          </div>
+
+          {/* Controls: Sound & Close */}
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="p-1.5 xs:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 transition active:scale-95"
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 transition active:scale-95"
               title={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-400" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-amber-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
             </button>
             {!isSpinning && (
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 xs:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 transition active:scale-95"
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 transition active:scale-95"
                 title="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
 
-        {/* Committee & Month Title */}
-        <div className="relative z-10 space-y-0.5">
-          <h2 className="text-base xs:text-lg sm:text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5 xs:gap-2">
-            <Sparkles className="w-4 h-4 xs:w-5 xs:h-5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>Month {month_no} Lucky Draw</span>
-          </h2>
-          <p className="text-[11px] xs:text-xs text-slate-400 font-medium px-2">
-            {committee_name ? `${committee_name} • ` : ''}
-            {isSpinning 
-              ? 'Koi boli na aane par computer dwara live random draw chalaya ja raha hai'
-              : 'Lucky Draw Sampanna! Winner Ghoshit Ho Gaya Hai 🎉'}
-          </p>
-        </div>
-
-        {/* Center: The Lucky Draw Circular Wheel (Native Mobile App Styled) */}
-        <div className="relative z-10 flex flex-col items-center justify-center py-1 xs:py-2">
-          {/* Wheel Frame Container — Fluid Responsive on Both Phone and Desktop */}
-          <div className="relative w-[230px] h-[230px] xs:w-[260px] xs:h-[260px] sm:w-[320px] sm:h-[320px] md:w-[360px] md:h-[360px] max-w-[76vw] max-h-[76vw] aspect-square mx-auto flex items-center justify-center">
+        {/* 2. Wheel Center Stage: Bounded by Viewport Height (Guaranteed Zero-Scroll) */}
+        <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center py-2">
+          {/* Wheel Container adapts to both dvh and screen width */}
+          <div className="relative w-[min(46dvh,72vw,270px)] h-[min(46dvh,72vw,270px)] sm:w-[min(50dvh,310px)] sm:h-[min(50dvh,310px)] aspect-square mx-auto flex items-center justify-center">
             
             {/* Top 3D Metallic Golden Needle Pointer */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 drop-shadow-2xl pointer-events-none">
-              <svg width="36" height="44" viewBox="0 0 36 44" fill="none">
+              <svg width="32" height="40" viewBox="0 0 36 44" fill="none">
                 <path
                   d="M18 42L5 12C2 6 7 0 14 0H22C29 0 34 6 31 12L18 42Z"
                   fill="url(#goldNeedleGrad)"
@@ -369,7 +365,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
                       const pathData = describeArc(center, center, wheelRadius, startAngle, endAngle);
                       const textPos = polarToCartesian(center, center, wheelRadius * 0.63, midAngle);
                       const rawName = (cand.name || 'Member').trim();
-                      const shortName = rawName.length > 10 ? `${rawName.substring(0, 9)}..` : rawName;
+                      const shortName = rawName.length > 9 ? `${rawName.substring(0, 8)}..` : rawName;
                       const fontSize = candidates.length > 16 ? 9 : candidates.length > 10 ? 10.5 : candidates.length > 6 ? 12 : 13.5;
 
                       return (
@@ -408,9 +404,9 @@ export default function LiveSpinModal({ spinData, onClose }) {
               </div>
 
               {/* Fixed Center Metallic Medallion / Knob (Stays stationary while disk rotates) */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-500 border-2 sm:border-3 border-white shadow-2xl flex items-center justify-center pointer-events-none z-20">
-                <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-b from-orange-500 to-red-600 border border-amber-200 shadow-inner flex items-center justify-center">
-                  <Sparkles className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white animate-spin" style={{ animationDuration: '5s' }} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-500 border-2 border-white shadow-2xl flex items-center justify-center pointer-events-none z-20">
+                <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-b from-orange-500 to-red-600 border border-amber-200 shadow-inner flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 xs:w-3.5 xs:h-3.5 text-white animate-spin" style={{ animationDuration: '5s' }} />
                 </div>
               </div>
 
@@ -439,42 +435,39 @@ export default function LiveSpinModal({ spinData, onClose }) {
           </div>
         </div>
 
-        {/* Bottom Winner Announcement Card (Appears dynamically upon landing) */}
-        {showWinnerCard ? (
-          <div className="relative z-10 bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-emerald-500/20 border-2 border-amber-400/80 rounded-2xl p-3.5 xs:p-4 sm:p-5 shadow-xl space-y-2 animate-bounce-short">
-            <div className="flex items-center justify-center gap-1.5 text-amber-300 font-extrabold text-[11px] xs:text-xs uppercase tracking-wider">
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Round Winner Announced</span>
-            </div>
+        {/* 3. Footer Bar: Fixed Height (~52px), Never Expands Or Causes Scrolling */}
+        <div className="relative z-10 shrink-0 pt-1">
+          {showWinnerCard ? (
+            /* Winner Card: Horizontal 2-Column Banner with Done Button */
+            <div className="bg-gradient-to-r from-emerald-500/25 via-amber-500/25 to-emerald-500/25 border border-amber-400/80 rounded-2xl px-3 py-2 xs:px-3.5 xs:py-2.5 shadow-xl flex items-center justify-between gap-2 animate-bounce-short">
+              <div className="text-left min-w-0 flex-1">
+                <div className="flex items-center gap-1 text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="truncate">Draw Winner</span>
+                </div>
+                <div className="text-xs xs:text-sm sm:text-base font-black text-white truncate drop-shadow-sm">
+                  🏆 {winner_name || 'Member'}
+                </div>
+              </div>
 
-            <div className="space-y-0.5">
-              <span className="text-[11px] xs:text-xs text-slate-300">Congratulations to Round Winner:</span>
-              <h3 className="text-lg xs:text-xl sm:text-2xl font-black text-white tracking-tight bg-gradient-to-r from-amber-200 via-white to-amber-200 bg-clip-text text-transparent">
-                🏆 {winner_name || 'Member'}
-              </h3>
-            </div>
-
-            <p className="text-[11px] text-emerald-300 font-medium">
-              Month {month_no} ki committee inke naam par allot ho chuki hai!
-            </p>
-
-            <div className="pt-1 flex items-center justify-center">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs sm:text-sm font-black transition shadow-lg shadow-orange-500/30 active:scale-95"
+                className="shrink-0 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black transition shadow-md shadow-orange-500/30 active:scale-95 flex items-center gap-1.5 cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Great / Done ({autoCloseCountdown}s)</span>
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Done ({autoCloseCountdown}s)</span>
               </button>
             </div>
-          </div>
-        ) : (
-          <div className="relative z-10 flex items-center justify-center gap-2 text-[11px] xs:text-xs font-bold text-amber-300/90 py-1.5">
-            <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
-            <span>Spinning through {candidates.length} eligible members...</span>
-          </div>
-        )}
+          ) : (
+            /* Spinning State Pill */
+            <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-300">
+              <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin shrink-0" />
+              <span className="truncate">Spinning through {candidates.length} eligible members...</span>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
