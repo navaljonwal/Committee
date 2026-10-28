@@ -32,12 +32,26 @@ export async function getMemberDashboard(req, res) {
 
     // Auto-resolve memberId for regular member accounts if users.member_id was not set
     if (!memberId && user.role !== 'admin') {
-      if (user.phone) {
-        const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
-        if (cleanPhone) {
+      try {
+        if (user.phone) {
+          const cleanPhone = String(user.phone).replace(/[^0-9]/g, '').slice(-10);
+          if (cleanPhone.length >= 6) {
+            const [mRows] = await pool.query(
+              'SELECT id FROM members WHERE phone LIKE ? LIMIT 1',
+              [`%${cleanPhone}`]
+            );
+            if (mRows.length > 0) {
+              memberId = mRows[0].id;
+              try {
+                await pool.query('UPDATE users SET member_id = ? WHERE id = ?', [memberId, user.id]);
+              } catch (e) {}
+            }
+          }
+        }
+        if (!memberId && user.name) {
           const [mRows] = await pool.query(
-            `SELECT id FROM members WHERE REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ? LIMIT 1`,
-            [`%${cleanPhone}`]
+            'SELECT id FROM members WHERE LOWER(name) = LOWER(?) LIMIT 1',
+            [String(user.name).trim()]
           );
           if (mRows.length > 0) {
             memberId = mRows[0].id;
@@ -46,15 +60,8 @@ export async function getMemberDashboard(req, res) {
             } catch (e) {}
           }
         }
-      }
-      if (!memberId && user.name) {
-        const [mRows] = await pool.query('SELECT id FROM members WHERE LOWER(name) = LOWER(?) LIMIT 1', [user.name.trim()]);
-        if (mRows.length > 0) {
-          memberId = mRows[0].id;
-          try {
-            await pool.query('UPDATE users SET member_id = ? WHERE id = ?', [memberId, user.id]);
-          } catch (e) {}
-        }
+      } catch (lookupErr) {
+        console.warn('Auto resolve error:', lookupErr.message);
       }
     }
 
@@ -72,21 +79,32 @@ export async function getMemberDashboard(req, res) {
 
     memberId = parseInt(memberId, 10);
 
-    const [members] = await pool.query('SELECT * FROM members WHERE id = ?', [memberId]);
-    const member = members[0] || null;
+    let member = null;
+    try {
+      const [members] = await pool.query('SELECT * FROM members WHERE id = ?', [memberId]);
+      member = members[0] || null;
+    } catch (mErr) {
+      console.warn('Member fetch warning:', mErr.message);
+    }
 
     // Committees member is enrolled in
-    const [committees] = await pool.query(`
-      SELECT 
-        c.*, 
-        cm.seats,
-        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = c.id) as schedules_count,
-        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = c.id AND cs.member_id = ?) as won_count
-      FROM committees c
-      INNER JOIN committee_member cm ON c.id = cm.committee_id
-      WHERE cm.member_id = ?
-      ORDER BY c.created_at DESC
-    `, [memberId, memberId]);
+    let committees = [];
+    try {
+      const [commRows] = await pool.query(`
+        SELECT 
+          c.*, 
+          cm.seats,
+          (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = c.id) as schedules_count,
+          (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = c.id AND cs.member_id = ?) as won_count
+        FROM committees c
+        INNER JOIN committee_member cm ON c.id = cm.committee_id
+        WHERE cm.member_id = ?
+        ORDER BY c.created_at DESC
+      `, [memberId, memberId]);
+      committees = commRows || [];
+    } catch (commErr) {
+      console.warn('Committees query warning:', commErr.message);
+    }
 
     // Member's recent bids
     let myBids = [];
@@ -107,12 +125,10 @@ export async function getMemberDashboard(req, res) {
       console.warn('Member bids query warning:', bidErr.message);
     }
 
-    // Apply auto-penalties so member sees accurate status
-    try {
-      await applyAutoPenaltiesGlobal();
-    } catch (penErr) {
-      console.warn('Auto penalty calculation warning:', penErr.message);
-    }
+    // Trigger auto-penalty check in background so dashboard responds instantly without delay
+    applyAutoPenaltiesGlobal().catch((penErr) => {
+      console.warn('Background auto-penalty calculation notice:', penErr.message);
+    });
 
     // Member's pending payments
     let pendingPayments = [];
@@ -125,8 +141,7 @@ export async function getMemberDashboard(req, res) {
           c.id as committee_id,
           c.payment_grace_days,
           c.late_penalty_amount,
-          c.name as committee_name,
-          (COALESCE(cmp.amount_paid, 0) + COALESCE(cmp.penalty_amount, 0)) as total_due
+          c.name as committee_name
         FROM committee_member_payments cmp
         JOIN committee_schedules cs ON cmp.schedule_id = cs.id
         JOIN committees c ON cs.committee_id = c.id
@@ -138,9 +153,9 @@ export async function getMemberDashboard(req, res) {
         const grace = p.payment_grace_days !== undefined && p.payment_grace_days !== null ? Number(p.payment_grace_days) : 5;
         const penaltySetting = p.late_penalty_amount !== undefined && p.late_penalty_amount !== null ? Number(p.late_penalty_amount) : 100.00;
         const dueDate = p.draw_date ? addDaysToDate(p.draw_date, grace) : null;
-        const baseAmt = parseFloat(p.amount_paid || 0);
-        const penaltyAmt = parseFloat(p.penalty_amount || 0);
-        const totalDue = parseFloat(p.total_due !== undefined && p.total_due !== null ? p.total_due : (baseAmt + penaltyAmt));
+        const baseAmt = parseFloat(p.amount_paid) || 0;
+        const penaltyAmt = parseFloat(p.penalty_amount) || 0;
+        const totalDue = baseAmt + penaltyAmt;
         return {
           ...p,
           committee_id: p.committee_id || p.committeeId,

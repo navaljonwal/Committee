@@ -32,26 +32,43 @@ import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import { openWhatsAppUrl } from '../utils/whatsapp';
 
-function formatDate(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+function formatDate(dateStr, options = { day: '2-digit', month: 'short', year: 'numeric' }) {
+  if (!dateStr) return '';
+  try {
+    const s = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) {
+      return String(dateStr).split('T')[0];
+    }
+    return d.toLocaleDateString('en-IN', options);
+  } catch {
+    return String(dateStr).split('T')[0];
+  }
 }
 
 function daysFromNow(dateStr) {
   if (!dateStr) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr); due.setHours(0, 0, 0, 0);
-  return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+  try {
+    const s = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr;
+    const due = new Date(s);
+    if (isNaN(due.getTime())) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    return isNaN(diff) ? null : diff;
+  } catch {
+    return null;
+  }
 }
 
 function DueBadge({ dateStr }) {
   const days = daysFromNow(dateStr);
-  if (days === null) return null;
-  if (days < 0) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 animate-live-red">Overdue by {Math.abs(days)}d</span>;
-  if (days === 0) return <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-live-glow">Due Today!</span>;
-  if (days <= 3) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 animate-pulse">In {days}d</span>;
-  return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{formatDate(dateStr)}</span>;
+  const formatted = formatDate(dateStr);
+  if (days === null && !formatted) return null;
+  if (days !== null && days < 0) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 animate-live-red">Overdue by {Math.abs(days)}d</span>;
+  if (days !== null && days === 0) return <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-live-glow">Due Today!</span>;
+  if (days !== null && days <= 3 && days > 0) return <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 animate-pulse">In {days}d</span>;
+  return formatted ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{formatted}</span> : null;
 }
 
 export default function MemberDashboard() {
@@ -76,13 +93,14 @@ export default function MemberDashboard() {
       if (!isSilent) setLoading(true);
       const url = targetId ? `/member/dashboard?memberId=${targetId}` : '/member/dashboard';
       const res = await api.get(url);
-      if (res.data.success) {
+      if (res.data?.success) {
         setData(res.data);
         if (res.data.member?.id && user?.role === 'admin' && !targetId) {
           setSelectedMemberId(String(res.data.member.id));
         }
       }
     } catch (err) {
+      console.error('Failed to load member dashboard:', err);
       toast.error(err.response?.data?.message || 'Failed to load member dashboard');
     } finally {
       setLoading(false);
@@ -117,29 +135,39 @@ export default function MemberDashboard() {
     );
   }
 
-  const { member, committees = [], myBids = [], pendingPayments = [], allMembers = [] } = data;
+  const member = data?.member || null;
+  const committees = Array.isArray(data?.committees) ? data.committees.filter(Boolean) : [];
+  const myBids = Array.isArray(data?.myBids) ? data.myBids.filter(Boolean) : [];
+  const pendingPayments = Array.isArray(data?.pendingPayments) ? data.pendingPayments.filter(Boolean) : [];
+  const allMembers = Array.isArray(data?.allMembers) ? data.allMembers.filter(Boolean) : [];
 
   // Calculate current active month reminder per committee (only ONE current month per committee)
   const currentMonthReminders = committees.map((c) => {
+    if (!c || !c.id) return null;
     const commPending = pendingPayments.filter(
-      (p) => String(p.committee_id) === String(c.id) || p.committee_name === c.name
+      (p) => p && (String(p.committee_id) === String(c.id) || p.committee_name === c.name)
     );
     if (commPending.length === 0) return null;
 
-    const minMonth = Math.min(...commPending.map((p) => parseInt(p.month_no, 10)));
+    const validMonths = commPending
+      .map((p) => parseInt(p.month_no, 10))
+      .filter((n) => !isNaN(n));
+    
+    const minMonth = validMonths.length > 0 ? Math.min(...validMonths) : 1;
+
     const thisMonthPayments = commPending.filter(
       (p) => parseInt(p.month_no, 10) === minMonth
     );
     const totalDue = thisMonthPayments.reduce(
-      (acc, p) => acc + parseFloat(p.total_due || 0),
+      (acc, p) => acc + (parseFloat(p?.total_due) || 0),
       0
     );
     const penalty = thisMonthPayments.reduce(
-      (acc, p) => acc + parseFloat(p.penalty_amount || 0),
+      (acc, p) => acc + (parseFloat(p?.penalty_amount) || 0),
       0
     );
-    const drawDate = thisMonthPayments[0]?.draw_date;
-    const dueDate = thisMonthPayments[0]?.due_date;
+    const drawDate = thisMonthPayments[0]?.draw_date || null;
+    const dueDate = thisMonthPayments[0]?.due_date || null;
     const graceDays = thisMonthPayments[0]?.payment_grace_days || 5;
     const penaltyPerSeat = thisMonthPayments[0]?.late_penalty_amount || 100;
     const seatsCount = thisMonthPayments.length;
@@ -158,21 +186,21 @@ export default function MemberDashboard() {
   }).filter(Boolean);
 
   const totalCurrentMonthDue = currentMonthReminders.reduce(
-    (acc, r) => acc + (r.totalDue || 0),
+    (acc, r) => acc + (parseFloat(r?.totalDue) || 0),
     0
   );
   const totalWonDraws = committees.reduce(
-    (acc, c) => acc + parseInt(c.won_count || 0, 10),
+    (acc, c) => acc + (parseInt(c?.won_count, 10) || 0),
     0
   );
   const totalSeats = committees.reduce(
-    (acc, c) => acc + parseInt(c.seats || 1, 10),
+    (acc, c) => acc + (parseInt(c?.seats, 10) || 1),
     0
   );
 
-  const displayName = member?.name || user?.name || 'Member';
-  const displayPhone = member?.phone || user?.phone || '';
-  const memberInitials = displayName.substring(0, 2).toUpperCase();
+  const displayName = String(member?.name || user?.name || 'Member');
+  const displayPhone = String(member?.phone || user?.phone || '');
+  const memberInitials = (displayName || 'M').substring(0, 2).toUpperCase();
 
   const handleShareWhatsApp = (targetMember) => {
     const m = targetMember || member;
@@ -323,7 +351,7 @@ export default function MemberDashboard() {
                 Due This Month
               </span>
               <span className="text-base sm:text-xl font-black text-rose-400 font-mono mt-0.5 block">
-                ₹{totalCurrentMonthDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                ₹{(Number(totalCurrentMonthDue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
               </span>
             </div>
 
@@ -374,73 +402,76 @@ export default function MemberDashboard() {
             <div className="flex items-center justify-between sm:justify-end gap-3 bg-white sm:bg-transparent p-2.5 sm:p-0 rounded-xl border border-amber-200 sm:border-0">
               <span className="text-[10px] uppercase font-bold text-slate-500">Total Pending Now:</span>
               <span className="text-lg sm:text-xl font-black text-rose-600 font-mono">
-                ₹{totalCurrentMonthDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                ₹{(Number(totalCurrentMonthDue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            {currentMonthReminders.map((r) => (
-              <div
-                key={r.committee.id}
-                className="bg-white rounded-2xl p-4 border border-amber-200 shadow-2xs flex flex-col justify-between gap-3.5 hover:border-orange-400 hover:shadow-md transition"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
-                        {r.committee.name}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-bold border border-amber-200 text-[11px]">
-                          Month {r.monthNo} Installment
-                        </span>
-                        {r.seatsCount > 1 && (
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
-                            {r.seatsCount} Seats Combined
+            {currentMonthReminders.map((r) => {
+              if (!r || !r.committee) return null;
+              return (
+                <div
+                  key={r.committee.id || r.monthNo}
+                  className="bg-white rounded-2xl p-4 border border-amber-200 shadow-2xs flex flex-col justify-between gap-3.5 hover:border-orange-400 hover:shadow-md transition"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
+                          {r.committee.name || 'Kameti'}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-bold border border-amber-200 text-[11px]">
+                            Month {r.monthNo} Installment
                           </span>
+                          {r.seatsCount > 1 && (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                              {r.seatsCount} Seats Combined
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="font-black text-lg text-rose-600 font-mono leading-none">
+                          ₹{(Number(r.totalDue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                        </div>
+                        {r.penalty > 0 ? (
+                          <div className="text-[10px] font-bold text-rose-600 mt-1 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                            +₹{r.penalty} late fee
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400 mt-1">
+                            ₹{r.penaltyPerSeat}/seat penalty after {r.graceDays}d
+                          </div>
                         )}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="font-black text-lg text-rose-600 font-mono leading-none">
-                        ₹{r.totalDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
-                      </div>
-                      {r.penalty > 0 ? (
-                        <div className="text-[10px] font-bold text-rose-600 mt-1 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
-                          +₹{r.penalty} late fee
-                        </div>
-                      ) : (
-                        <div className="text-[10px] text-slate-400 mt-1">
-                          ₹{r.penaltyPerSeat}/seat penalty after {r.graceDays}d
-                        </div>
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                      {r.drawDate && (
+                        <span>Bidding: <strong className="text-slate-700">{formatDate(r.drawDate, { day: '2-digit', month: 'short' })}</strong></span>
                       )}
+                      {r.dueDate && (
+                        <span>Due: <strong className="text-amber-700">{formatDate(r.dueDate, { day: '2-digit', month: 'short' })}</strong></span>
+                      )}
+                      <DueBadge dateStr={r.dueDate || r.drawDate} />
                     </div>
+
+                    <Link
+                      to={`/member/committees/${encodeId(r.committee.id)}${user?.role === 'admin' && member?.id ? `?memberId=${member.id}` : ''}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-md shadow-orange-600/20 active:scale-95"
+                    >
+                      <span>View Sheet & Pay</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-                    {r.drawDate && (
-                      <span>Bidding: <strong className="text-slate-700">{new Date(r.drawDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</strong></span>
-                    )}
-                    {r.dueDate && (
-                      <span>Due: <strong className="text-amber-700">{new Date(r.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</strong></span>
-                    )}
-                    <DueBadge dateStr={r.dueDate || r.drawDate} />
-                  </div>
-
-                  <Link
-                    to={`/member/committees/${encodeId(r.committee.id)}${user?.role === 'admin' && member?.id ? `?memberId=${member.id}` : ''}`}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-md shadow-orange-600/20 active:scale-95"
-                  >
-                    <span>View Sheet & Pay</span>
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : committees.length > 0 ? (
@@ -515,6 +546,7 @@ export default function MemberDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
             {committees.map((c) => {
+              if (!c || !c.id) return null;
               const wonCount = parseInt(c.won_count || 0, 10);
               const seats = parseInt(c.seats || 1, 10);
               const remaining = Math.max(0, seats - wonCount);
@@ -524,10 +556,10 @@ export default function MemberDashboard() {
 
               // Check if this committee has an active pending installment
               const commPending = pendingPayments.filter(
-                (p) => String(p.committee_id) === String(c.id) || p.committee_name === c.name
+                (p) => p && (String(p.committee_id) === String(c.id) || p.committee_name === c.name)
               );
               const hasDue = commPending.length > 0;
-              const nextMonth = hasDue ? Math.min(...commPending.map(p => parseInt(p.month_no, 10))) : null;
+              const nextMonth = hasDue ? Math.min(...commPending.map(p => parseInt(p.month_no, 10)).filter(n => !isNaN(n))) : null;
 
               return (
                 <div
@@ -561,7 +593,7 @@ export default function MemberDashboard() {
                           Pool Value
                         </span>
                         <span className="text-base sm:text-lg font-black text-slate-900 font-mono mt-0.5 block">
-                          ₹{poolAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                          ₹{(Number(poolAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                         </span>
                       </div>
                       <div className="border-l border-orange-200/60 pl-2.5">
@@ -569,7 +601,7 @@ export default function MemberDashboard() {
                           Monthly / Seat
                         </span>
                         <span className="text-base sm:text-lg font-black text-orange-600 font-mono mt-0.5 block">
-                          ₹{monthlyAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                          ₹{(Number(monthlyAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                         </span>
                       </div>
                     </div>
@@ -647,67 +679,73 @@ export default function MemberDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
-                {myBids.map((b) => (
-                  <tr key={b.id} className="hover:bg-orange-50/30 transition duration-150">
-                    <td className="py-3 px-4 font-sans font-bold text-slate-900">{b.committee_name}</td>
-                    <td className="py-3 px-4 font-sans">Month {b.month_no}</td>
-                    <td className="py-3 px-4 text-right font-black text-orange-600">
-                      ₹{parseFloat(b.bid_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-3 px-4 text-center font-sans">
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                        b.status === 'approved' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : b.status === 'rejected'
-                            ? 'bg-slate-100 text-slate-500 border-slate-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {b.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-sans text-slate-500 italic">
-                      {b.remarks || '-'}
-                    </td>
-                  </tr>
-                ))}
+                {myBids.map((b) => {
+                  if (!b) return null;
+                  return (
+                    <tr key={b.id} className="hover:bg-orange-50/30 transition duration-150">
+                      <td className="py-3 px-4 font-sans font-bold text-slate-900">{b.committee_name || '-'}</td>
+                      <td className="py-3 px-4 font-sans">Month {b.month_no}</td>
+                      <td className="py-3 px-4 text-right font-black text-orange-600">
+                        ₹{(Number(b.bid_amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-4 text-center font-sans">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          b.status === 'approved' 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                            : b.status === 'rejected'
+                              ? 'bg-slate-100 text-slate-500 border-slate-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {String(b.status || 'pending').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-sans text-slate-500 italic">
+                        {b.remarks || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Mobile Bid Cards (FinTech style) */}
           <div className="md:hidden space-y-2.5">
-            {myBids.map((b) => (
-              <div key={b.id} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-xs text-slate-900">{b.committee_name}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 font-mono">
-                    Month {b.month_no}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 font-mono">
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block font-sans">My Bid Deduction</span>
-                    <span className="text-sm font-black text-orange-600">
-                      ₹{parseFloat(b.bid_amount).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            {myBids.map((b) => {
+              if (!b) return null;
+              return (
+                <div key={b.id} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-slate-900">{b.committee_name || '-'}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 font-mono">
+                      Month {b.month_no}
                     </span>
                   </div>
-                  <div>
-                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border font-sans ${
-                      b.status === 'approved' 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                        : b.status === 'rejected'
-                          ? 'bg-slate-100 text-slate-500 border-slate-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}>
-                      {b.status.toUpperCase()}
-                    </span>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 font-mono">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-slate-400 block font-sans">My Bid Deduction</span>
+                      <span className="text-sm font-black text-orange-600">
+                        ₹{(Number(b.bid_amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border font-sans ${
+                        b.status === 'approved' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          : b.status === 'rejected'
+                            ? 'bg-slate-100 text-slate-500 border-slate-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {String(b.status || 'pending').toUpperCase()}
+                      </span>
+                    </div>
                   </div>
+                  {b.remarks && (
+                    <p className="text-[10px] text-slate-400 italic pt-0.5">{b.remarks}</p>
+                  )}
                 </div>
-                {b.remarks && (
-                  <p className="text-[10px] text-slate-400 italic pt-0.5">{b.remarks}</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -19,6 +19,7 @@ import MemberCommittee from './pages/MemberCommittee';
 import PrintView from './pages/PrintView';
 import ProfileSettings from './pages/ProfileSettings';
 import Reminders from './pages/Reminders';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -117,78 +118,80 @@ function AppLayout() {
         )}
 
         <main key={location.pathname} className="flex-1 overflow-x-hidden animate-page-enter">
-          <Routes>
-            {/* Admin Routes */}
-            <Route path="/" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <CommitteesList />
-              </ProtectedRoute>
-            } />
+          <ErrorBoundary>
+            <Routes>
+              {/* Admin Routes */}
+              <Route path="/" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CommitteesList />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/committees/create" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <CommitteeCreate />
-              </ProtectedRoute>
-            } />
+              <Route path="/committees/create" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CommitteeCreate />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/committees/:id" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <CommitteeDetail />
-              </ProtectedRoute>
-            } />
+              <Route path="/committees/:id" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CommitteeDetail />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/committees/:id/edit" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <CommitteeEdit />
-              </ProtectedRoute>
-            } />
+              <Route path="/committees/:id/edit" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CommitteeEdit />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/committees/:id/print" element={
-              <ProtectedRoute allowedRoles={['admin', 'member']}>
-                <PrintView />
-              </ProtectedRoute>
-            } />
+              <Route path="/committees/:id/print" element={
+                <ProtectedRoute allowedRoles={['admin', 'member']}>
+                  <PrintView />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/members" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <MembersList />
-              </ProtectedRoute>
-            } />
+              <Route path="/members" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <MembersList />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/schedules/:scheduleId/payments" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <SchedulePayments />
-              </ProtectedRoute>
-            } />
+              <Route path="/schedules/:scheduleId/payments" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <SchedulePayments />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/profile" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <ProfileSettings />
-              </ProtectedRoute>
-            } />
+              <Route path="/profile" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <ProfileSettings />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/reminders" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Reminders />
-              </ProtectedRoute>
-            } />
+              <Route path="/reminders" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Reminders />
+                </ProtectedRoute>
+              } />
 
-            {/* Member Portal Routes */}
-            <Route path="/member/dashboard" element={
-              <ProtectedRoute allowedRoles={['member']}>
-                <MemberDashboard />
-              </ProtectedRoute>
-            } />
+              {/* Member Portal Routes — Accessible by Member and Admin (for Preview) */}
+              <Route path="/member/dashboard" element={
+                <ProtectedRoute allowedRoles={['member', 'admin']}>
+                  <MemberDashboard />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/member/committees/:id" element={
-              <ProtectedRoute allowedRoles={['member']}>
-                <MemberCommittee />
-              </ProtectedRoute>
-            } />
+              <Route path="/member/committees/:id" element={
+                <ProtectedRoute allowedRoles={['member', 'admin']}>
+                  <MemberCommittee />
+                </ProtectedRoute>
+              } />
 
-            {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch-all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
       </div>
 

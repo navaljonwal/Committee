@@ -21,17 +21,33 @@ import { encodeId } from '../utils/hashids';
 import { usePopup } from '../context/PopupContext';
 import ActionDrawer from '../components/ActionDrawer';
 
-function formatDate(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+function formatDate(dateStr, options = { day: '2-digit', month: 'short', year: 'numeric' }) {
+  if (!dateStr) return '';
+  try {
+    const s = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) {
+      return String(dateStr).split('T')[0];
+    }
+    return d.toLocaleDateString('en-IN', options);
+  } catch {
+    return String(dateStr).split('T')[0];
+  }
 }
 
 function daysFromNow(dateStr) {
   if (!dateStr) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr); due.setHours(0, 0, 0, 0);
-  return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+  try {
+    const s = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr;
+    const due = new Date(s);
+    if (isNaN(due.getTime())) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    return isNaN(diff) ? null : diff;
+  } catch {
+    return null;
+  }
 }
 
 function DueBadge({ dateStr }) {
