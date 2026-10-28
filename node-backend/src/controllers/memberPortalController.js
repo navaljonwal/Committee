@@ -10,13 +10,51 @@ export async function getMemberDashboard(req, res) {
     let allMembers = [];
 
     if (user.role === 'admin') {
-      const [mList] = await pool.query('SELECT id, name, phone FROM members ORDER BY name ASC');
-      allMembers = mList;
+      const [mList] = await pool.query(`
+        SELECT 
+          m.id, 
+          m.name, 
+          m.phone,
+          (SELECT COUNT(*) FROM committee_member cm WHERE cm.member_id = m.id) as enrolled_count
+        FROM members m 
+        ORDER BY m.name ASC
+      `);
+      allMembers = mList || [];
 
       if (req.query.memberId) {
         memberId = parseInt(req.query.memberId, 10);
       } else if (!memberId && allMembers.length > 0) {
-        memberId = allMembers[0].id;
+        // Prioritize first member who actually has enrolled committees!
+        const memberWithCommittees = allMembers.find(m => Number(m.enrolled_count) > 0);
+        memberId = memberWithCommittees ? memberWithCommittees.id : allMembers[0].id;
+      }
+    }
+
+    // Auto-resolve memberId for regular member accounts if users.member_id was not set
+    if (!memberId && user.role !== 'admin') {
+      if (user.phone) {
+        const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
+        if (cleanPhone) {
+          const [mRows] = await pool.query(
+            `SELECT id FROM members WHERE REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ? LIMIT 1`,
+            [`%${cleanPhone}`]
+          );
+          if (mRows.length > 0) {
+            memberId = mRows[0].id;
+            try {
+              await pool.query('UPDATE users SET member_id = ? WHERE id = ?', [memberId, user.id]);
+            } catch (e) {}
+          }
+        }
+      }
+      if (!memberId && user.name) {
+        const [mRows] = await pool.query('SELECT id FROM members WHERE LOWER(name) = LOWER(?) LIMIT 1', [user.name.trim()]);
+        if (mRows.length > 0) {
+          memberId = mRows[0].id;
+          try {
+            await pool.query('UPDATE users SET member_id = ? WHERE id = ?', [memberId, user.id]);
+          } catch (e) {}
+        }
       }
     }
 
@@ -31,6 +69,8 @@ export async function getMemberDashboard(req, res) {
         allMembers
       });
     }
+
+    memberId = parseInt(memberId, 10);
 
     const [members] = await pool.query('SELECT * FROM members WHERE id = ?', [memberId]);
     const member = members[0] || null;
@@ -49,60 +89,83 @@ export async function getMemberDashboard(req, res) {
     `, [memberId, memberId]);
 
     // Member's recent bids
-    const [myBids] = await pool.query(`
-      SELECT 
-        mb.*,
-        cs.month_no,
-        c.name as committee_name
-      FROM member_bids mb
-      JOIN committee_schedules cs ON mb.schedule_id = cs.id
-      JOIN committees c ON cs.committee_id = c.id
-      WHERE mb.member_id = ?
-      ORDER BY mb.created_at DESC
-    `, [memberId]);
+    let myBids = [];
+    try {
+      const [bidRows] = await pool.query(`
+        SELECT 
+          mb.*,
+          cs.month_no,
+          c.name as committee_name
+        FROM member_bids mb
+        JOIN committee_schedules cs ON mb.schedule_id = cs.id
+        JOIN committees c ON cs.committee_id = c.id
+        WHERE mb.member_id = ?
+        ORDER BY mb.created_at DESC
+      `, [memberId]);
+      myBids = bidRows || [];
+    } catch (bidErr) {
+      console.warn('Member bids query warning:', bidErr.message);
+    }
 
     // Apply auto-penalties so member sees accurate status
-    await applyAutoPenaltiesGlobal();
+    try {
+      await applyAutoPenaltiesGlobal();
+    } catch (penErr) {
+      console.warn('Auto penalty calculation warning:', penErr.message);
+    }
 
     // Member's pending payments
-    const [pendingRows] = await pool.query(`
-      SELECT 
-        cmp.*,
-        cs.month_no,
-        cs.draw_date,
-        c.payment_grace_days,
-        c.late_penalty_amount,
-        c.name as committee_name,
-        (cmp.amount_paid + cmp.penalty_amount) as total_due
-      FROM committee_member_payments cmp
-      JOIN committee_schedules cs ON cmp.schedule_id = cs.id
-      JOIN committees c ON cs.committee_id = c.id
-      WHERE cmp.member_id = ? AND cmp.payment_status = 'pending'
-      ORDER BY cs.month_no ASC
-    `, [memberId]);
+    let pendingPayments = [];
+    try {
+      const [pendingRows] = await pool.query(`
+        SELECT 
+          cmp.*,
+          cs.month_no,
+          cs.draw_date,
+          c.id as committee_id,
+          c.payment_grace_days,
+          c.late_penalty_amount,
+          c.name as committee_name,
+          (COALESCE(cmp.amount_paid, 0) + COALESCE(cmp.penalty_amount, 0)) as total_due
+        FROM committee_member_payments cmp
+        JOIN committee_schedules cs ON cmp.schedule_id = cs.id
+        JOIN committees c ON cs.committee_id = c.id
+        WHERE cmp.member_id = ? AND cmp.payment_status = 'pending'
+        ORDER BY cs.month_no ASC
+      `, [memberId]);
 
-    const pendingPayments = pendingRows.map(p => {
-      const grace = p.payment_grace_days !== undefined && p.payment_grace_days !== null ? Number(p.payment_grace_days) : 5;
-      const penaltyAmt = p.late_penalty_amount !== undefined && p.late_penalty_amount !== null ? Number(p.late_penalty_amount) : 100.00;
-      const dueDate = p.draw_date ? addDaysToDate(p.draw_date, grace) : null;
-      return {
-        ...p,
-        payment_grace_days: grace,
-        late_penalty_amount: penaltyAmt,
-        due_date: dueDate
-      };
-    });
+      pendingPayments = (pendingRows || []).map(p => {
+        const grace = p.payment_grace_days !== undefined && p.payment_grace_days !== null ? Number(p.payment_grace_days) : 5;
+        const penaltySetting = p.late_penalty_amount !== undefined && p.late_penalty_amount !== null ? Number(p.late_penalty_amount) : 100.00;
+        const dueDate = p.draw_date ? addDaysToDate(p.draw_date, grace) : null;
+        const baseAmt = parseFloat(p.amount_paid || 0);
+        const penaltyAmt = parseFloat(p.penalty_amount || 0);
+        const totalDue = parseFloat(p.total_due !== undefined && p.total_due !== null ? p.total_due : (baseAmt + penaltyAmt));
+        return {
+          ...p,
+          committee_id: p.committee_id || p.committeeId,
+          payment_grace_days: grace,
+          late_penalty_amount: penaltySetting,
+          penalty_amount: penaltyAmt,
+          total_due: totalDue,
+          due_date: dueDate
+        };
+      });
+    } catch (pendErr) {
+      console.warn('Member pending payments query warning:', pendErr.message);
+    }
 
     return res.json({
       success: true,
       user,
       member,
-      committees,
+      committees: committees || [],
       myBids,
       pendingPayments,
       allMembers
     });
   } catch (error) {
+    console.error('getMemberDashboard error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
@@ -122,8 +185,40 @@ export async function getMemberCommittee(req, res) {
       }
     }
 
+    // Auto-resolve memberId for regular member accounts if users.member_id was not set
+    if (!memberId && user.role !== 'admin') {
+      if (user.phone) {
+        const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
+        if (cleanPhone) {
+          const [mRows] = await pool.query(
+            `SELECT id FROM members WHERE REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ? LIMIT 1`,
+            [`%${cleanPhone}`]
+          );
+          if (mRows.length > 0) {
+            memberId = mRows[0].id;
+            try {
+              await pool.query('UPDATE users SET member_id = ? WHERE id = ?', [memberId, user.id]);
+            } catch (e) {}
+          }
+        }
+      }
+      if (!memberId && user.name) {
+        const [mRows] = await pool.query('SELECT id FROM members WHERE LOWER(name) = LOWER(?) LIMIT 1', [user.name.trim()]);
+        if (mRows.length > 0) {
+          memberId = mRows[0].id;
+          try {
+            await pool.query('UPDATE users SET member_id = ? WHERE id = ?', [memberId, user.id]);
+          } catch (e) {}
+        }
+      }
+    }
+
     if (!memberId && user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'No member profile attached to this account' });
+    }
+
+    if (memberId) {
+      memberId = parseInt(memberId, 10);
     }
 
     const [committees] = await pool.query('SELECT * FROM committees WHERE id = ?', [committeeId]);

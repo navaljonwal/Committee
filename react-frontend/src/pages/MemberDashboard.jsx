@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Layers, 
   IndianRupee, 
@@ -21,7 +21,10 @@ import {
   TrendingUp,
   Sparkles,
   ArrowRight,
-  MessageCircle
+  MessageCircle,
+  ChevronDown,
+  Users,
+  RefreshCw
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
@@ -54,33 +57,58 @@ function DueBadge({ dateStr }) {
 export default function MemberDashboard() {
   const { user } = useAuth();
   const { toast } = usePopup();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryMemberId = searchParams.get('memberId');
 
+  const [selectedMemberId, setSelectedMemberId] = useState(queryMemberId || '');
+  const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState({ 
     member: null, 
     committees: [], 
     myBids: [], 
-    pendingPayments: []
+    pendingPayments: [],
+    allMembers: []
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        const res = await api.get('/member/dashboard');
-        if (res.data.success) {
-          setData(res.data);
+  const fetchDashboardData = async (targetId = selectedMemberId, isSilent = false) => {
+    try {
+      if (!isSilent) setLoading(true);
+      const url = targetId ? `/member/dashboard?memberId=${targetId}` : '/member/dashboard';
+      const res = await api.get(url);
+      if (res.data.success) {
+        setData(res.data);
+        if (res.data.member?.id && user?.role === 'admin' && !targetId) {
+          setSelectedMemberId(String(res.data.member.id));
         }
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to load member dashboard');
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to load member dashboard');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    loadDashboard();
-  }, []);
+  };
 
-  if (loading) {
+  useEffect(() => {
+    fetchDashboardData(selectedMemberId);
+  }, [selectedMemberId]);
+
+  const handleMemberChange = (newId) => {
+    setSelectedMemberId(newId);
+    if (newId) {
+      setSearchParams({ memberId: newId });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const handleManualRefresh = () => {
+    setRefreshing(true);
+    fetchDashboardData(selectedMemberId, true);
+  };
+
+  if (loading && !refreshing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-3">
         <div className="w-10 h-10 border-4 border-orange-500/20 border-t-orange-600 rounded-full animate-spin" />
@@ -94,7 +122,7 @@ export default function MemberDashboard() {
   // Calculate current active month reminder per committee (only ONE current month per committee)
   const currentMonthReminders = committees.map((c) => {
     const commPending = pendingPayments.filter(
-      (p) => p.committee_id === c.id || p.committee_name === c.name
+      (p) => String(p.committee_id) === String(c.id) || p.committee_name === c.name
     );
     if (commPending.length === 0) return null;
 
@@ -174,6 +202,89 @@ export default function MemberDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
       
+      {/* ── MNC-Grade Admin Switcher Bar ── */}
+      {user?.role === 'admin' && allMembers.length > 0 && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-indigo-500/30 shadow-xl space-y-3 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 shrink-0">
+                <Shield className="w-5 h-5 text-indigo-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/20">
+                    Admin Impersonation Mode
+                  </span>
+                  <span className="text-xs text-indigo-200/70 hidden sm:inline">• Live Member View</span>
+                </div>
+                <h2 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                  Member Portal Preview & Passbook Inspector
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-semibold transition border border-white/10"
+                title="Refresh Member Dashboard Data"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-semibold transition border border-white/10"
+              >
+                <span>Admin Home</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Member Selector Dropdown & Info */}
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2.5 border-t border-indigo-500/20 items-center">
+            <div className="sm:col-span-8">
+              <label className="block text-[11px] font-semibold text-indigo-200 mb-1 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Select Member to View Dashboard ({allMembers.length} Members Registered):</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={member?.id ? String(member.id) : (selectedMemberId || '')}
+                  onChange={(e) => handleMemberChange(e.target.value)}
+                  className="w-full bg-slate-800/90 border border-indigo-400/40 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 cursor-pointer appearance-none pr-10"
+                >
+                  {allMembers.map((m) => (
+                    <option key={m.id} value={String(m.id)} className="bg-slate-900 text-white">
+                      {m.name} {m.phone ? `(${m.phone})` : ''} — {m.enrolled_count || 0} Kameti(s)
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-indigo-300">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:col-span-4 flex items-end justify-start sm:justify-end gap-2 pt-1 sm:pt-0">
+              <button
+                type="button"
+                onClick={() => handleShareWhatsApp(member)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-900/30 active:scale-95"
+                title="Send login credentials to this member via WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Send Login via WhatsApp</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MNC-Grade Member Header Card ── */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 relative overflow-hidden shadow-xl border border-slate-700/50">
         {/* Subtle decorative glow */}
@@ -191,7 +302,8 @@ export default function MemberDashboard() {
 
             <div className="min-w-0">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-orange-300 text-[10px] font-bold mb-1">
-                <Sparkles className="w-3 h-3 text-amber-300" /> Verified Member
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                {user?.role === 'admin' ? `Admin Previewing Member #${member?.id || ''}` : 'Verified Member'}
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white truncate">
                 Namaste, {displayName}! 👋
@@ -320,7 +432,7 @@ export default function MemberDashboard() {
                   </div>
 
                   <Link
-                    to={`/member/committees/${encodeId(r.committee.id)}`}
+                    to={`/member/committees/${encodeId(r.committee.id)}${user?.role === 'admin' && member?.id ? `?memberId=${member.id}` : ''}`}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-md shadow-orange-600/20 active:scale-95"
                   >
                     <span>View Sheet & Pay</span>
@@ -331,7 +443,7 @@ export default function MemberDashboard() {
             ))}
           </div>
         </div>
-      ) : (
+      ) : committees.length > 0 ? (
         <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex items-center gap-3.5 shadow-2xs">
           <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle className="w-5 h-5" />
@@ -343,31 +455,64 @@ export default function MemberDashboard() {
             </p>
           </div>
         </div>
+      ) : null}
+
+      {/* ── When Member Has 0 Kametis Enrolled ── */}
+      {committees.length === 0 && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center space-y-3.5 shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+            <Layers className="w-7 h-7" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1.5">
+            <h3 className="text-base sm:text-lg font-black text-slate-900">
+              {displayName} Abhi Kisi Bhi Kameti Mein Shamil Nahi Hain
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {user?.role === 'admin' 
+                ? 'Is member ko kisi bhi kameti mein add nahi kiya gaya hai. Upar dropdown se doosra member select karein ya Committees page par jaakar member ko seat allot karein.' 
+                : 'Aapke is registered account par abhi koi active kameti assign nahi hui hai. Kripya apne Committee Organizer se sampark karein taaki wo aapko Kameti group mein add karein.'}
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+            {user?.role === 'admin' ? (
+              <Link
+                to="/committees"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-md"
+              >
+                <span>View Committees & Enroll Members</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const text = encodeURIComponent(`Namaste, mera naam ${displayName} hai (${displayPhone}). Kripya mujhe Kameti group mein add karein.`);
+                  openWhatsAppUrl(`https://wa.me/?text=${text}`);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md shadow-emerald-700/20 active:scale-95"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Contact Organizer on WhatsApp</span>
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ── Enrolled Committees Section (MNC Banking Passbook Style) ── */}
-      <div id="my-kametis" className="scroll-mt-6 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-orange-600" />
-            <span>My Enrolled Kametis ({committees.length})</span>
-          </h2>
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            Click any committee to open full statement & auction bids
-          </span>
-        </div>
-
-        {committees.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-300 rounded-2xl sm:rounded-3xl p-8 text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-              <Layers className="w-6 h-6" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-700">No Kametis Found</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              You are not enrolled in any committee yet. Contact your committee organizer to add you.
-            </p>
+      {committees.length > 0 && (
+        <div id="my-kametis" className="scroll-mt-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-orange-600" />
+              <span>My Enrolled Kametis ({committees.length})</span>
+            </h2>
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+              Click any committee to open full statement & auction bids
+            </span>
           </div>
-        ) : (
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
             {committees.map((c) => {
               const wonCount = parseInt(c.won_count || 0, 10);
@@ -379,7 +524,7 @@ export default function MemberDashboard() {
 
               // Check if this committee has an active pending installment
               const commPending = pendingPayments.filter(
-                (p) => p.committee_id === c.id || p.committee_name === c.name
+                (p) => String(p.committee_id) === String(c.id) || p.committee_name === c.name
               );
               const hasDue = commPending.length > 0;
               const nextMonth = hasDue ? Math.min(...commPending.map(p => parseInt(p.month_no, 10))) : null;
@@ -464,7 +609,7 @@ export default function MemberDashboard() {
                   {/* Passbook & Action CTA */}
                   <div className="mt-4 pt-3 border-t border-slate-100">
                     <Link
-                      to={`/member/committees/${encodeId(c.id)}`}
+                      to={`/member/committees/${encodeId(c.id)}${user?.role === 'admin' && member?.id ? `?memberId=${member.id}` : ''}`}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-md shadow-orange-600/20 active:scale-[0.98]"
                     >
                       <CreditCard className="w-4 h-4" />
@@ -476,8 +621,8 @@ export default function MemberDashboard() {
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── My Submitted Bids History (FinTech style) ── */}
       {myBids.length > 0 && (

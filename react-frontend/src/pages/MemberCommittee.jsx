@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Gavel, 
@@ -46,6 +46,8 @@ function DueBadge({ dateStr }) {
 export default function MemberCommittee() {
   const { id } = useParams();
   const { toast } = usePopup();
+  const [searchParams] = useSearchParams();
+  const queryMemberId = searchParams.get('memberId');
 
   const [data, setData] = useState(null);
   const [liveBidsData, setLiveBidsData] = useState({ bids: {}, highest_bids: {}, lock_status: {} });
@@ -61,7 +63,10 @@ export default function MemberCommittee() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/member/committees/${id}`);
+      const url = queryMemberId
+        ? `/member/committees/${id}?memberId=${queryMemberId}`
+        : `/member/committees/${id}`;
+      const res = await api.get(url);
       if (res.data.success) {
         setData(res.data);
       }
@@ -74,7 +79,10 @@ export default function MemberCommittee() {
 
   const pollLiveBids = async () => {
     try {
-      const res = await api.get(`/member/committees/${id}/live-bids`);
+      const url = queryMemberId
+        ? `/member/committees/${id}/live-bids?memberId=${queryMemberId}`
+        : `/member/committees/${id}/live-bids`;
+      const res = await api.get(url);
       if (res.data) {
         setLiveBidsData(res.data);
       }
@@ -261,7 +269,7 @@ export default function MemberCommittee() {
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <Link
-          to="/member/dashboard"
+          to={queryMemberId ? `/member/dashboard?memberId=${queryMemberId}` : '/member/dashboard'}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-orange-600 transition"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard

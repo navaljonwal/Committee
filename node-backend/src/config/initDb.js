@@ -45,7 +45,11 @@ export async function initializeDatabase() {
           await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS late_penalty_amount NUMERIC(15,2) NOT NULL DEFAULT 100.00');
         } catch (e) {}
 
-        // Ensure is_penalty_manual exists on committee_member_payments in PostgreSQL
+        // Ensure penalty_amount and is_penalty_manual exist on committee_member_payments in PostgreSQL
+        try {
+          await pool.query('ALTER TABLE committee_member_payments ADD COLUMN IF NOT EXISTS penalty_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00');
+        } catch (e) {}
+
         try {
           await pool.query('ALTER TABLE committee_member_payments ADD COLUMN IF NOT EXISTS is_penalty_manual SMALLINT NOT NULL DEFAULT 0');
         } catch (e) {}
