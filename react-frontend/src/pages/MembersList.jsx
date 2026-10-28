@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { usePopup } from '../context/PopupContext';
-import { formatMemberName } from '../utils/whatsapp';
+import { formatMemberName, openWhatsAppUrl } from '../utils/whatsapp';
 import ActionDrawer from '../components/ActionDrawer';
 
 export default function MembersList() {
@@ -106,7 +106,7 @@ export default function MembersList() {
       waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     }
 
-    window.open(waUrl, '_blank');
+    openWhatsAppUrl(waUrl);
   };
 
   const handleSubmit = async (e) => {

@@ -3,7 +3,7 @@ import {
   X, MessageCircle, Copy, Check, RotateCcw, 
   Send, Phone, IndianRupee, Calendar, User, Sparkles
 } from 'lucide-react';
-import { buildPaymentReminderMessage, cleanPhone } from '../utils/whatsapp';
+import { buildPaymentReminderMessage, cleanPhone, openWhatsAppUrl } from '../utils/whatsapp';
 import ActionDrawer from './ActionDrawer';
 
 export default function WhatsAppModal({
@@ -38,21 +38,10 @@ export default function WhatsAppModal({
     }
   }, [data, isOpen]);
 
-  // Lock background scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      const handleEscape = (e) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => {
-        document.body.style.overflow = prevOverflow;
-        window.removeEventListener('keydown', handleEscape);
-      };
-    }
-  }, [isOpen, onClose]);
+  const handleClose = () => {
+    document.body.style.overflow = '';
+    onClose();
+  };
 
   if (!isOpen || !data) return null;
 
@@ -72,12 +61,18 @@ export default function WhatsAppModal({
       url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     }
 
-    window.open(url, '_blank');
-
-    if (onSent && data.memberId) {
-      onSent(data.memberId);
+    // 1. Mark reminder as sent in parent state immediately
+    if (onSent) {
+      onSent(data.memberId || data.key);
     }
-    onClose();
+
+    // 2. Close modal immediately to remove the drawer and backdrop overlay from the DOM
+    handleClose();
+
+    // 3. Open WhatsApp link safely in a non-blocking way after modal unmounts
+    setTimeout(() => {
+      openWhatsAppUrl(url);
+    }, 50);
   };
 
   const handleReset = () => {
@@ -108,7 +103,7 @@ export default function WhatsAppModal({
   return (
     <ActionDrawer
       isOpen={isOpen && !!data}
-      onClose={onClose}
+      onClose={handleClose}
       icon={MessageCircle}
       title="WhatsApp Payment Reminder"
       subtitle="Review or edit message before sending"
@@ -139,7 +134,7 @@ export default function WhatsAppModal({
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition active:scale-98 text-center"
               >
                 Cancel
@@ -161,7 +156,7 @@ export default function WhatsAppModal({
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-4 py-2.5 rounded-xl border border-transparent hover:bg-slate-200/60 text-slate-600 text-xs font-semibold transition active:scale-98"
               >
                 Cancel

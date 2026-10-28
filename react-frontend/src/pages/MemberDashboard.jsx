@@ -27,6 +27,7 @@ import api from '../api/client';
 import { encodeId } from '../utils/hashids';
 import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
+import { openWhatsAppUrl } from '../utils/whatsapp';
 
 function formatDate(dateStr) {
   if (!dateStr) return null;
@@ -167,7 +168,7 @@ export default function MemberDashboard() {
       waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     }
 
-    window.open(waUrl, '_blank');
+    openWhatsAppUrl(waUrl);
   };
 
   return (

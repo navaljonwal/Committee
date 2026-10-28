@@ -220,3 +220,28 @@ export function makeWhatsAppLink(phone, message) {
   if (!cleanedPhone) return null;
   return `https://wa.me/${cleanedPhone}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Safely open a WhatsApp URL without locking or freezing the caller tab.
+ * Uses a temporary anchor with target="_blank" and rel="noopener noreferrer",
+ * ensuring cross-browser mobile (iOS/Android) and desktop stability.
+ * @param {string} url
+ */
+export function openWhatsAppUrl(url) {
+  if (!url) return;
+  try {
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      try {
+        if (link.parentNode) link.parentNode.removeChild(link);
+      } catch (_) {}
+    }, 200);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
