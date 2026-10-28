@@ -15,12 +15,15 @@ import {
   ExternalLink,
   Check,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles
 } from 'lucide-react';
 import api from '../api/client';
 import WinnerModal from '../components/WinnerModal';
 import PayoutModal from '../components/PayoutModal';
 import BiddingModal from '../components/BiddingModal';
+import LiveSpinModal from '../components/LiveSpinModal';
+import AdminSpinModal from '../components/AdminSpinModal';
 import { encodeId } from '../utils/hashids';
 import { usePopup } from '../context/PopupContext';
 
@@ -38,6 +41,11 @@ export default function CommitteeDetail() {
   const [activePayoutSchedule, setActivePayoutSchedule] = useState(null);
   const [activeBiddingSchedule, setActiveBiddingSchedule] = useState(null);
 
+  // Live Lucky Draw Spin state
+  const [activeSpinData, setActiveSpinData] = useState(null);
+  const [isSpinModalOpen, setIsSpinModalOpen] = useState(false);
+  const [spinSchedule, setSpinSchedule] = useState(null);
+
   const loadDetail = async () => {
     try {
       setLoading(true);
@@ -54,9 +62,15 @@ export default function CommitteeDetail() {
 
   const silentRefresh = async () => {
     try {
-      const res = await api.get(`/committees/${id}`);
-      if (res.data?.success) {
-        setData(res.data);
+      const [detailRes, liveRes] = await Promise.allSettled([
+        api.get(`/committees/${id}`),
+        api.get(`/member/committees/${id}/live-bids`)
+      ]);
+      if (detailRes.status === 'fulfilled' && detailRes.value?.data?.success) {
+        setData(detailRes.value.data);
+      }
+      if (liveRes.status === 'fulfilled' && liveRes.value?.data?.active_spin) {
+        setActiveSpinData(liveRes.value.data.active_spin);
       }
     } catch {
       // silent background refresh
@@ -66,12 +80,40 @@ export default function CommitteeDetail() {
   useEffect(() => {
     loadDetail();
 
-    // Auto-poll every 3.5s to show live bids without page refresh
+    // Auto-poll every 3s as rock-solid background fallback
     const interval = setInterval(() => {
       silentRefresh();
-    }, 3500);
+    }, 3000);
 
-    return () => clearInterval(interval);
+    // Instant Real-Time Live Push via Server-Sent Events (SSE) for 0ms latency sync
+    let eventSource = null;
+    const token = localStorage.getItem('kameti_token') || localStorage.getItem('token') || '';
+    try {
+      const baseUrl = api.defaults.baseURL || '/api';
+      const streamUrl = `${baseUrl}/member/committees/${id}/live-stream?token=${encodeURIComponent(token)}`;
+      eventSource = new EventSource(streamUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const streamData = JSON.parse(event.data);
+          if (streamData) {
+            if (streamData.active_spin) {
+              setActiveSpinData(streamData.active_spin);
+            }
+            silentRefresh();
+          }
+        } catch {}
+      };
+
+      eventSource.onerror = () => {
+        if (eventSource) eventSource.close();
+      };
+    } catch {}
+
+    return () => {
+      clearInterval(interval);
+      if (eventSource) eventSource.close();
+    };
   }, [id]);
 
   const handleQuickApproveBid = async (bid, scheduleMonthNo) => {
@@ -183,6 +225,19 @@ export default function CommitteeDetail() {
         </Link>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar">
+          <button
+            type="button"
+            onClick={() => {
+              setSpinSchedule(null);
+              setIsSpinModalOpen(true);
+            }}
+            disabled={isCompleted}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-orange-500/25 active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Launch Live Lucky Draw Wheel Spin"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-spin" /> Live Spin Draw
+          </button>
+
           <Link
             to={`/committees/${id}/edit`}
             className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 text-xs font-bold border border-slate-200 transition flex items-center gap-1.5 shadow-xs"
@@ -460,7 +515,22 @@ export default function CommitteeDetail() {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-slate-400 italic text-[11px]">Pending Draw</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 italic text-[11px]">Pending Draw</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSpinSchedule(s);
+                              setIsSpinModalOpen(true);
+                            }}
+                            disabled={isCompleted}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-[10px] font-black shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+                            title="Run Live Lucky Draw Spin for this month"
+                          >
+                            <Sparkles className="w-3 h-3 text-amber-200" />
+                            <span>Live Spin</span>
+                          </button>
+                        </div>
                       )}
                     </td>
 
@@ -680,13 +750,28 @@ export default function CommitteeDetail() {
                   ) : (
                     <div className="flex items-center justify-between w-full">
                       <span className="text-xs text-slate-400 italic font-medium">Draw Pending</span>
-                      <button
-                        onClick={() => setActiveWinnerSchedule(s)}
-                        disabled={isCompleted}
-                        className="text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200"
-                      >
-                        Set Winner
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSpinSchedule(s);
+                            setIsSpinModalOpen(true);
+                          }}
+                          disabled={isCompleted}
+                          className="text-[11px] font-black text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300 flex items-center gap-1 active:scale-95"
+                          title="Run Live Lucky Draw Spin for this month"
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-600" />
+                          <span>Live Spin</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveWinnerSchedule(s)}
+                          disabled={isCompleted}
+                          className="text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200"
+                        >
+                          Set Winner
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -847,6 +932,28 @@ export default function CommitteeDetail() {
         schedule={activeBiddingSchedule}
         onSaveSuccess={(msg) => {
           toast.success(msg || 'Bid action completed successfully');
+          loadDetail();
+        }}
+      />
+
+      {/* Live Lucky Draw Spin Modals */}
+      <AdminSpinModal
+        isOpen={isSpinModalOpen}
+        onClose={() => {
+          setIsSpinModalOpen(false);
+          setSpinSchedule(null);
+        }}
+        committeeId={id}
+        preselectedSchedule={spinSchedule}
+        onSpinLaunched={(spin) => {
+          setActiveSpinData(spin);
+        }}
+      />
+
+      <LiveSpinModal
+        spinData={activeSpinData}
+        onClose={() => {
+          setActiveSpinData(null);
           loadDetail();
         }}
       />

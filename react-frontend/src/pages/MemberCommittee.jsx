@@ -21,6 +21,7 @@ import { encodeId } from '../utils/hashids';
 import { usePopup } from '../context/PopupContext';
 import { useAuth } from '../context/AuthContext';
 import ActionDrawer from '../components/ActionDrawer';
+import LiveSpinModal from '../components/LiveSpinModal';
 
 function formatDate(dateStr, options = { day: '2-digit', month: 'short', year: 'numeric' }) {
   if (!dateStr) return '';
@@ -69,6 +70,7 @@ export default function MemberCommittee() {
 
   const [data, setData] = useState(null);
   const [liveBidsData, setLiveBidsData] = useState({ bids: {}, highest_bids: {}, lock_status: {} });
+  const [activeSpinData, setActiveSpinData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('payments');
 
@@ -103,6 +105,9 @@ export default function MemberCommittee() {
       const res = await api.get(url);
       if (res.data) {
         setLiveBidsData(res.data);
+        if (res.data.active_spin) {
+          setActiveSpinData(res.data.active_spin);
+        }
       }
     } catch (err) {
       // silent poll error
@@ -127,8 +132,13 @@ export default function MemberCommittee() {
       eventSource.onmessage = (event) => {
         try {
           const streamData = JSON.parse(event.data);
-          if (streamData && streamData.bids) {
-            setLiveBidsData(streamData);
+          if (streamData) {
+            if (streamData.bids) {
+              setLiveBidsData(streamData);
+            }
+            if (streamData.active_spin) {
+              setActiveSpinData(streamData.active_spin);
+            }
           }
         } catch {
           // ignore parse errors
@@ -1135,6 +1145,15 @@ export default function MemberCommittee() {
           </div>
         </div>
       </ActionDrawer>
+
+      {/* Real-time Live Lucky Draw Wheel Modal (Synchronized across all members with 0ms lag) */}
+      <LiveSpinModal
+        spinData={activeSpinData}
+        onClose={() => {
+          setActiveSpinData(null);
+          loadInitialData();
+        }}
+      />
 
     </div>
   );

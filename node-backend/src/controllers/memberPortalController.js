@@ -365,6 +365,38 @@ export async function getMemberCommittee(req, res) {
 // In-memory SSE client connections: committeeId -> Set of Response objects
 const sseClients = new Map();
 
+// In-memory active spin lucky draw: committeeId -> spinData
+const activeSpins = new Map();
+
+export function setActiveSpin(committeeId, spinData) {
+  activeSpins.set(String(committeeId), spinData);
+}
+
+export function getActiveSpin(committeeId) {
+  const cKey = String(committeeId);
+  const spin = activeSpins.get(cKey);
+  if (!spin) return null;
+  const elapsed = Date.now() - spin.started_at;
+  if (elapsed > (spin.duration_ms || 7000) + 5000) {
+    activeSpins.delete(cKey);
+    return null;
+  }
+  return spin;
+}
+
+export function clearActiveSpin(committeeId) {
+  activeSpins.delete(String(committeeId));
+}
+
+export async function broadcastLiveSpin(committeeId, spinData) {
+  setActiveSpin(committeeId, spinData);
+  const payload = await buildLiveBidsPayload(committeeId);
+  if (payload) {
+    payload.active_spin = spinData;
+    broadcastLiveBids(committeeId, payload);
+  }
+}
+
 /**
  * Register SSE connection for real-time live auction bids
  */
@@ -509,11 +541,14 @@ export async function buildLiveBidsPayload(committeeId, memberId = null) {
     };
   }
 
+  const activeSpin = getActiveSpin(committeeId);
+
   return {
     timestamp: new Date().toISOString(),
     bids: allBids,
     highest_bids: highestBids,
-    lock_status: lockStatus
+    lock_status: lockStatus,
+    active_spin: activeSpin || null
   };
 }
 

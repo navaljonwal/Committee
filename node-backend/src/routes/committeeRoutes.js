@@ -14,7 +14,9 @@ import {
   approveMemberBid,
   updateMembersSync,
   toggleFutureVisibility,
-  toggleScheduleInstallmentVisibility
+  toggleScheduleInstallmentVisibility,
+  getEligibleSpinMembers,
+  triggerLiveSpin
 } from '../controllers/committeeController.js';
 import { exportCsv } from '../controllers/exportController.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
@@ -45,6 +47,10 @@ router.post('/schedules/:scheduleId/payout', decodeHash('scheduleId'), updatePay
 router.post('/schedules/:scheduleId/bid', decodeHash('scheduleId'), updateAuctionBid);
 router.post('/schedules/:scheduleId/lock-default', decodeHash('scheduleId'), lockFormulaDefault);
 router.post('/schedules/bids/:bidId/approve', decodeHash('bidId'), approveMemberBid);
+
+// Live Lucky Draw Random Spin (Real-time synchronized across all members)
+router.get('/:committeeId/eligible-spin-members', decodeHash('committeeId'), getEligibleSpinMembers);
+router.post('/schedules/:scheduleId/live-spin', decodeHash('scheduleId'), triggerLiveSpin);
 
 // Export CSV
 router.get('/:id/export/csv', decodeHash('id'), exportCsv);

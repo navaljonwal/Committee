@@ -5,7 +5,12 @@ import {
   syncMemberPayments,
   recalculateSchedules
 } from '../services/formula.js';
-import { broadcastLiveBids, buildLiveBidsPayload } from './memberPortalController.js';
+import { 
+  broadcastLiveBids, 
+  buildLiveBidsPayload, 
+  broadcastLiveSpin, 
+  clearActiveSpin 
+} from './memberPortalController.js';
 import { addDaysToDate } from '../utils/dateUtils.js';
 
 export async function getCommitteesDashboard(req, res) {
@@ -964,6 +969,199 @@ export async function toggleScheduleInstallmentVisibility(req, res) {
         : `Month ${rows[0].month_no} installment is now hidden from members.`
     });
   } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * GET /api/committees/:committeeId/eligible-spin-members
+ * Returns list of eligible candidates who have remaining seats in this committee,
+ * plus the committee's schedule list.
+ */
+export async function getEligibleSpinMembers(req, res) {
+  try {
+    const { committeeId } = req.params;
+
+    const [committees] = await pool.query('SELECT * FROM committees WHERE id = ?', [committeeId]);
+    if (committees.length === 0) {
+      return res.status(404).json({ success: false, message: 'Committee not found' });
+    }
+
+    const [members] = await pool.query(`
+      SELECT 
+        m.id, 
+        m.name, 
+        m.phone, 
+        cm.seats,
+        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id) as won_count
+      FROM committee_member cm
+      JOIN members m ON cm.member_id = m.id
+      WHERE cm.committee_id = ?
+      ORDER BY m.name ASC
+    `, [committeeId, committeeId]);
+
+    const candidates = members.map(m => {
+      const seats = parseInt(m.seats || 1, 10);
+      const won = parseInt(m.won_count || 0, 10);
+      return {
+        id: m.id,
+        name: m.name,
+        phone: m.phone,
+        seats,
+        won_count: won,
+        remaining_seats: Math.max(0, seats - won)
+      };
+    }).filter(m => m.remaining_seats > 0);
+
+    const [schedules] = await pool.query(`
+      SELECT cs.id, cs.month_no, cs.draw_date, cs.member_id, cs.payout_status, m.name as winner_name
+      FROM committee_schedules cs
+      LEFT JOIN members m ON cs.member_id = m.id
+      WHERE cs.committee_id = ?
+      ORDER BY cs.month_no ASC
+    `, [committeeId]);
+
+    return res.json({
+      success: true,
+      committee: committees[0],
+      candidates,
+      schedules
+    });
+  } catch (error) {
+    console.error('getEligibleSpinMembers error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * POST /api/committees/schedules/:scheduleId/live-spin
+ * Triggers a real-time synchronized live spin across all connected members and admin.
+ * Stealth feature: Admin can optionally select target_member_id.
+ * To all members, it appears 100% as a natural random pick!
+ */
+export async function triggerLiveSpin(req, res) {
+  try {
+    const { scheduleId } = req.params;
+    const { target_member_id, duration_seconds } = req.body;
+
+    const [schedules] = await pool.query(`
+      SELECT cs.*, c.name as committee_name, c.status as committee_status 
+      FROM committee_schedules cs 
+      JOIN committees c ON cs.committee_id = c.id 
+      WHERE cs.id = ?
+    `, [scheduleId]);
+
+    if (schedules.length === 0) {
+      return res.status(404).json({ success: false, message: 'Schedule not found' });
+    }
+
+    const sched = schedules[0];
+    if (sched.committee_status === 'completed') {
+      return res.status(422).json({ success: false, message: 'Committee is Completed & Closed. Cannot run lucky draw spin.' });
+    }
+
+    if (sched.payout_status === 'paid') {
+      return res.status(422).json({ success: false, message: `Cannot spin for Month ${sched.month_no} because payout is already Paid & Closed.` });
+    }
+
+    // Fetch all eligible candidates with remaining seats
+    const [members] = await pool.query(`
+      SELECT 
+        m.id, 
+        m.name, 
+        m.phone, 
+        cm.seats,
+        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id) as won_count
+      FROM committee_member cm
+      JOIN members m ON cm.member_id = m.id
+      WHERE cm.committee_id = ?
+      ORDER BY m.name ASC
+    `, [sched.committee_id, sched.committee_id]);
+
+    const candidates = members.map(m => {
+      const seats = parseInt(m.seats || 1, 10);
+      const won = parseInt(m.won_count || 0, 10);
+      return {
+        id: m.id,
+        name: m.name,
+        phone: m.phone,
+        seats,
+        won_count: won,
+        remaining_seats: Math.max(0, seats - won)
+      };
+    }).filter(m => m.remaining_seats > 0);
+
+    if (candidates.length === 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'All enrolled members have already won their seats in this committee.'
+      });
+    }
+
+    // Stealth Winner Determination:
+    // If Admin secretly specified target_member_id and that member is eligible, pick them!
+    // Otherwise, pick a truly random candidate!
+    let winner = null;
+    if (target_member_id) {
+      const target = candidates.find(c => Number(c.id) === Number(target_member_id));
+      if (target) {
+        winner = target;
+      }
+    }
+
+    if (!winner) {
+      const randomIndex = Math.floor(Math.random() * candidates.length);
+      winner = candidates[randomIndex];
+    }
+
+    const durationSeconds = Math.max(5, Math.min(15, parseInt(duration_seconds, 10) || 7));
+    const durationMs = durationSeconds * 1000;
+
+    // IMPORTANT: The spinEvent NEVER reveals whether target_member_id was used!
+    // To every member watching, it contains only candidates, duration, and the winner!
+    const spinEvent = {
+      id: `spin_${Date.now()}`,
+      schedule_id: sched.id,
+      month_no: sched.month_no,
+      committee_id: sched.committee_id,
+      committee_name: sched.committee_name,
+      candidates: candidates.map(c => ({ id: c.id, name: c.name })),
+      winner_id: winner.id,
+      winner_name: winner.name,
+      duration_ms: durationMs,
+      started_at: Date.now()
+    };
+
+    // Broadcast live spin to all connected devices in real time (instant 0ms latency)
+    await broadcastLiveSpin(sched.committee_id, spinEvent);
+
+    // Schedule automatic database update right when the spin animation completes
+    setTimeout(async () => {
+      try {
+        await pool.query(`
+          UPDATE committee_schedules 
+          SET member_id = ?, updated_at = NOW() 
+          WHERE id = ?
+        `, [winner.id, sched.id]);
+
+        clearActiveSpin(sched.committee_id);
+
+        const updatedPayload = await buildLiveBidsPayload(sched.committee_id);
+        if (updatedPayload) {
+          broadcastLiveBids(sched.committee_id, updatedPayload);
+        }
+      } catch (saveErr) {
+        console.error('Error persisting live spin winner:', saveErr);
+      }
+    }, durationMs + 600);
+
+    return res.json({
+      success: true,
+      message: `Live Lucky Draw Spin started for Month ${sched.month_no}!`,
+      spin: spinEvent
+    });
+  } catch (error) {
+    console.error('triggerLiveSpin error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
