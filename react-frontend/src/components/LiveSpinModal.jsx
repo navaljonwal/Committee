@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, Trophy, Award, X, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Trophy, X, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 
 const SLICE_COLORS = [
   '#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', 
@@ -81,7 +81,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
   const sliceAngle = 360 / numCandidates;
   const winnerMidAngle = (safeWinnerIndex + 0.5) * sliceAngle;
   const targetAngle = (360 - winnerMidAngle) % 360;
-  const fullRounds = 8 * 360; // 8 full spins for exciting suspense
+  const fullRounds = 8 * 360; // 8 full spins for suspense
   const finalRotation = fullRounds + targetAngle;
 
   // High-performance Canvas Confetti Particle Generator
@@ -213,10 +213,11 @@ export default function LiveSpinModal({ spinData, onClose }) {
     return () => clearInterval(interval);
   }, [showWinnerCard, onClose]);
 
-  // SVG Wheel geometry calculations
-  const size = 320;
-  const center = size / 2;
-  const radius = center - 16;
+  // SVG Wheel geometry calculations (360x360 coordinate space)
+  const size = 360;
+  const center = size / 2; // 180
+  const rimRadius = 176;
+  const wheelRadius = 152;
 
   const polarToCartesian = (cx, cy, r, angleInDegrees) => {
     const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
@@ -227,9 +228,10 @@ export default function LiveSpinModal({ spinData, onClose }) {
   };
 
   const describeArc = (x, y, r, startAngle, endAngle) => {
-    const start = polarToCartesian(x, y, r, endAngle);
+    const safeEnd = Math.min(359.99, endAngle);
+    const start = polarToCartesian(x, y, r, safeEnd);
     const end = polarToCartesian(x, y, r, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+    const largeArcFlag = safeEnd - startAngle <= 180 ? '0' : '1';
     return [
       'M', start.x, start.y,
       'A', r, r, 0, largeArcFlag, 0, end.x, end.y,
@@ -241,26 +243,31 @@ export default function LiveSpinModal({ spinData, onClose }) {
   if (!spinData) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 xs:p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md select-none overflow-y-auto">
+      {/* Confetti Canvas */}
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50 w-full h-full" />
 
-      <div className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-5 sm:p-7 shadow-2xl text-center space-y-4 overflow-hidden">
+      {/* Main Responsive App Card */}
+      <div className="relative w-full max-w-[340px] xs:max-w-[380px] sm:max-w-md md:max-w-lg bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/35 rounded-3xl p-3 xs:p-4 sm:p-6 shadow-2xl text-center space-y-3 sm:space-y-4 overflow-hidden my-auto">
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 right-0 w-48 h-48 bg-orange-500/15 rounded-full blur-2xl pointer-events-none" />
 
         {/* Top Header: Live Badge & Sound Toggle */}
         <div className="relative z-10 flex items-center justify-between">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-bold shadow-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-            <span className="tracking-wide uppercase text-[10px]">🔴 Live Lucky Draw Spin</span>
+          <div className="inline-flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] xs:text-xs font-bold shadow-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            <span className="tracking-wider uppercase font-black">Live Lucky Draw</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 transition"
+              className="p-1.5 xs:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 transition active:scale-95"
               title={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-400" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
@@ -269,7 +276,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 transition"
+                className="p-1.5 xs:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 transition active:scale-95"
                 title="Close"
               >
                 <X className="w-4 h-4" />
@@ -280,112 +287,169 @@ export default function LiveSpinModal({ spinData, onClose }) {
 
         {/* Committee & Month Title */}
         <div className="relative z-10 space-y-0.5">
-          <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400 animate-spin" />
+          <h2 className="text-base xs:text-lg sm:text-2xl font-black text-white tracking-tight flex items-center justify-center gap-1.5 xs:gap-2">
+            <Sparkles className="w-4 h-4 xs:w-5 xs:h-5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
             <span>Month {month_no} Lucky Draw</span>
           </h2>
-          <p className="text-xs text-slate-400 font-medium">
+          <p className="text-[11px] xs:text-xs text-slate-400 font-medium px-2">
             {committee_name ? `${committee_name} • ` : ''}
             {isSpinning 
-              ? 'Koi boli na aane par computer dwara live random member chuna ja raha hai...'
+              ? 'Koi boli na aane par computer dwara live random draw chalaya ja raha hai'
               : 'Lucky Draw Sampanna! Winner Ghoshit Ho Gaya Hai 🎉'}
           </p>
         </div>
 
-        {/* Center: The Lucky Draw Circular Wheel */}
-        <div className="relative z-10 flex flex-col items-center justify-center py-2">
-          {/* Wheel Container with Golden Pointer */}
-          <div className="relative w-[320px] h-[320px] max-w-[85vw] max-h-[85vw]">
+        {/* Center: The Lucky Draw Circular Wheel (Native Mobile App Styled) */}
+        <div className="relative z-10 flex flex-col items-center justify-center py-1 xs:py-2">
+          {/* Wheel Frame Container — Fluid Responsive on Both Phone and Desktop */}
+          <div className="relative w-[230px] h-[230px] xs:w-[260px] xs:h-[260px] sm:w-[320px] sm:h-[320px] md:w-[360px] md:h-[360px] max-w-[76vw] max-h-[76vw] aspect-square mx-auto flex items-center justify-center">
             
-            {/* Top Golden Needle Pointer */}
-            <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 z-30 drop-shadow-lg pointer-events-none">
-              <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+            {/* Top 3D Metallic Golden Needle Pointer */}
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 drop-shadow-2xl pointer-events-none">
+              <svg width="36" height="44" viewBox="0 0 36 44" fill="none">
                 <path
-                  d="M17 40L4 10C2 5 6 0 12 0H22C28 0 32 5 30 10L17 40Z"
-                  fill="url(#needleGrad)"
+                  d="M18 42L5 12C2 6 7 0 14 0H22C29 0 34 6 31 12L18 42Z"
+                  fill="url(#goldNeedleGrad)"
                   stroke="#ffffff"
                   strokeWidth="2"
                 />
-                <circle cx="17" cy="12" r="4" fill="#ffffff" />
+                <circle cx="18" cy="14" r="5" fill="#ffffff" />
+                <circle cx="18" cy="14" r="3" fill="#ea580c" />
                 <defs>
-                  <linearGradient id="needleGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#fbbf24" />
-                    <stop offset="1" stopColor="#ea580c" />
+                  <linearGradient id="goldNeedleGrad" x1="0" y1="0" x2="0" y2="44" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#fef08a" />
+                    <stop offset="0.3" stopColor="#f59e0b" />
+                    <stop offset="1" stopColor="#b45309" />
                   </linearGradient>
                 </defs>
               </svg>
             </div>
 
-            {/* Glowing Outer Wheel Rim */}
-            <div className="w-full h-full rounded-full p-2 bg-gradient-to-tr from-amber-500 via-orange-400 to-amber-600 shadow-2xl shadow-orange-500/30 border-4 border-amber-300/40">
-              {/* Rotating Wheel Disk */}
+            {/* Outer Golden Bezel with Glowing Casino LED Lights */}
+            <div className="w-full h-full rounded-full p-2 xs:p-2.5 sm:p-3 bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-700 shadow-2xl shadow-orange-500/35 border-2 xs:border-3 border-amber-300/60 relative flex items-center justify-center">
+              
+              {/* Rotating Wheel Disk Container */}
               <div
-                className="w-full h-full rounded-full overflow-hidden shadow-inner relative"
+                className="w-full h-full rounded-full overflow-hidden shadow-inner relative flex items-center justify-center"
                 style={{
                   transform: `rotate(${rotationDeg}deg)`,
                   transition: `transform ${transitionDurationSec}s cubic-bezier(0.12, 0.85, 0.22, 1)`
                 }}
               >
                 <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
-                  {candidates.map((cand, idx) => {
-                    const startAngle = idx * sliceAngle;
-                    const endAngle = (idx + 1) * sliceAngle;
-                    const midAngle = (startAngle + endAngle) / 2;
-                    const color = SLICE_COLORS[idx % SLICE_COLORS.length];
-                    const pathData = describeArc(center, center, radius, startAngle, endAngle);
-                    const textPos = polarToCartesian(center, center, radius * 0.62, midAngle);
-                    const shortName = (cand.name || 'Member').length > 10
-                      ? `${cand.name.substring(0, 9)}..`
-                      : cand.name;
+                  <defs>
+                    <radialGradient id="sliceShadow" cx="50%" cy="50%" r="50%">
+                      <stop offset="70%" stopColor="#000000" stopOpacity="0" />
+                      <stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
+                    </radialGradient>
+                  </defs>
 
-                    return (
-                      <g key={cand.id || idx}>
-                        <path
-                          d={pathData}
-                          fill={color}
-                          stroke="#ffffff"
-                          strokeWidth="1.5"
-                        />
-                        <text
-                          x={textPos.x}
-                          y={textPos.y}
-                          fill="#ffffff"
-                          fontSize={candidates.length > 14 ? '9' : candidates.length > 8 ? '11' : '13'}
-                          fontWeight="800"
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          transform={`rotate(${midAngle}, ${textPos.x}, ${textPos.y})`}
-                          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                        >
-                          {shortName}
-                        </text>
-                      </g>
-                    );
-                  })}
+                  {candidates.length === 1 ? (
+                    <g>
+                      <circle cx={center} cy={center} r={wheelRadius} fill={SLICE_COLORS[0]} stroke="#ffffff" strokeWidth="2" />
+                      <text
+                        x={center}
+                        y={center}
+                        fill="#ffffff"
+                        fontSize="18"
+                        fontWeight="900"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))"
+                      >
+                        {candidates[0]?.name || 'Member'}
+                      </text>
+                    </g>
+                  ) : (
+                    candidates.map((cand, idx) => {
+                      const startAngle = idx * sliceAngle;
+                      const endAngle = (idx + 1) * sliceAngle;
+                      const midAngle = (startAngle + endAngle) / 2;
+                      const color = SLICE_COLORS[idx % SLICE_COLORS.length];
+                      const pathData = describeArc(center, center, wheelRadius, startAngle, endAngle);
+                      const textPos = polarToCartesian(center, center, wheelRadius * 0.63, midAngle);
+                      const rawName = (cand.name || 'Member').trim();
+                      const shortName = rawName.length > 10 ? `${rawName.substring(0, 9)}..` : rawName;
+                      const fontSize = candidates.length > 16 ? 9 : candidates.length > 10 ? 10.5 : candidates.length > 6 ? 12 : 13.5;
+
+                      return (
+                        <g key={cand.id || idx}>
+                          <path
+                            d={pathData}
+                            fill={color}
+                            stroke="#ffffff"
+                            strokeWidth="1.5"
+                          />
+                          <text
+                            x={textPos.x}
+                            y={textPos.y}
+                            fill="#ffffff"
+                            fontSize={fontSize}
+                            fontWeight="900"
+                            letterSpacing="0.02em"
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            transform={`rotate(${midAngle}, ${textPos.x}, ${textPos.y})`}
+                            style={{
+                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.9))',
+                              fontFamily: 'system-ui, -apple-system, sans-serif'
+                            }}
+                          >
+                            {shortName}
+                          </text>
+                        </g>
+                      );
+                    })
+                  )}
+
+                  {/* Inner Rim Gradient Overlay for Depth */}
+                  <circle cx={center} cy={center} r={wheelRadius} fill="url(#sliceShadow)" pointerEvents="none" />
                 </svg>
+              </div>
 
-                {/* Center Golden Pin Knob */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 border-2 border-white shadow-lg flex items-center justify-center pointer-events-none">
-                  <div className="w-5 h-5 rounded-full bg-orange-600 border border-white flex items-center justify-center">
-                    <Sparkles className="w-3 h-3 text-white" />
-                  </div>
+              {/* Fixed Center Metallic Medallion / Knob (Stays stationary while disk rotates) */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-500 border-2 sm:border-3 border-white shadow-2xl flex items-center justify-center pointer-events-none z-20">
+                <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-b from-orange-500 to-red-600 border border-amber-200 shadow-inner flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white animate-spin" style={{ animationDuration: '5s' }} />
                 </div>
               </div>
+
+              {/* Glowing Rim Casino LED Bulbs */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${size} ${size}`}>
+                {Array.from({ length: 16 }).map((_, i) => {
+                  const dotAngle = i * (360 / 16);
+                  const dotPos = polarToCartesian(center, center, 166, dotAngle);
+                  const isLit = i % 2 === 0;
+                  return (
+                    <circle
+                      key={i}
+                      cx={dotPos.x}
+                      cy={dotPos.y}
+                      r="3.2"
+                      fill={isLit ? '#ffffff' : '#fbbf24'}
+                      stroke="#78350f"
+                      strokeWidth="0.8"
+                      className={isSpinning ? (isLit ? 'animate-pulse' : '') : ''}
+                      filter="drop-shadow(0 0 3px rgba(253, 224, 71, 0.95))"
+                    />
+                  );
+                })}
+              </svg>
             </div>
           </div>
         </div>
 
         {/* Bottom Winner Announcement Card (Appears dynamically upon landing) */}
         {showWinnerCard ? (
-          <div className="relative z-10 bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-emerald-500/20 border-2 border-amber-400/80 rounded-2xl p-4 sm:p-5 shadow-xl space-y-2.5 animate-bounce-short">
-            <div className="flex items-center justify-center gap-2 text-amber-300 font-extrabold text-xs uppercase tracking-wider">
+          <div className="relative z-10 bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-emerald-500/20 border-2 border-amber-400/80 rounded-2xl p-3.5 xs:p-4 sm:p-5 shadow-xl space-y-2 animate-bounce-short">
+            <div className="flex items-center justify-center gap-1.5 text-amber-300 font-extrabold text-[11px] xs:text-xs uppercase tracking-wider">
               <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Draw Winner Announced</span>
+              <span>Round Winner Announced</span>
             </div>
 
             <div className="space-y-0.5">
-              <span className="text-xs text-slate-300">Congratulations to Round Winner:</span>
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight bg-gradient-to-r from-amber-200 via-white to-amber-200 bg-clip-text text-transparent">
+              <span className="text-[11px] xs:text-xs text-slate-300">Congratulations to Round Winner:</span>
+              <h3 className="text-lg xs:text-xl sm:text-2xl font-black text-white tracking-tight bg-gradient-to-r from-amber-200 via-white to-amber-200 bg-clip-text text-transparent">
                 🏆 {winner_name || 'Member'}
               </h3>
             </div>
@@ -394,11 +458,11 @@ export default function LiveSpinModal({ spinData, onClose }) {
               Month {month_no} ki committee inke naam par allot ho chuki hai!
             </p>
 
-            <div className="pt-1 flex items-center justify-center gap-2">
+            <div className="pt-1 flex items-center justify-center">
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition shadow-md shadow-amber-500/30 active:scale-95"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs sm:text-sm font-black transition shadow-lg shadow-orange-500/30 active:scale-95"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Great / Done ({autoCloseCountdown}s)</span>
@@ -406,8 +470,8 @@ export default function LiveSpinModal({ spinData, onClose }) {
             </div>
           </div>
         ) : (
-          <div className="relative z-10 flex items-center justify-center gap-2 text-xs font-semibold text-amber-300/90 py-2">
-            <div className="w-4 h-4 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+          <div className="relative z-10 flex items-center justify-center gap-2 text-[11px] xs:text-xs font-bold text-amber-300/90 py-1.5">
+            <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
             <span>Spinning through {candidates.length} eligible members...</span>
           </div>
         )}
