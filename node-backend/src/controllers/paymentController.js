@@ -1,5 +1,5 @@
 import pool from '../config/db.js';
-import { getTodayDateStr, getDaysDifference } from '../utils/dateUtils.js';
+import { getTodayDateStr, getDaysDifference, addDaysToDate } from '../utils/dateUtils.js';
 import { applyAutoPenaltiesForSchedule } from '../services/penaltyService.js';
 
 export async function getSchedulePayments(req, res) {
@@ -15,9 +15,8 @@ export async function getSchedulePayments(req, res) {
         c.name as committee_name, 
         c.total_amount, 
         c.status as committee_status,
-        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
-        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
-        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
+        c.payment_grace_days,
+        c.late_penalty_amount,
         m.name as winner_name,
         m.phone as winner_phone
       FROM committee_schedules cs
@@ -32,7 +31,9 @@ export async function getSchedulePayments(req, res) {
 
     const schedule = schedules[0];
     const todayStr = getTodayDateStr();
-    const dueDateStr = schedule.due_date ? String(schedule.due_date).slice(0, 10) : null;
+    const graceDays = parseInt(schedule.payment_grace_days !== undefined && schedule.payment_grace_days !== null ? schedule.payment_grace_days : 5, 10);
+    const penaltyPerSeat = parseFloat(schedule.late_penalty_amount !== undefined && schedule.late_penalty_amount !== null ? schedule.late_penalty_amount : 100.00);
+    const dueDateStr = schedule.draw_date ? addDaysToDate(schedule.draw_date, graceDays) : null;
     const isOverdue = dueDateStr ? todayStr > dueDateStr : false;
     const daysUntilDue = dueDateStr ? getDaysDifference(todayStr, dueDateStr) : null;
 

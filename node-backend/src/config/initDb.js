@@ -26,7 +26,31 @@ export async function initializeDatabase() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
-        console.log('✅ PostgreSQL database schema verified and ready (including reminders table).');
+
+        // Ensure show_future_installments and is_installment_visible exist in PostgreSQL
+        try {
+          await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS show_future_installments BOOLEAN DEFAULT FALSE');
+        } catch (e) {}
+
+        try {
+          await pool.query('ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS is_installment_visible BOOLEAN DEFAULT FALSE');
+        } catch (e) {}
+
+        // Ensure payment_grace_days and late_penalty_amount exist in PostgreSQL
+        try {
+          await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS payment_grace_days INTEGER NOT NULL DEFAULT 5');
+        } catch (e) {}
+
+        try {
+          await pool.query('ALTER TABLE committees ADD COLUMN IF NOT EXISTS late_penalty_amount NUMERIC(15,2) NOT NULL DEFAULT 100.00');
+        } catch (e) {}
+
+        // Ensure is_penalty_manual exists on committee_member_payments in PostgreSQL
+        try {
+          await pool.query('ALTER TABLE committee_member_payments ADD COLUMN IF NOT EXISTS is_penalty_manual SMALLINT NOT NULL DEFAULT 0');
+        } catch (e) {}
+
+        console.log('✅ PostgreSQL database schema verified and ready (including reminders, grace days, penalty columns).');
         return true;
       }
     }

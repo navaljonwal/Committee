@@ -6,6 +6,7 @@ import {
   recalculateSchedules
 } from '../services/formula.js';
 import { broadcastLiveBids, buildLiveBidsPayload } from './memberPortalController.js';
+import { addDaysToDate } from '../utils/dateUtils.js';
 
 export async function getCommitteesDashboard(req, res) {
   try {
@@ -166,13 +167,12 @@ export async function getCommitteeDetail(req, res) {
     }
     const committee = committees[0];
 
-    // Schedules with winner name, due_date and bids
+    // Schedules with winner name, grace period and bids
     const [schedules] = await pool.query(`
       SELECT 
         cs.*,
-        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
-        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
-        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
+        c.payment_grace_days,
+        c.late_penalty_amount,
         m.name as winner_name,
         m.phone as winner_phone
       FROM committee_schedules cs
@@ -246,10 +246,18 @@ export async function getCommitteeDetail(req, res) {
     const baseUnit = (v * r) / 100;
     const specialIndex = parseInt(committee.special_month_index, 10);
 
+    const commGraceDays = parseInt(committee.payment_grace_days !== undefined && committee.payment_grace_days !== null ? committee.payment_grace_days : 5, 10);
+    const commPenalty = parseFloat(committee.late_penalty_amount !== undefined && committee.late_penalty_amount !== null ? committee.late_penalty_amount : 100.00);
+
     const enhancedSchedules = schedules.map(s => {
       const formulaDeduction = (s.index_n === specialIndex) ? 0.0 : (s.index_n * baseUnit);
+      const graceDays = parseInt(s.payment_grace_days !== undefined && s.payment_grace_days !== null ? s.payment_grace_days : commGraceDays, 10);
+      const penaltyAmt = parseFloat(s.late_penalty_amount !== undefined && s.late_penalty_amount !== null ? s.late_penalty_amount : commPenalty);
       return {
         ...s,
+        payment_grace_days: graceDays,
+        late_penalty_amount: penaltyAmt,
+        due_date: s.draw_date ? addDaysToDate(s.draw_date, graceDays) : null,
         formula_deduction: formulaDeduction,
         bids: bidsBySchedule[s.id] || [],
         payment_stats: paymentStats[s.id] || { total: 0, paid_count: 0, pending_count: 0 }

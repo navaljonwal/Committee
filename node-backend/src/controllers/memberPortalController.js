@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { addMonthsToDate } from '../services/formula.js';
-import { getTodayDateStr, formatDbDate } from '../utils/dateUtils.js';
+import { getTodayDateStr, formatDbDate, addDaysToDate } from '../utils/dateUtils.js';
 import { applyAutoPenaltiesGlobal } from '../services/penaltyService.js';
 
 export async function getMemberDashboard(req, res) {
@@ -65,14 +65,13 @@ export async function getMemberDashboard(req, res) {
     await applyAutoPenaltiesGlobal();
 
     // Member's pending payments
-    const [pendingPayments] = await pool.query(`
+    const [pendingRows] = await pool.query(`
       SELECT 
         cmp.*,
         cs.month_no,
         cs.draw_date,
-        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
-        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
-        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
+        c.payment_grace_days,
+        c.late_penalty_amount,
         c.name as committee_name,
         (cmp.amount_paid + cmp.penalty_amount) as total_due
       FROM committee_member_payments cmp
@@ -81,6 +80,18 @@ export async function getMemberDashboard(req, res) {
       WHERE cmp.member_id = ? AND cmp.payment_status = 'pending'
       ORDER BY cs.month_no ASC
     `, [memberId]);
+
+    const pendingPayments = pendingRows.map(p => {
+      const grace = p.payment_grace_days !== undefined && p.payment_grace_days !== null ? Number(p.payment_grace_days) : 5;
+      const penaltyAmt = p.late_penalty_amount !== undefined && p.late_penalty_amount !== null ? Number(p.late_penalty_amount) : 100.00;
+      const dueDate = p.draw_date ? addDaysToDate(p.draw_date, grace) : null;
+      return {
+        ...p,
+        payment_grace_days: grace,
+        late_penalty_amount: penaltyAmt,
+        due_date: dueDate
+      };
+    });
 
     return res.json({
       success: true,
@@ -134,12 +145,11 @@ export async function getMemberCommittee(req, res) {
     const totalSeats = enrollment.length > 0 ? parseInt(enrollment[0].seats || 1, 10) : 1;
 
     // Load schedules with winner info
-    const [schedules] = await pool.query(`
+    const [scheduleRows] = await pool.query(`
       SELECT 
         cs.*,
-        DATE_ADD(cs.draw_date, INTERVAL COALESCE(c.payment_grace_days, 5) DAY) as due_date,
-        COALESCE(c.payment_grace_days, 5) as payment_grace_days,
-        COALESCE(c.late_penalty_amount, 100.00) as late_penalty_amount,
+        c.payment_grace_days,
+        c.late_penalty_amount,
         m.name as winner_name,
         m.phone as winner_phone
       FROM committee_schedules cs
@@ -148,6 +158,18 @@ export async function getMemberCommittee(req, res) {
       WHERE cs.committee_id = ?
       ORDER BY cs.month_no ASC
     `, [committeeId]);
+
+    const schedules = scheduleRows.map(cs => {
+      const grace = cs.payment_grace_days !== undefined && cs.payment_grace_days !== null ? Number(cs.payment_grace_days) : 5;
+      const penaltyAmt = cs.late_penalty_amount !== undefined && cs.late_penalty_amount !== null ? Number(cs.late_penalty_amount) : 100.00;
+      const dueDate = cs.draw_date ? addDaysToDate(cs.draw_date, grace) : null;
+      return {
+        ...cs,
+        payment_grace_days: grace,
+        late_penalty_amount: penaltyAmt,
+        due_date: dueDate
+      };
+    });
 
     // Member's payments grouped by schedule
     const [myPayments] = await pool.query(`
