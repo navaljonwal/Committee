@@ -217,6 +217,9 @@ export default function MemberCommittee() {
 
   const { committee, schedules, totalSeats, wonCount, remainingSeats, alreadyWonAllSeats, myPayments } = data;
   const memberId = data?.memberId || queryMemberId || user?.member_id || null;
+  const lock_status = liveBidsData?.lock_status || {};
+  const highest_bids = liveBidsData?.highest_bids || {};
+  const bids = liveBidsData?.bids || {};
   const myWonSchedules = schedules?.filter(
     (s) => s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId))
   ) || [];
@@ -1053,9 +1056,9 @@ export default function MemberCommittee() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {schedules.map((s) => {
-              const lInfo = lock_status?.[s.id] || {};
-              const hBid = highest_bids?.[s.id] || {};
-              const roundBids = bids?.[s.id] || [];
+              const lInfo = lock_status[s.id] || liveBidsData?.lock_status?.[s.id] || {};
+              const hBid = highest_bids[s.id] || liveBidsData?.highest_bids?.[s.id] || {};
+              const roundBids = bids[s.id] || liveBidsData?.bids?.[s.id] || [];
 
               const todayStr = (() => {
                 try {
