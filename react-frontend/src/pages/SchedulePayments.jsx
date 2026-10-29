@@ -181,6 +181,47 @@ export default function SchedulePayments() {
     });
   }, [payments, schedule]);
 
+  // Option 2: Calculate aggregated stats separating collected cash from winner settled amounts
+  const displayStats = useMemo(() => {
+    const winnerMemberId = schedule?.member_id ? Number(schedule.member_id) : null;
+    const isWinnerSeat = (p) => winnerMemberId && Number(p.member_id) === winnerMemberId;
+
+    const winnerPayments = payments.filter(isWinnerSeat);
+    const nonWinnerPayments = payments.filter(p => !isWinnerSeat(p));
+
+    const winnerSettledAmount = winnerPayments.reduce(
+      (sum, p) => sum + parseFloat(p.amount_paid || 0), 0
+    );
+
+    const cashCollected = nonWinnerPayments
+      .filter(p => p.payment_status === 'paid')
+      .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0) + parseFloat(p.penalty_amount || 0), 0);
+
+    const totalPotCollected = cashCollected + winnerSettledAmount;
+
+    const totalPending = nonWinnerPayments
+      .filter(p => p.payment_status === 'pending')
+      .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0) + parseFloat(p.penalty_amount || 0), 0);
+
+    const collectibleSeats = nonWinnerPayments.length;
+    const paidCollectedSeats = nonWinnerPayments.filter(p => p.payment_status === 'paid').length;
+    const pendingSeats = nonWinnerPayments.filter(p => p.payment_status === 'pending').length;
+
+    return {
+      total_payments: payments.length,
+      collectible_seats: collectibleSeats > 0 ? collectibleSeats : payments.length,
+      paid_collected_seats: paidCollectedSeats,
+      paid_count: winnerPayments.length > 0 ? paidCollectedSeats : payments.filter(p => p.payment_status === 'paid').length,
+      pending_count: winnerPayments.length > 0 ? pendingSeats : payments.filter(p => p.payment_status === 'pending').length,
+      cash_collected: cashCollected,
+      winner_settled_amount: winnerSettledAmount,
+      winner_settled_seats: winnerPayments.length,
+      total_collected: cashCollected,
+      total_pot_collected: totalPotCollected,
+      total_pending: totalPending
+    };
+  }, [payments, schedule]);
+
   // Toggle single seat payment
   const handleTogglePayment = async (paymentId) => {
     try {
@@ -349,7 +390,7 @@ export default function SchedulePayments() {
             </button>
           )}
 
-          {!isCompleted && stats.pending_count > 0 && (
+          {!isCompleted && displayStats.pending_count > 0 && (
             <button
               onClick={handleMarkAllPaid}
               disabled={actionLoading}
@@ -415,14 +456,18 @@ export default function SchedulePayments() {
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paid Seats</span>
             <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              {stats.paid_count}
+              {displayStats.paid_count}
             </span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-emerald-600 mt-1 font-mono">
-            {stats.paid_count} / {stats.total_payments}
+            {displayStats.paid_count} / {displayStats.collectible_seats}
           </div>
           <span className="text-[10px] text-slate-400 mt-0.5 block font-medium truncate">
-            {memberGroups.filter(g => g.isAllPaid).length} members fully paid
+            {displayStats.winner_settled_seats > 0 ? (
+              <span className="text-emerald-700 font-semibold">+{displayStats.winner_settled_seats} Winner Settled</span>
+            ) : (
+              `${memberGroups.filter(g => g.isAllPaid).length} members fully paid`
+            )}
           </span>
         </div>
 
@@ -430,29 +475,44 @@ export default function SchedulePayments() {
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending</span>
             <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-              {stats.pending_count}
+              {displayStats.pending_count}
             </span>
           </div>
           <div className="text-xl sm:text-2xl font-black text-amber-600 mt-1 font-mono">
-            {stats.pending_count}
+            {displayStats.pending_count}
           </div>
           <span className="text-[10px] text-slate-400 mt-0.5 block font-medium truncate">
-            {memberGroups.filter(g => !g.isAllPaid).length} members awaiting
+            {memberGroups.filter(g => !g.isAllPaid && !g.isRoundWinner).length} members awaiting
           </span>
         </div>
 
         <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl card-hover-lift-subtle animate-fade-in-up stagger-3">
-          <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Collected</span>
-          <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1 font-mono truncate">
-            ₹{(stats.total_collected || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              {displayStats.winner_settled_seats > 0 ? 'Cash Collected' : 'Collected'}
+            </span>
+            {displayStats.winner_settled_seats > 0 && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                In Hand
+              </span>
+            )}
           </div>
-          <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">With penalties</span>
+          <div className="text-lg sm:text-2xl font-black text-slate-900 mt-1 font-mono truncate">
+            ₹{(displayStats.cash_collected || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+          </div>
+          <span className="text-[10px] text-slate-500 mt-0.5 block font-medium truncate" title={displayStats.winner_settled_seats > 0 ? `Winner Settled: ₹${(displayStats.winner_settled_amount || 0).toLocaleString('en-IN')} | Total Pot: ₹${(displayStats.total_pot_collected || 0).toLocaleString('en-IN')}` : 'With penalties'}>
+            {displayStats.winner_settled_seats > 0 ? (
+              <span>+₹{(displayStats.winner_settled_amount || 0).toLocaleString('en-IN')} Settled (Pot: ₹{(displayStats.total_pot_collected || 0).toLocaleString('en-IN')})</span>
+            ) : (
+              'With penalties'
+            )}
+          </span>
         </div>
 
         <div className="bg-white border border-slate-200 shadow-xs p-3.5 sm:p-5 rounded-2xl card-hover-lift-subtle animate-fade-in-up stagger-4">
           <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Pending</span>
           <div className="text-lg sm:text-2xl font-black text-rose-600 mt-1 font-mono truncate">
-            ₹{(stats.total_pending || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            ₹{(displayStats.total_pending || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
           </div>
           <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">Remaining</span>
         </div>

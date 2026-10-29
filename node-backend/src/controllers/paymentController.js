@@ -66,11 +66,27 @@ export async function getSchedulePayments(req, res) {
       ORDER BY m.name ASC, cmp.seat_no ASC
     `, [schedule.committee_id, scheduleId]);
 
-    const totalCollected = payments
+    const winnerMemberId = schedule.member_id ? Number(schedule.member_id) : null;
+    const isWinnerSeat = (p) => winnerMemberId && Number(p.member_id) === winnerMemberId;
+
+    const winnerPayments = payments.filter(isWinnerSeat);
+    const nonWinnerPayments = payments.filter(p => !isWinnerSeat(p));
+
+    // Winner installment amount settled against payout pot (not collected in cash)
+    const winnerSettledAmount = winnerPayments.reduce(
+      (sum, p) => sum + parseFloat(p.amount_paid || 0), 0
+    );
+
+    // Cash actually collected from non-winner members in hand (with penalties)
+    const cashCollected = nonWinnerPayments
       .filter(p => p.payment_status === 'paid')
       .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0) + parseFloat(p.penalty_amount || 0), 0);
 
-    const totalPending = payments
+    // Total pot collected = cash collected + winner settled installment amount
+    const totalPotCollected = cashCollected + winnerSettledAmount;
+
+    // Remaining cash pending from non-winner members
+    const totalPending = nonWinnerPayments
       .filter(p => p.payment_status === 'pending')
       .reduce((sum, p) => sum + parseFloat(p.amount_paid || 0) + parseFloat(p.penalty_amount || 0), 0);
 
@@ -78,6 +94,10 @@ export async function getSchedulePayments(req, res) {
       .reduce((sum, p) => sum + parseFloat(p.penalty_amount || 0), 0);
 
     const uniqueMemberIds = new Set(payments.map(p => p.member_id));
+
+    const collectibleSeats = nonWinnerPayments.length;
+    const paidCollectedSeats = nonWinnerPayments.filter(p => p.payment_status === 'paid').length;
+    const pendingSeats = nonWinnerPayments.filter(p => p.payment_status === 'pending').length;
 
     return res.json({
       success: true,
@@ -91,9 +111,15 @@ export async function getSchedulePayments(req, res) {
       stats: {
         total_payments: payments.length,
         total_members: uniqueMemberIds.size,
-        paid_count: payments.filter(p => p.payment_status === 'paid').length,
-        pending_count: payments.filter(p => p.payment_status === 'pending').length,
-        total_collected: parseFloat(totalCollected.toFixed(2)),
+        collectible_seats: collectibleSeats,
+        paid_collected_seats: paidCollectedSeats,
+        paid_count: winnerPayments.length > 0 ? paidCollectedSeats : payments.filter(p => p.payment_status === 'paid').length,
+        pending_count: pendingSeats,
+        cash_collected: parseFloat(cashCollected.toFixed(2)),
+        winner_settled_amount: parseFloat(winnerSettledAmount.toFixed(2)),
+        winner_settled_seats: winnerPayments.length,
+        total_collected: parseFloat(cashCollected.toFixed(2)),
+        total_pot_collected: parseFloat(totalPotCollected.toFixed(2)),
         total_pending: parseFloat(totalPending.toFixed(2)),
         total_penalty: parseFloat(totalPenalty.toFixed(2)),
         is_overdue: isOverdue
