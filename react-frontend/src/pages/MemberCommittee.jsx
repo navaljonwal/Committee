@@ -10,6 +10,7 @@ import {
   Clock, 
   AlertCircle, 
   Radio, 
+  CheckCircle,
   CheckCircle2, 
   TrendingUp, 
   CreditCard,

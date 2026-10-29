@@ -243,9 +243,24 @@ export async function getMemberCommittee(req, res) {
     if (user.role === 'admin') {
       if (req.query.memberId) {
         memberId = parseInt(req.query.memberId, 10);
-      } else if (!memberId) {
-        const [firstEnrolled] = await pool.query('SELECT member_id FROM committee_member WHERE committee_id = ? LIMIT 1', [committeeId]);
-        if (firstEnrolled.length > 0) memberId = firstEnrolled[0].member_id;
+      } else {
+        // If admin does not have a member_id OR admin's member_id is not enrolled in this specific committee,
+        // automatically fallback to the first enrolled member in this committee so preview always works seamlessly!
+        let isEnrolled = false;
+        if (memberId) {
+          const [checkEnroll] = await pool.query(
+            'SELECT seats FROM committee_member WHERE committee_id = ? AND member_id = ?',
+            [committeeId, memberId]
+          );
+          if (checkEnroll.length > 0) isEnrolled = true;
+        }
+        if (!isEnrolled) {
+          const [firstEnrolled] = await pool.query(
+            'SELECT member_id FROM committee_member WHERE committee_id = ? LIMIT 1',
+            [committeeId]
+          );
+          if (firstEnrolled.length > 0) memberId = firstEnrolled[0].member_id;
+        }
       }
     }
 
@@ -360,29 +375,37 @@ export async function getMemberCommittee(req, res) {
     }
 
     // Member's bids
-    const [myBids] = await pool.query(`
-      SELECT * FROM member_bids 
-      WHERE member_id = ? AND schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
-    `, [memberId, committeeId]);
-
     const myBidsBySchedule = {};
-    for (const b of myBids) {
-      myBidsBySchedule[b.schedule_id] = b;
+    try {
+      const [myBids] = await pool.query(`
+        SELECT * FROM member_bids 
+        WHERE member_id = ? AND schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
+      `, [memberId, committeeId]);
+
+      for (const b of (myBids || [])) {
+        myBidsBySchedule[b.schedule_id] = b;
+      }
+    } catch (bidErr) {
+      console.warn('Member committee myBids query notice:', bidErr.message);
     }
 
     // All bids from all members grouped by schedule
-    const [allBids] = await pool.query(`
-      SELECT mb.*, m.name as member_name 
-      FROM member_bids mb
-      JOIN members m ON mb.member_id = m.id
-      WHERE mb.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
-      ORDER BY mb.bid_amount DESC
-    `, [committeeId]);
-
     const allBidsBySchedule = {};
-    for (const b of allBids) {
-      if (!allBidsBySchedule[b.schedule_id]) allBidsBySchedule[b.schedule_id] = [];
-      allBidsBySchedule[b.schedule_id].push(b);
+    try {
+      const [allBids] = await pool.query(`
+        SELECT mb.*, m.name as member_name 
+        FROM member_bids mb
+        JOIN members m ON mb.member_id = m.id
+        WHERE mb.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
+        ORDER BY mb.bid_amount DESC
+      `, [committeeId]);
+
+      for (const b of (allBids || [])) {
+        if (!allBidsBySchedule[b.schedule_id]) allBidsBySchedule[b.schedule_id] = [];
+        allBidsBySchedule[b.schedule_id].push(b);
+      }
+    } catch (allBidErr) {
+      console.warn('Member committee allBids query notice:', allBidErr.message);
     }
 
     const [wonRounds] = await pool.query(
@@ -513,13 +536,19 @@ export async function buildLiveBidsPayload(committeeId, memberId = null) {
     [committeeId]
   );
 
-  const [bids] = await pool.query(`
-    SELECT mb.*, m.name as member_name 
-    FROM member_bids mb
-    JOIN members m ON mb.member_id = m.id
-    WHERE mb.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
-    ORDER BY mb.bid_amount DESC
-  `, [committeeId]);
+  let bids = [];
+  try {
+    const [bidRows] = await pool.query(`
+      SELECT mb.*, m.name as member_name 
+      FROM member_bids mb
+      JOIN members m ON mb.member_id = m.id
+      WHERE mb.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
+      ORDER BY mb.bid_amount DESC
+    `, [committeeId]);
+    bids = bidRows || [];
+  } catch (err) {
+    console.warn('member_bids query notice in buildLiveBidsPayload:', err.message);
+  }
 
   const allBids = {};
   for (const s of schedules) {

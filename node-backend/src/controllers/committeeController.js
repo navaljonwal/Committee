@@ -1070,18 +1070,26 @@ export async function getEligibleSpinMembers(req, res) {
       return res.status(404).json({ success: false, message: 'Committee not found' });
     }
 
+    let schedId = req.query.scheduleId ? Number(req.query.scheduleId) : null;
+    const wonCountSql = schedId
+      ? '(SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id AND cs.id != ?) as won_count'
+      : '(SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id) as won_count';
+    const queryParams = schedId
+      ? [committeeId, schedId, committeeId]
+      : [committeeId, committeeId];
+
     const [members] = await pool.query(`
       SELECT 
         m.id, 
         m.name, 
         m.phone, 
         cm.seats,
-        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id) as won_count
+        ${wonCountSql}
       FROM committee_member cm
       JOIN members m ON cm.member_id = m.id
       WHERE cm.committee_id = ?
       ORDER BY m.name ASC
-    `, [committeeId, committeeId]);
+    `, queryParams);
 
     const candidates = members.map(m => {
       const seats = parseInt(m.seats || 1, 10);
@@ -1151,19 +1159,19 @@ export async function triggerLiveSpin(req, res) {
       return res.status(422).json({ success: false, message: `Cannot spin for Month ${sched.month_no} because payout is already Paid & Closed.` });
     }
 
-    // Fetch all eligible candidates with remaining seats
+    // Fetch all eligible candidates with remaining seats (excluding this round if re-spinning)
     const [members] = await pool.query(`
       SELECT 
         m.id, 
         m.name, 
         m.phone, 
         cm.seats,
-        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id) as won_count
+        (SELECT COUNT(*) FROM committee_schedules cs WHERE cs.committee_id = ? AND cs.member_id = m.id AND cs.id != ?) as won_count
       FROM committee_member cm
       JOIN members m ON cm.member_id = m.id
       WHERE cm.committee_id = ?
       ORDER BY m.name ASC
-    `, [sched.committee_id, sched.committee_id]);
+    `, [sched.committee_id, sched.id, sched.committee_id]);
 
     const candidates = members.map(m => {
       const seats = parseInt(m.seats || 1, 10);

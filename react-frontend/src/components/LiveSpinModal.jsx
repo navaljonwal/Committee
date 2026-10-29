@@ -64,6 +64,12 @@ export default function LiveSpinModal({ spinData, onClose }) {
   const [autoCloseCountdown, setAutoCloseCountdown] = useState(8);
 
   const canvasRef = useRef(null);
+  const activeSpinIdRef = useRef(null);
+  const soundEnabledRef = useRef(soundEnabled);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   const schedule_id = spinData?.schedule_id;
   const month_no = spinData?.month_no;
@@ -155,12 +161,23 @@ export default function LiveSpinModal({ spinData, onClose }) {
   }, []);
 
   useEffect(() => {
-    if (!spinData) return;
+    if (!spinData) {
+      activeSpinIdRef.current = null;
+      return;
+    }
+
+    const currentSpinId = spinData.id || `${spinData.schedule_id}_${spinData.started_at}`;
+    if (activeSpinIdRef.current === currentSpinId) {
+      // Duplicate broadcast/poll update: do not abort or restart current spin
+      return;
+    }
+    activeSpinIdRef.current = currentSpinId;
+
     const now = Date.now();
-    const elapsedMs = now - started_at;
+    const elapsedMs = Math.max(0, now - (started_at || now));
     const remainingMs = Math.max(0, duration_ms - elapsedMs);
 
-    if (remainingMs <= 0) {
+    if (remainingMs <= 300) {
       // Spin already finished (e.g. user refreshed or joined late)
       setRotationDeg(finalRotation);
       setTransitionDurationSec(0);
@@ -169,14 +186,18 @@ export default function LiveSpinModal({ spinData, onClose }) {
       return;
     }
 
-    // Set transition duration matching remaining milliseconds for zero-lag sync across all devices
+    // Reset to initial state for new spin
+    setRotationDeg(0);
     const durSec = remainingMs / 1000;
     setTransitionDurationSec(durSec);
+    setIsSpinning(true);
+    setShowWinnerCard(false);
+    setAutoCloseCountdown(8);
 
     // Trigger CSS rotation on next tick
     const startTimeout = setTimeout(() => {
       setRotationDeg(finalRotation);
-    }, 50);
+    }, 60);
 
     // Audio ticker sequence during spin
     const tickIntervals = [
@@ -187,14 +208,14 @@ export default function LiveSpinModal({ spinData, onClose }) {
 
     let tickTimer = null;
     function scheduleNextTick(index) {
-      if (index >= tickIntervals.length || !isSpinning) return;
-      if (soundEnabled) playTickSound();
+      if (index >= tickIntervals.length) return;
+      if (soundEnabledRef.current) playTickSound();
       tickTimer = setTimeout(() => {
         scheduleNextTick(index + 1);
       }, tickIntervals[index]);
     }
 
-    if (soundEnabled) {
+    if (soundEnabledRef.current) {
       scheduleNextTick(0);
     }
 
@@ -202,7 +223,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
     const finishTimeout = setTimeout(() => {
       setIsSpinning(false);
       setShowWinnerCard(true);
-      if (soundEnabled) playWinFanfare();
+      if (soundEnabledRef.current) playWinFanfare();
       triggerConfetti();
     }, remainingMs);
 
@@ -211,7 +232,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
       clearTimeout(finishTimeout);
       if (tickTimer) clearTimeout(tickTimer);
     };
-  }, [spinData, schedule_id, started_at, duration_ms, finalRotation, isSpinning, soundEnabled, triggerConfetti]);
+  }, [spinData, finalRotation, started_at, duration_ms, triggerConfetti]);
 
   // Auto-close countdown when winner is revealed
   useEffect(() => {

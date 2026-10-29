@@ -54,7 +54,47 @@ export async function initializeDatabase() {
           await pool.query('ALTER TABLE committee_member_payments ADD COLUMN IF NOT EXISTS is_penalty_manual SMALLINT NOT NULL DEFAULT 0');
         } catch (e) {}
 
-        console.log('✅ PostgreSQL database schema verified and ready (including reminders, grace days, penalty columns).');
+        // Ensure member_bids table exists in PostgreSQL
+        try {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS member_bids (
+              id BIGSERIAL PRIMARY KEY,
+              schedule_id BIGINT NOT NULL,
+              member_id BIGINT NOT NULL,
+              bid_amount NUMERIC(15,2) NOT NULL,
+              remarks VARCHAR(255) DEFAULT NULL,
+              status VARCHAR(20) NOT NULL DEFAULT 'pending',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+        } catch (e) {}
+
+        // Ensure payout columns exist on committee_schedules in PostgreSQL
+        try {
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_status VARCHAR(20) NOT NULL DEFAULT 'unpaid'");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_date DATE DEFAULT NULL");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_mode VARCHAR(20) DEFAULT NULL");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_upi_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_upi_ref VARCHAR(255) DEFAULT NULL");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_cash_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_cash_notes TEXT DEFAULT NULL");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS payout_remarks VARCHAR(255) DEFAULT NULL");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS is_custom_bid BOOLEAN DEFAULT FALSE");
+          await pool.query("ALTER TABLE committee_schedules ADD COLUMN IF NOT EXISTS custom_deduction_amount NUMERIC(15,2) DEFAULT NULL");
+        } catch (e) {}
+
+        // Ensure plain_password exists on members in PostgreSQL
+        try {
+          await pool.query("ALTER TABLE members ADD COLUMN IF NOT EXISTS plain_password VARCHAR(255)");
+        } catch (e) {}
+
+        // Ensure member_id exists on users in PostgreSQL
+        try {
+          await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS member_id BIGINT");
+        } catch (e) {}
+
+        console.log('✅ PostgreSQL database schema verified and ready (including reminders, grace days, penalty columns, member_bids, and payouts).');
         return true;
       }
     }
