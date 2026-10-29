@@ -457,7 +457,7 @@ export async function syncWinnerPaymentSettlement(scheduleId, newWinnerId, oldWi
       `, [sId, Number(oldWinnerId)]);
     }
 
-    // 2. Settle the winning seat for the new winner
+    // 2. Settle all seats for the new winner (whether 1 seat, 2 seats, or more)
     if (newWinnerId) {
       const winnerIdNum = Number(newWinnerId);
       const [schedRows] = await db.query(`SELECT draw_date FROM committee_schedules WHERE id = ?`, [sId]);
@@ -472,8 +472,7 @@ export async function syncWinnerPaymentSettlement(scheduleId, newWinnerId, oldWi
             penalty_amount = 0.00, 
             updated_at = NOW() 
         WHERE schedule_id = ? 
-          AND member_id = ? 
-          AND seat_no = 1
+          AND member_id = ?
       `, [pDate, sId, winnerIdNum]);
     }
   } catch (err) {
