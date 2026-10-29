@@ -172,6 +172,42 @@ export async function getMemberDashboard(req, res) {
       console.warn('Member pending payments query warning:', pendErr.message);
     }
 
+    // Member's won rounds (payouts to receive from organizer)
+    let wonRounds = [];
+    try {
+      const [wonRows] = await pool.query(`
+        SELECT 
+          cs.id,
+          cs.month_no,
+          cs.draw_date,
+          cs.net_payout,
+          cs.installment_per_member,
+          cs.deduction_amount,
+          c.id as committee_id,
+          c.name as committee_name,
+          c.total_amount,
+          cm.seats
+        FROM committee_schedules cs
+        JOIN committees c ON cs.committee_id = c.id
+        JOIN committee_member cm ON c.id = cm.committee_id AND cm.member_id = ?
+        WHERE cs.member_id = ?
+        ORDER BY cs.draw_date DESC, cs.month_no DESC
+      `, [memberId, memberId]);
+
+      wonRounds = (wonRows || []).map(w => {
+        const seats = parseInt(w.seats || 1, 10);
+        const installment = parseFloat(w.installment_per_member || 0);
+        const totalSettledInstallment = installment * seats;
+        return {
+          ...w,
+          seats,
+          total_settled_installment: totalSettledInstallment
+        };
+      });
+    } catch (wonErr) {
+      console.warn('Won rounds query warning:', wonErr.message);
+    }
+
     return res.json({
       success: true,
       user,
@@ -179,6 +215,7 @@ export async function getMemberDashboard(req, res) {
       committees: committees || [],
       myBids,
       pendingPayments,
+      wonRounds,
       allMembers
     });
   } catch (error) {

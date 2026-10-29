@@ -216,11 +216,15 @@ export default function MemberCommittee() {
   }
 
   const { committee, schedules, totalSeats, wonCount, remainingSeats, alreadyWonAllSeats, myPayments } = data;
-  const { bids, highest_bids, lock_status } = liveBidsData;
   const memberId = data?.memberId || queryMemberId || user?.member_id || null;
+  const myWonSchedules = schedules?.filter(
+    (s) => s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId))
+  ) || [];
 
   // Calculate current active month reminder for this committee (first pending month)
   const currentPendingSchedule = schedules?.find((s) => {
+    const isWonRound = s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId));
+    if (isWonRound) return false;
     const pList = myPayments?.[s.id] || [];
     return pList.some((p) => p.payment_status === 'pending');
   });
@@ -425,6 +429,49 @@ export default function MemberCommittee() {
       {/* ── Tab 1: Payment Sheet ── */}
       {activeTab === 'payments' && (
         <div className="space-y-6">
+          {/* Winner Payout Celebration & Settlement Banner */}
+          {myWonSchedules.length > 0 && (
+            <div className="space-y-3">
+              {myWonSchedules.map((s) => (
+                <div
+                  key={s.id}
+                  className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-emerald-500/40 shadow-xl relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                  
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/30 shrink-0 mt-0.5">
+                        <Award className="w-7 h-7 text-slate-950" />
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold mb-1">
+                          <span>🏆 Aapne Month {s.month_no} jeeta hai!</span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-black text-white">
+                          Organizer se lene hain: <span className="text-emerald-400 font-mono">₹{parseFloat(s.net_payout).toLocaleString('en-IN')}</span> (Net Payout)
+                        </h3>
+                        <p className="text-xs text-emerald-200/90 mt-1">
+                          Is mahine ki aapki kist (₹{(parseFloat(s.installment_per_member || 0) * (totalSeats || 1)).toLocaleString('en-IN')}) aapke payout me se adjust ho chuki hai. <strong className="text-white underline">Aapko is mahine koi payment nahi deni hai (₹0 Cash to Pay).</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/15 text-left md:text-right shrink-0">
+                      <span className="text-[10px] text-emerald-300 uppercase font-bold tracking-wider block">
+                        Payment Status
+                      </span>
+                      <span className="text-sm sm:text-base font-black text-emerald-300 font-mono flex items-center md:justify-end gap-1 mt-0.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Settled in Payout
+                      </span>
+                      <span className="text-[10px] text-slate-300 block mt-0.5">Zero payment required</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Summary Stats Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
             <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xs">
@@ -514,20 +561,24 @@ export default function MemberCommittee() {
                       Boolean(committee.show_future_installments && committee.show_future_installments !== '0' && committee.show_future_installments !== 0) || 
                       Boolean(s.is_installment_visible && s.is_installment_visible !== '0' && s.is_installment_visible !== 0);
 
+                    const isWonRound = Boolean(s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId)));
+
                     return (
                       <tr
                         key={s.id}
                         className={`transition ${
-                          isCurrentDue
-                            ? 'bg-amber-50/60 hover:bg-amber-50 font-semibold'
-                            : allPaid
-                              ? 'hover:bg-emerald-50/20'
-                              : 'hover:bg-orange-50/30'
+                          isWonRound
+                            ? 'bg-emerald-50/40 hover:bg-emerald-50/70 font-semibold'
+                            : isCurrentDue
+                              ? 'bg-amber-50/60 hover:bg-amber-50 font-semibold'
+                              : allPaid
+                                ? 'hover:bg-emerald-50/20'
+                                : 'hover:bg-orange-50/30'
                         }`}
                       >
                         {/* Month */}
                         <td className="py-3.5 px-4 font-sans font-bold text-slate-900">
-                          Month {s.month_no}
+                          Month {s.month_no} {isWonRound && '🏆'}
                         </td>
 
                         {/* Draw Date & Due Date */}
@@ -579,8 +630,16 @@ export default function MemberCommittee() {
                         </td>
 
                         {/* Total Due */}
-                        <td className={`py-3.5 px-4 text-right font-black ${allPaid ? 'text-emerald-700' : isInstallmentVisible ? 'text-rose-600' : 'text-slate-400'}`}>
-                          {isInstallmentVisible ? (
+                        <td className={`py-3.5 px-4 text-right font-black ${isWonRound || allPaid ? 'text-emerald-700' : isInstallmentVisible ? 'text-rose-600' : 'text-slate-400'}`}>
+                          {isWonRound ? (
+                            <div>
+                              <div className="line-through text-slate-400 text-[11px] font-normal">
+                                ₹{totalDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                              </div>
+                              <div className="text-emerald-700 font-black text-sm">₹0.00</div>
+                              <span className="text-[9px] text-emerald-600 font-semibold block leading-tight">(Settled in Payout)</span>
+                            </div>
+                          ) : isInstallmentVisible ? (
                             `₹${totalDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
                           ) : (
                             <span className="text-slate-400 font-mono font-bold text-sm">—</span>
@@ -589,7 +648,16 @@ export default function MemberCommittee() {
 
                         {/* Status */}
                         <td className="py-3.5 px-4 text-center font-sans">
-                          {allPaid ? (
+                          {isWonRound ? (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                <Award className="w-3 h-3 text-emerald-700" /> SETTLED IN PAYOUT
+                              </span>
+                              <span className="text-[9px] text-emerald-700 font-semibold mt-0.5">
+                                ₹0 Cash to Pay
+                              </span>
+                            </div>
+                          ) : allPaid ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
                               <Check className="w-3 h-3" /> PAID {paidDate ? `(${formatDate(paidDate)})` : ''}
                             </span>
@@ -614,11 +682,16 @@ export default function MemberCommittee() {
 
                         {/* Round Winner / Remarks */}
                         <td className="py-3.5 px-4 font-sans text-xs">
-                          {s.is_my_win || (s.member_id && Number(s.member_id) === Number(memberId)) ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs shadow-2xs">
-                              <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Aapne jeeta (You Won)</span>
-                            </span>
+                          {isWonRound ? (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs shadow-2xs">
+                                <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>Aapne jeeta (You Won)</span>
+                              </span>
+                              <div className="text-[11px] font-bold text-emerald-700 font-mono">
+                                Net Payout: ₹{parseFloat(s.net_payout).toLocaleString('en-IN')}
+                              </div>
+                            </div>
                           ) : (s.is_winner_assigned || s.member_id || s.winner_name) ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 font-medium text-xs">
                               <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -742,22 +815,26 @@ export default function MemberCommittee() {
                   Boolean(committee.show_future_installments && committee.show_future_installments !== '0' && committee.show_future_installments !== 0) || 
                   Boolean(s.is_installment_visible && s.is_installment_visible !== '0' && s.is_installment_visible !== 0);
 
+                const isWonRound = Boolean(s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId)));
+
                 return (
                   <div
                     key={s.id}
                     className={`rounded-2xl border transition-all p-3.5 space-y-2.5 ${
-                      isCurrentDue
-                        ? 'bg-amber-50/50 border-amber-300 ring-2 ring-amber-500/20 shadow-sm'
-                        : allPaid
-                          ? 'bg-white border-slate-200/90 shadow-2xs'
-                          : 'bg-white border-slate-200 shadow-2xs'
+                      isWonRound
+                        ? 'bg-emerald-50/40 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                        : isCurrentDue
+                          ? 'bg-amber-50/50 border-amber-300 ring-2 ring-amber-500/20 shadow-sm'
+                          : allPaid
+                            ? 'bg-white border-slate-200/90 shadow-2xs'
+                            : 'bg-white border-slate-200 shadow-2xs'
                     }`}
                   >
                     {/* Top Row: Month, Date, Seats, Status */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg font-mono">
-                          Month {s.month_no}
+                          Month {s.month_no} {isWonRound && '🏆'}
                         </span>
                         {seatsCount > 1 && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
@@ -776,7 +853,16 @@ export default function MemberCommittee() {
 
                       {/* Status Badge */}
                       <div>
-                        {allPaid ? (
+                        {isWonRound ? (
+                          <div className="text-right">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                              <Award className="w-3 h-3 text-emerald-700" /> SETTLED IN PAYOUT
+                            </span>
+                            <span className="text-[9px] text-emerald-700 font-semibold block mt-0.5">
+                              ₹0 Cash to Pay
+                            </span>
+                          </div>
+                        ) : allPaid ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> PAID
                           </span>
@@ -808,8 +894,12 @@ export default function MemberCommittee() {
                       </div>
                       <div>
                         <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Total Due</span>
-                        <span className={`text-xs font-black mt-0.5 block ${allPaid ? 'text-emerald-700' : isCurrentDue ? 'text-rose-600' : 'text-slate-900'}`}>
-                          {isInstallmentVisible ? `₹${totalDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}` : '—'}
+                        <span className={`text-xs font-black mt-0.5 block ${isWonRound || allPaid ? 'text-emerald-700' : isCurrentDue ? 'text-rose-600' : 'text-slate-900'}`}>
+                          {isWonRound ? (
+                            <span>₹0 <span className="text-[9px] text-emerald-600 font-normal">(Settled)</span></span>
+                          ) : isInstallmentVisible ? (
+                            `₹${totalDue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}`
+                          ) : '—'}
                         </span>
                       </div>
                     </div>
@@ -817,11 +907,16 @@ export default function MemberCommittee() {
                     {/* Bottom Details: Winner / Paid Date */}
                     <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 text-slate-500">
                       <div>
-                        {s.is_my_win || (s.member_id && Number(s.member_id) === Number(memberId)) ? (
-                          <span className="flex items-center gap-1 font-bold text-emerald-700">
-                            <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            Aapne jeeta (You Won)
-                          </span>
+                        {isWonRound ? (
+                          <div className="font-bold text-emerald-700 space-y-0.5">
+                            <span className="flex items-center gap-1">
+                              <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              Aapne jeeta! Net Payout: ₹{parseFloat(s.net_payout).toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-normal block">
+                              Organizer se ye rashi receive karein
+                            </span>
+                          </div>
                         ) : (s.is_winner_assigned || s.member_id || s.winner_name) ? (
                           <span className="flex items-center gap-1 font-medium text-slate-600">
                             <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />

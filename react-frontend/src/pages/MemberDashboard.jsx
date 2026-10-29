@@ -84,6 +84,7 @@ export default function MemberDashboard() {
     committees: [], 
     myBids: [], 
     pendingPayments: [],
+    wonRounds: [],
     allMembers: []
   });
   const [loading, setLoading] = useState(true);
@@ -139,6 +140,7 @@ export default function MemberDashboard() {
   const committees = Array.isArray(data?.committees) ? data.committees.filter(Boolean) : [];
   const myBids = Array.isArray(data?.myBids) ? data.myBids.filter(Boolean) : [];
   const pendingPayments = Array.isArray(data?.pendingPayments) ? data.pendingPayments.filter(Boolean) : [];
+  const wonRounds = Array.isArray(data?.wonRounds) ? data.wonRounds.filter(Boolean) : [];
   const allMembers = Array.isArray(data?.allMembers) ? data.allMembers.filter(Boolean) : [];
 
   // Calculate current active month reminder per committee (only ONE current month per committee)
@@ -375,6 +377,102 @@ export default function MemberDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── My Won Rounds & Organizer Payouts (Winner Celebration & Settlement Banner) ── */}
+      {wonRounds.length > 0 && (
+        <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-emerald-500/30 shadow-xl space-y-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/25 shrink-0">
+                <Award className="w-6 h-6 text-slate-950" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    Winner Payouts
+                  </span>
+                  <span className="text-xs text-emerald-300 font-semibold">• {wonRounds.length} Round(s) Won</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black text-white mt-0.5">
+                  Aapke Jeete Hue Rounds (Organizer se lene hain)
+                </h2>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/15 flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs text-emerald-200">Total Net Payout:</span>
+              <span className="text-lg font-black text-emerald-300 font-mono">
+                ₹{wonRounds.reduce((acc, w) => acc + (parseFloat(w.net_payout) || 0), 0).toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+            {wonRounds.map((w) => (
+              <div
+                key={w.id}
+                className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm space-y-3 hover:border-emerald-400/50 transition"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-sm sm:text-base text-white">
+                      {w.committee_name}
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/30 text-[11px]">
+                        Month {w.month_no} Won 🏆
+                      </span>
+                      {w.seats > 1 && (
+                        <span className="px-2 py-0.5 rounded-md bg-white/10 text-slate-300 font-medium text-[11px]">
+                          {w.seats} Seats Held
+                        </span>
+                      )}
+                      {w.draw_date && (
+                        <span className="text-xs text-slate-400 font-mono">
+                          Draw: {formatDate(w.draw_date, { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Net Payout to Receive</span>
+                    <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono block">
+                      ₹{parseFloat(w.net_payout || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Settle Notice */}
+                <div className="bg-emerald-950/60 border border-emerald-500/20 rounded-xl p-2.5 text-xs text-emerald-200 flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-white block font-semibold">Payment Status: Settled in Payout (₹0 to pay)</strong>
+                    <span className="text-[11px] text-emerald-300/80">
+                      Is mahine ki aapki kist (₹{parseFloat(w.total_settled_installment || 0).toLocaleString('en-IN')}) is payout pot se pehle hi adjust ho chuki hai. Aapko koi paise nahi dene hain.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-1 flex items-center justify-between border-t border-white/10">
+                  <span className="text-[11px] text-slate-400">
+                    Organizer se ye amount receive karein
+                  </span>
+                  <Link
+                    to={`/member/committees/${encodeId(w.committee_id)}${user?.role === 'admin' && member?.id ? `?memberId=${member.id}` : ''}`}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:text-emerald-200"
+                  >
+                    <span>View Passbook</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Current Month Payment Reminders (High Priority Urgent Card) ── */}
       {currentMonthReminders.length > 0 ? (
