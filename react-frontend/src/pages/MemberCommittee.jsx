@@ -554,6 +554,7 @@ export default function MemberCommittee() {
                     <th className="py-3 px-4">Month</th>
                     <th className="py-3 px-4">Draw Date</th>
                     <th className="py-3 px-4 text-center">Seats</th>
+                    <th className="py-3 px-4 text-right">Net Payout (₹)</th>
                     <th className="py-3 px-4 text-right">Installment (₹)</th>
                     <th className="py-3 px-4 text-right">Penalty (₹)</th>
                     <th className="py-3 px-4 text-right">Total (₹)</th>
@@ -632,6 +633,28 @@ export default function MemberCommittee() {
                             <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-700">
                               Seat #{payments[0]?.seat_no || 1}
                             </span>
+                          )}
+                        </td>
+
+                        {/* Net Payout */}
+                        <td className="py-3.5 px-4 text-right font-medium">
+                          {isInstallmentVisible ? (
+                            <div>
+                              <div className="font-bold text-slate-900">
+                                ₹{parseFloat(s.net_payout || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </div>
+                              {isWonRound ? (
+                                <span className="text-[10px] text-emerald-700 font-extrabold block" title="Take-Home Cash to receive">
+                                  Take-Home: ₹{Math.max(0, parseFloat(s.net_payout || 0) - (parseFloat(s.installment_per_member || 0) * seatsCount)).toLocaleString('en-IN')}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-normal block">
+                                  Round Pot
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 font-mono font-bold text-sm">—</span>
                           )}
                         </td>
 
@@ -748,7 +771,7 @@ export default function MemberCommittee() {
                 <tfoot className="border-t-2 border-slate-300 bg-slate-50/90 font-mono text-slate-800">
                   {/* Row 1: Total Paid So Far (अब तक कुल जमा राशि) */}
                   <tr className="bg-emerald-50/60 border-b border-emerald-100">
-                    <td colSpan="3" className="py-3.5 px-4 font-sans font-bold text-slate-900 text-right uppercase text-[11px] tracking-wide">
+                    <td colSpan="4" className="py-3.5 px-4 font-sans font-bold text-slate-900 text-right uppercase text-[11px] tracking-wide">
                       <div className="flex items-center justify-end gap-1.5 text-emerald-800">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
                         <span>Total Paid So Far (अब तक कुल जमा):</span>
@@ -776,7 +799,7 @@ export default function MemberCommittee() {
                   {/* Row 2: Pending Due (बकाया राशि) - only if pending exists */}
                   {totalPendingAmount > 0 && (
                     <tr className="bg-amber-50/50 border-b border-amber-100">
-                      <td colSpan="3" className="py-2.5 px-4 font-sans font-bold text-slate-800 text-right uppercase text-[11px] tracking-wide">
+                      <td colSpan="4" className="py-2.5 px-4 font-sans font-bold text-slate-800 text-right uppercase text-[11px] tracking-wide">
                         <div className="flex items-center justify-end gap-1.5 text-amber-800">
                           <Clock className="w-3.5 h-3.5 text-amber-600" />
                           <span>Pending Due (वर्तमान बकाया):</span>
@@ -804,7 +827,7 @@ export default function MemberCommittee() {
 
                   {/* Row 3: Estimated Committee Scheme Total */}
                   <tr className="bg-slate-100/70">
-                    <td colSpan="3" className="py-2.5 px-4 font-sans font-bold text-slate-700 text-right uppercase text-[11px] tracking-wide">
+                    <td colSpan="4" className="py-2.5 px-4 font-sans font-bold text-slate-700 text-right uppercase text-[11px] tracking-wide">
                       <span>Scheme Total Value ({totalSeats || 1} Seat{totalSeats > 1 ? 's' : ''}):</span>
                     </td>
                     <td className="py-2.5 px-4 text-right font-mono text-slate-600 text-xs">
@@ -916,8 +939,14 @@ export default function MemberCommittee() {
                       </div>
                     </div>
 
-                    {/* 3-Column Financial Snapshot */}
-                    <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-center font-mono">
+                    {/* 4-Column Financial Snapshot with Net Payout */}
+                    <div className="grid grid-cols-4 gap-1.5 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-center font-mono">
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Net Payout</span>
+                        <span className="text-xs font-bold text-slate-900 mt-0.5 block truncate" title={`₹${parseFloat(s.net_payout || 0).toLocaleString('en-IN')}`}>
+                          {isInstallmentVisible ? `₹${parseFloat(s.net_payout || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}` : '—'}
+                        </span>
+                      </div>
                       <div>
                         <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Installment</span>
                         <span className="text-xs font-bold text-slate-800 mt-0.5 block">
