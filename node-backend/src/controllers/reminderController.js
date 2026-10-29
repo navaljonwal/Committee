@@ -43,11 +43,14 @@ export async function getReminders(req, res) {
       JOIN committees c ON cs.committee_id = c.id
       WHERE cmp.payment_status = 'pending' 
         AND c.status = 'active'
+        AND NOT (cs.member_id IS NOT NULL AND cs.member_id = cmp.member_id AND cmp.seat_no = 1)
         AND cs.month_no = (
           SELECT MIN(cs2.month_no) 
           FROM committee_schedules cs2 
           JOIN committee_member_payments cmp2 ON cs2.id = cmp2.schedule_id 
-          WHERE cs2.committee_id = c.id AND cmp2.payment_status = 'pending'
+          WHERE cs2.committee_id = c.id 
+            AND cmp2.payment_status = 'pending'
+            AND NOT (cs2.member_id IS NOT NULL AND cs2.member_id = cmp2.member_id AND cmp2.seat_no = 1)
         )
       ORDER BY cs.draw_date ASC, m.name ASC, cmp.seat_no ASC
     `);

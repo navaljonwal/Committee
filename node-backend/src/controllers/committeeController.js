@@ -11,7 +11,7 @@ import {
   broadcastLiveSpin, 
   clearActiveSpin 
 } from './memberPortalController.js';
-import { addDaysToDate } from '../utils/dateUtils.js';
+import { addDaysToDate, getTodayDateStr } from '../utils/dateUtils.js';
 import { decodeId } from '../utils/hashids.js';
 
 export async function getCommitteesDashboard(req, res) {
@@ -429,6 +429,58 @@ export async function deleteCommittee(req, res) {
   }
 }
 
+/**
+ * Automatically synchronizes payment settlement for a schedule round winner.
+ * In Kameti / Chit Fund:
+ * When a member wins a schedule round, their installment for their winning seat (seat_no = 1)
+ * is settled against the net payout pot. They do NOT pay out of pocket, so there is no
+ * collection / "Collect" option for this seat.
+ * 
+ * If the winner changes or is cleared, the previous winner's seat is reverted to pending.
+ */
+export async function syncWinnerPaymentSettlement(scheduleId, newWinnerId, oldWinnerId = null, db = pool) {
+  try {
+    const sId = Number(scheduleId);
+    if (!Number.isInteger(sId)) return;
+
+    // 1. If winner changed from an old winner, revert the old winner's settled seat
+    if (oldWinnerId && Number(oldWinnerId) !== Number(newWinnerId)) {
+      await db.query(`
+        UPDATE committee_member_payments 
+        SET payment_status = 'pending', 
+            payment_date = NULL, 
+            remarks = NULL, 
+            updated_at = NOW() 
+        WHERE schedule_id = ? 
+          AND member_id = ? 
+          AND remarks = 'Draw Winner (Settled in Payout)'
+      `, [sId, Number(oldWinnerId)]);
+    }
+
+    // 2. Settle the winning seat for the new winner
+    if (newWinnerId) {
+      const winnerIdNum = Number(newWinnerId);
+      const [schedRows] = await db.query(`SELECT draw_date FROM committee_schedules WHERE id = ?`, [sId]);
+      const drawDate = (schedRows && schedRows[0] && schedRows[0].draw_date) ? schedRows[0].draw_date : null;
+      const pDate = drawDate ? drawDate : getTodayDateStr();
+
+      await db.query(`
+        UPDATE committee_member_payments 
+        SET payment_status = 'paid', 
+            payment_date = COALESCE(payment_date, ?), 
+            remarks = 'Draw Winner (Settled in Payout)', 
+            penalty_amount = 0.00, 
+            updated_at = NOW() 
+        WHERE schedule_id = ? 
+          AND member_id = ? 
+          AND seat_no = 1
+      `, [pDate, sId, winnerIdNum]);
+    }
+  } catch (err) {
+    console.error('syncWinnerPaymentSettlement error:', err.message);
+  }
+}
+
 export async function updateWinner(req, res) {
   try {
     const { scheduleId } = req.params;
@@ -454,13 +506,16 @@ export async function updateWinner(req, res) {
       return res.status(422).json({ success: false, message: 'This committee is Completed & Closed. Winner cannot be updated.' });
     }
 
+    const oldWinnerId = schedules[0].member_id;
+    const newWinnerId = (member_id !== undefined && member_id !== null && member_id !== '') ? parseInt(member_id, 10) : null;
+
     // Build safe parameterized update — only whitelisted fields
     const updates = ['updated_at = NOW()'];
     const params = [];
 
     if (member_id !== undefined) {
       updates.push('member_id = ?');
-      params.push(member_id === null || member_id === '' ? null : parseInt(member_id, 10));
+      params.push(newWinnerId);
     }
     if (draw_date) {
       // Validate date format (YYYY-MM-DD)
@@ -473,6 +528,11 @@ export async function updateWinner(req, res) {
     params.push(Number(scheduleId));
 
     await pool.query(`UPDATE committee_schedules SET ${updates.join(', ')} WHERE id = ?`, params);
+
+    // Auto-sync winner payment settlement in payout ledger
+    if (member_id !== undefined) {
+      await syncWinnerPaymentSettlement(scheduleId, newWinnerId, oldWinnerId, pool);
+    }
 
     return res.json({
       success: true,
@@ -759,7 +819,7 @@ export async function approveMemberBid(req, res) {
     const { bidId } = req.params;
 
     const [bids] = await conn.query(`
-      SELECT mb.*, cs.month_no, cs.committee_id, m.name as member_name, c.total_amount, c.total_members, c.status as committee_status 
+      SELECT mb.*, cs.month_no, cs.committee_id, cs.member_id as current_winner_id, m.name as member_name, c.total_amount, c.total_members, c.status as committee_status 
       FROM member_bids mb
       JOIN committee_schedules cs ON mb.schedule_id = cs.id
       JOIN committees c ON cs.committee_id = c.id
@@ -805,6 +865,9 @@ export async function approveMemberBid(req, res) {
       SET amount_paid = ?, updated_at = NOW() 
       WHERE schedule_id = ?
     `, [installmentPerMember, bid.schedule_id]);
+
+    // Auto-settle the newly approved bidder's payment seat in payout
+    await syncWinnerPaymentSettlement(bid.schedule_id, bid.member_id, bid.current_winner_id, conn);
 
     await conn.commit();
 
@@ -1156,6 +1219,8 @@ export async function triggerLiveSpin(req, res) {
           SET member_id = ?, updated_at = NOW() 
           WHERE id = ?
         `, [winner.id, sched.id]);
+
+        await syncWinnerPaymentSettlement(sched.id, winner.id, sched.member_id, pool);
 
         clearActiveSpin(sched.committee_id);
 

@@ -145,7 +145,9 @@ export async function getMemberDashboard(req, res) {
         FROM committee_member_payments cmp
         JOIN committee_schedules cs ON cmp.schedule_id = cs.id
         JOIN committees c ON cs.committee_id = c.id
-        WHERE cmp.member_id = ? AND cmp.payment_status = 'pending'
+        WHERE cmp.member_id = ? 
+          AND cmp.payment_status = 'pending'
+          AND NOT (cs.member_id IS NOT NULL AND cs.member_id = cmp.member_id AND cmp.seat_no = 1)
         ORDER BY cs.month_no ASC
       `, [memberId]);
 

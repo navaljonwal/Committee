@@ -37,6 +37,22 @@ export async function getSchedulePayments(req, res) {
     const isOverdue = dueDateStr ? todayStr > dueDateStr : false;
     const daysUntilDue = dueDateStr ? getDaysDifference(todayStr, dueDateStr) : null;
 
+    // Auto-settle winning member's seat in committee_member_payments if round winner is declared
+    if (schedule.member_id) {
+      await pool.query(`
+        UPDATE committee_member_payments 
+        SET payment_status = 'paid', 
+            payment_date = COALESCE(payment_date, ?), 
+            remarks = 'Draw Winner (Settled in Payout)', 
+            penalty_amount = 0.00, 
+            updated_at = NOW() 
+        WHERE schedule_id = ? 
+          AND member_id = ? 
+          AND seat_no = 1 
+          AND (payment_status = 'pending' OR remarks IS NULL OR remarks != 'Draw Winner (Settled in Payout)')
+      `, [schedule.draw_date || todayStr, scheduleId, schedule.member_id]);
+    }
+
     // Fetch payments for enrolled members only
     const [payments] = await pool.query(`
       SELECT 
@@ -94,7 +110,7 @@ export async function togglePayment(req, res) {
     const { paymentId } = req.params;
 
     const [payments] = await pool.query(`
-      SELECT cmp.*, c.status as committee_status 
+      SELECT cmp.*, cs.member_id as round_winner_id, c.status as committee_status 
       FROM committee_member_payments cmp
       JOIN committee_schedules cs ON cmp.schedule_id = cs.id
       JOIN committees c ON cs.committee_id = c.id
@@ -108,6 +124,14 @@ export async function togglePayment(req, res) {
     const payment = payments[0];
     if (payment.committee_status === 'completed') {
       return res.status(422).json({ success: false, message: 'This committee is Completed & Closed. Payments cannot be modified.' });
+    }
+
+    // Protection: If this seat is the winning seat of this round, it is settled in payout
+    if (payment.round_winner_id && Number(payment.round_winner_id) === Number(payment.member_id) && Number(payment.seat_no) === 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'This member won this round! Their winning seat is settled in payout and cannot be marked pending.'
+      });
     }
 
     const newStatus = payment.payment_status === 'paid' ? 'pending' : 'paid';
@@ -335,24 +359,43 @@ export async function toggleMemberPayments(req, res) {
       return res.status(404).json({ success: false, message: 'Payment records not found for this member' });
     }
 
-    // If any seat is pending, mark all seats as paid. If all are paid, mark all as pending.
-    const hasPending = payments.some(p => p.payment_status === 'pending');
+    const isWinner = schedule.member_id && Number(schedule.member_id) === Number(memberId);
+
+    // If member has 1 seat and won, no collection/toggle is needed because it is settled in payout
+    if (isWinner && payments.length === 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'This member is the round winner. Their single seat is settled in payout and does not require collection.'
+      });
+    }
+
+    // If member has multiple seats and won, toggle ONLY their other seats (seat_no > 1)
+    const payablePayments = isWinner ? payments.filter(p => Number(p.seat_no) > 1) : payments;
+    const hasPending = payablePayments.some(p => p.payment_status === 'pending');
     const newStatus = hasPending ? 'paid' : 'pending';
     const newDate = newStatus === 'paid' ? getTodayDateStr() : null;
 
-    await pool.query(`
-      UPDATE committee_member_payments 
-      SET payment_status = ?, payment_date = ?, updated_at = NOW() 
-      WHERE schedule_id = ? AND member_id = ?
-    `, [newStatus, newDate, scheduleId, memberId]);
+    if (isWinner) {
+      await pool.query(`
+        UPDATE committee_member_payments 
+        SET payment_status = ?, payment_date = ?, updated_at = NOW() 
+        WHERE schedule_id = ? AND member_id = ? AND seat_no > 1
+      `, [newStatus, newDate, scheduleId, memberId]);
+    } else {
+      await pool.query(`
+        UPDATE committee_member_payments 
+        SET payment_status = ?, payment_date = ?, updated_at = NOW() 
+        WHERE schedule_id = ? AND member_id = ?
+      `, [newStatus, newDate, scheduleId, memberId]);
+    }
 
     return res.json({
       success: true,
       status: newStatus,
       payment_date: newDate,
       message: newStatus === 'paid' 
-        ? `Payment marked as PAID for all ${payments.length} seat(s)!` 
-        : `Payment marked as PENDING for all ${payments.length} seat(s)!`
+        ? `Payment marked as PAID for ${payablePayments.length} seat(s)!` 
+        : `Payment marked as PENDING for ${payablePayments.length} seat(s)!`
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

@@ -121,6 +121,7 @@ export default function SchedulePayments() {
   const memberGroups = useMemo(() => {
     if (!payments || payments.length === 0) return [];
     const map = new Map();
+    const winnerMemberId = schedule?.member_id ? Number(schedule.member_id) : null;
 
     payments.forEach((p) => {
       const mId = p.member_id;
@@ -147,7 +148,9 @@ export default function SchedulePayments() {
       g.total_due += parseFloat(p.total_due || 0);
       g.seat_numbers.push(`Seat #${p.seat_no}`);
 
-      if (p.payment_status === 'paid') {
+      const isWonSeat = winnerMemberId && Number(mId) === winnerMemberId && Number(p.seat_no) === 1;
+
+      if (p.payment_status === 'paid' || isWonSeat) {
         g.paid_count += 1;
       } else {
         g.pending_count += 1;
@@ -157,24 +160,26 @@ export default function SchedulePayments() {
     });
 
     return Array.from(map.values()).map(g => {
+      const isRoundWinner = winnerMemberId && Number(g.member_id) === winnerMemberId;
       const isAllPaid = g.pending_count === 0;
       const isAllPending = g.paid_count === 0;
       const isPartial = !isAllPaid && !isAllPending;
 
       const paidDates = g.payments
-        .filter(p => p.payment_status === 'paid' && p.payment_date)
+        .filter(p => (p.payment_status === 'paid' || (isRoundWinner && Number(p.seat_no) === 1)) && p.payment_date)
         .map(p => new Date(p.payment_date).getTime());
       const latestPaidDate = paidDates.length > 0 ? new Date(Math.max(...paidDates)) : null;
 
       return {
         ...g,
+        isRoundWinner,
         isAllPaid,
         isAllPending,
         isPartial,
         latestPaidDate
       };
     });
-  }, [payments]);
+  }, [payments, schedule]);
 
   // Toggle single seat payment
   const handleTogglePayment = async (paymentId) => {
@@ -515,8 +520,13 @@ export default function SchedulePayments() {
                             </button>
                           )}
                           <div>
-                            <div className="flex items-center gap-1.5">
-                              <span>{g.member_name}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={g.isRoundWinner ? "font-extrabold text-slate-900" : ""}>{g.member_name}</span>
+                              {g.isRoundWinner && (
+                                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-0.5">
+                                  🏆 {hasMultipleSeats ? 'Won 1 Seat' : 'Winner'}
+                                </span>
+                              )}
                               {hasMultipleSeats && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
                                   {g.payments.length} Seats
@@ -542,8 +552,10 @@ export default function SchedulePayments() {
                             {isExpanded ? <ChevronUp className="w-3 h-3 text-amber-700" /> : <ChevronDown className="w-3 h-3 text-amber-700" />}
                           </button>
                         ) : (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 border border-slate-200 font-mono text-[11px]">
-                            Seat {singlePayment.seat_no}
+                          <span className={`px-2 py-0.5 rounded border font-mono text-[11px] ${
+                            g.isRoundWinner ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold' : 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
+                            Seat {singlePayment.seat_no} {g.isRoundWinner && '🏆'}
                           </span>
                         )}
                       </td>
@@ -553,16 +565,22 @@ export default function SchedulePayments() {
                         <div>
                           ₹{g.total_installment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
-                        {hasMultipleSeats && (
+                        {g.isRoundWinner && !hasMultipleSeats ? (
+                          <div className="text-[10px] text-amber-700 font-semibold font-sans">
+                            Settled in Payout
+                          </div>
+                        ) : hasMultipleSeats ? (
                           <div className="text-[10px] text-slate-400 font-normal">
                             ({g.payments.length} × ₹{parseFloat(schedule.installment_per_member).toLocaleString('en-IN', { minimumFractionDigits: 2 })})
                           </div>
-                        )}
+                        ) : null}
                       </td>
 
                       {/* Late Penalty */}
                       <td className="py-3.5 px-4 text-right font-sans">
-                        {singlePayment ? (
+                        {g.isRoundWinner && !hasMultipleSeats ? (
+                          <div className="text-slate-400 font-mono text-xs">₹0.00</div>
+                        ) : singlePayment ? (
                           isEditingThisPenalty ? (
                             <div className="flex items-center justify-end gap-1.5 font-mono">
                               <input
@@ -639,21 +657,37 @@ export default function SchedulePayments() {
 
                       {/* Total Due */}
                       <td className="py-3.5 px-4 text-right font-black text-slate-900">
-                        <div>
-                          ₹{g.total_due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                        {g.isPartial && (
-                          <div className="text-[10px] text-rose-600 font-semibold font-mono">
-                            Pending: ₹{g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {g.isRoundWinner && !hasMultipleSeats ? (
+                          <div>
+                            <span className="text-emerald-700 font-black font-mono">₹0.00</span>
+                            <div className="text-[10px] text-amber-700 font-bold font-sans">
+                              Settled in Payout
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div>
+                              ₹{g.total_due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </div>
+                            {g.isPartial && (
+                              <div className="text-[10px] text-rose-600 font-semibold font-mono">
+                                Pending: ₹{g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                {g.isRoundWinner && ' (1 Won)'}
+                              </div>
+                            )}
                           </div>
                         )}
                       </td>
 
                       {/* Status */}
                       <td className="py-3.5 px-4 text-center font-sans">
-                        {g.isAllPaid ? (
+                        {g.isRoundWinner && !hasMultipleSeats ? (
+                          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full border bg-amber-50 text-amber-800 border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                            🏆 WINNER (SETTLED)
+                          </span>
+                        ) : g.isAllPaid ? (
                           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
-                            PAID
+                            {g.isRoundWinner ? `PAID (1 WON + ${g.payments.length - 1} PAID)` : 'PAID'}
                           </span>
                         ) : g.isAllPending ? (
                           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
@@ -661,14 +695,16 @@ export default function SchedulePayments() {
                           </span>
                         ) : (
                           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
-                            PARTIAL ({g.paid_count}/{g.payments.length} PAID)
+                            {g.isRoundWinner ? `PARTIAL (1 WON · ${g.pending_count} PENDING)` : `PARTIAL (${g.paid_count}/${g.payments.length} PAID)`}
                           </span>
                         )}
                       </td>
 
                       {/* Date */}
                       <td className="py-3.5 px-4 text-center font-sans text-slate-500">
-                        {g.isAllPaid && g.latestPaidDate ? (
+                        {g.isRoundWinner && !hasMultipleSeats ? (
+                          <span className="text-amber-800 font-semibold text-xs">Settled in Payout</span>
+                        ) : g.isAllPaid && g.latestPaidDate ? (
                           g.latestPaidDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
                         ) : g.isPartial && g.latestPaidDate ? (
                           <div>
@@ -682,49 +718,55 @@ export default function SchedulePayments() {
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right font-sans">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* WhatsApp Reminder Button with preview/edit modal & status */}
-                          {!g.isAllPaid && (
-                            <div className="flex items-center gap-1.5">
-                              {remindedMap[g.member_id] && (
-                                <span 
-                                  className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md"
-                                  title={`Reminder sent: ${remindedMap[g.member_id]}`}
+                        {g.isRoundWinner && !hasMultipleSeats ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold shadow-2xs">
+                            🏆 Settled in Payout
+                          </span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* WhatsApp Reminder Button with preview/edit modal & status */}
+                            {!g.isAllPaid && (
+                              <div className="flex items-center gap-1.5">
+                                {remindedMap[g.member_id] && (
+                                  <span 
+                                    className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md"
+                                    title={`Reminder sent: ${remindedMap[g.member_id]}`}
+                                  >
+                                    <Check className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
+                                    Sent
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReminder(g)}
+                                  title={remindedMap[g.member_id] ? `Reminder sent on ${remindedMap[g.member_id]}. Click to view/edit or send again.` : `Send WhatsApp reminder to ${g.member_name}`}
+                                  className={`p-1.5 rounded-lg border transition flex items-center gap-1 ${
+                                    remindedMap[g.member_id]
+                                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300'
+                                      : 'bg-green-50 hover:bg-green-100 text-green-600 border-green-200'
+                                  }`}
                                 >
-                                  <Check className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
-                                  Sent
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenReminder(g)}
-                                title={remindedMap[g.member_id] ? `Reminder sent on ${remindedMap[g.member_id]}. Click to view/edit or send again.` : `Send WhatsApp reminder to ${g.member_name}`}
-                                className={`p-1.5 rounded-lg border transition flex items-center gap-1 ${
-                                  remindedMap[g.member_id]
-                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300'
-                                    : 'bg-green-50 hover:bg-green-100 text-green-600 border-green-200'
-                                }`}
-                              >
-                                <MessageCircle className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
 
-                          {/* Member Status Toggle Button */}
-                          <button
-                            onClick={() => hasMultipleSeats ? handleToggleMember(g.member_id) : handleTogglePayment(singlePayment.id)}
-                            disabled={isCompleted}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border shadow-xs active:scale-[0.98] ${
-                              g.isAllPaid
-                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                                : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-orange-600/20'
-                            } disabled:opacity-40`}
-                          >
-                            {g.isAllPaid 
-                              ? (hasMultipleSeats ? 'Mark All Pending' : 'Mark Pending') 
-                              : (g.isPartial ? 'Mark All Paid' : (hasMultipleSeats ? 'Mark All Paid' : 'Mark Paid'))}
-                          </button>
-                        </div>
+                            {/* Member Status Toggle Button */}
+                            <button
+                              onClick={() => hasMultipleSeats ? handleToggleMember(g.member_id) : handleTogglePayment(singlePayment.id)}
+                              disabled={isCompleted}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border shadow-xs active:scale-[0.98] ${
+                                g.isAllPaid
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                                  : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-orange-600/20'
+                              } disabled:opacity-40`}
+                            >
+                              {g.isAllPaid 
+                                ? (hasMultipleSeats ? (g.isRoundWinner ? 'Mark Other Seats Pending' : 'Mark All Pending') : 'Mark Pending') 
+                                : (g.isPartial ? (g.isRoundWinner ? `Mark ${g.pending_count} Other Seat(s) Paid` : 'Mark All Paid') : (hasMultipleSeats ? (g.isRoundWinner ? `Mark ${g.pending_count} Other Seat(s) Paid` : 'Mark All Paid') : 'Mark Paid'))}
+                            </button>
+                          </div>
+                        )}
                       </td>
 
                     </tr>
@@ -744,16 +786,25 @@ export default function SchedulePayments() {
 
                             <div className="divide-y divide-slate-100">
                               {g.payments.map((p) => {
-                                const pPaid = p.payment_status === 'paid';
+                                const isWonThisSeat = g.isRoundWinner && Number(p.seat_no) === 1;
+                                const pPaid = p.payment_status === 'paid' || isWonThisSeat;
                                 const isEditingP = editingPenaltyId === p.id;
                                 return (
-                                  <div key={p.id} className="py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                                  <div key={p.id} className={`py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono ${
+                                    isWonThisSeat ? 'bg-amber-50/40 -mx-2 px-2 rounded-xl' : ''
+                                  }`}>
                                     <div className="flex items-center gap-2 font-sans font-semibold text-slate-800">
-                                      <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-700 font-mono text-xs">
-                                        Seat #{p.seat_no}
+                                      <span className={`px-2 py-0.5 rounded font-mono text-xs ${
+                                        isWonThisSeat ? 'bg-amber-100 border border-amber-300 text-amber-900 font-bold' : 'bg-slate-100 border border-slate-200 text-slate-700'
+                                      }`}>
+                                        Seat #{p.seat_no} {isWonThisSeat && '🏆 (Winning Seat)'}
                                       </span>
                                       <span className="text-slate-500 font-normal">
-                                        Installment: <b className="font-mono text-slate-800">₹{parseFloat(p.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b>
+                                        Installment: {isWonThisSeat ? (
+                                          <b className="font-sans text-amber-800">₹{parseFloat(p.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })} (Settled in Payout)</b>
+                                        ) : (
+                                          <b className="font-mono text-slate-800">₹{parseFloat(p.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b>
+                                        )}
                                       </span>
                                     </div>
 
@@ -761,7 +812,9 @@ export default function SchedulePayments() {
                                       {/* Seat Penalty */}
                                       <div className="text-right">
                                         <span className="text-[10px] text-slate-400 font-sans block">Late Penalty:</span>
-                                        {isEditingP ? (
+                                        {isWonThisSeat ? (
+                                          <span className="text-slate-400 font-mono">₹0.00</span>
+                                        ) : isEditingP ? (
                                           <div className="flex items-center gap-1">
                                             <input
                                               type="number"
@@ -822,30 +875,42 @@ export default function SchedulePayments() {
                                       {/* Seat Total */}
                                       <div className="text-right font-black text-slate-900">
                                         <span className="text-[10px] text-slate-400 font-sans block">Total:</span>
-                                        ₹{parseFloat(p.total_due).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        {isWonThisSeat ? (
+                                          <span className="text-emerald-700 font-mono">₹0.00</span>
+                                        ) : (
+                                          `₹${parseFloat(p.total_due).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                                        )}
                                       </div>
 
                                       {/* Seat Status */}
                                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border font-sans ${
-                                        pPaid 
-                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                                        isWonThisSeat
+                                          ? 'bg-amber-50 text-amber-800 border-amber-300 font-extrabold'
+                                          : pPaid 
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                            : 'bg-amber-50 text-amber-700 border-amber-200'
                                       }`}>
-                                        {pPaid ? 'PAID' : 'PENDING'}
+                                        {isWonThisSeat ? '🏆 WON (SETTLED)' : (pPaid ? 'PAID' : 'PENDING')}
                                       </span>
 
                                       {/* Single Seat Toggle */}
-                                      <button
-                                        onClick={() => handleTogglePayment(p.id)}
-                                        disabled={isCompleted}
-                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border font-sans ${
-                                          pPaid
-                                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                                            : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600'
-                                        } disabled:opacity-40`}
-                                      >
-                                        {pPaid ? 'Mark Pending' : 'Mark Paid'}
-                                      </button>
+                                      {isWonThisSeat ? (
+                                        <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 font-sans">
+                                          Settled in Payout
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleTogglePayment(p.id)}
+                                          disabled={isCompleted}
+                                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border font-sans ${
+                                            pPaid
+                                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                                              : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600'
+                                          } disabled:opacity-40`}
+                                        >
+                                          {pPaid ? 'Mark Pending' : 'Mark Paid'}
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -885,9 +950,11 @@ export default function SchedulePayments() {
               <div 
                 key={g.member_id} 
                 className={`rounded-2xl border transition-all ${
-                  g.isAllPaid 
-                    ? 'bg-white border-slate-200/90 shadow-2xs' 
-                    : 'bg-white border-orange-200 shadow-sm ring-1 ring-orange-500/10'
+                  g.isRoundWinner && !hasMultipleSeats
+                    ? 'bg-amber-50/20 border-amber-300 shadow-xs ring-1 ring-amber-400/20'
+                    : g.isAllPaid 
+                      ? 'bg-white border-slate-200/90 shadow-2xs' 
+                      : 'bg-white border-orange-200 shadow-sm ring-1 ring-orange-500/10'
                 }`}
               >
                 {/* Top Section */}
@@ -895,15 +962,22 @@ export default function SchedulePayments() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-2xs ${
-                        g.isAllPaid 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                          : 'bg-orange-50 text-orange-700 border border-orange-200'
+                        g.isRoundWinner && !hasMultipleSeats
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : g.isAllPaid 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-orange-50 text-orange-700 border border-orange-200'
                       }`}>
-                        {g.member_name ? g.member_name.substring(0, 2).toUpperCase() : 'M'}
+                        {g.isRoundWinner && !hasMultipleSeats ? '🏆' : (g.member_name ? g.member_name.substring(0, 2).toUpperCase() : 'M')}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-extrabold text-slate-900 text-sm truncate">{g.member_name}</span>
+                          {g.isRoundWinner && (
+                            <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                              🏆 {hasMultipleSeats ? 'Won 1 Seat' : 'Winner'}
+                            </span>
+                          )}
                           {hasMultipleSeats ? (
                             <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
                               {g.payments.length} Seats
@@ -930,7 +1004,11 @@ export default function SchedulePayments() {
 
                     {/* Status Badge */}
                     <div className="flex-shrink-0">
-                      {g.isAllPaid ? (
+                      {g.isRoundWinner && !hasMultipleSeats ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300">
+                          🏆 WINNER (SETTLED)
+                        </span>
+                      ) : g.isAllPaid ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> PAID
                         </span>
@@ -940,7 +1018,7 @@ export default function SchedulePayments() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                          PARTIAL ({g.paid_count}/{g.payments.length})
+                          {g.isRoundWinner ? `1 WON · ${g.pending_count} PENDING` : `PARTIAL (${g.paid_count}/${g.payments.length})`}
                         </span>
                       )}
                     </div>
@@ -956,7 +1034,9 @@ export default function SchedulePayments() {
                     </div>
                     <div>
                       <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">Penalty</span>
-                      {singlePayment ? (
+                      {g.isRoundWinner && !hasMultipleSeats ? (
+                        <span className="text-xs font-bold text-slate-400 mt-0.5 block">₹0</span>
+                      ) : singlePayment ? (
                         isEditingThisPenalty ? (
                           <div className="flex items-center justify-center gap-1 mt-0.5 flex-wrap">
                             <input
@@ -997,11 +1077,17 @@ export default function SchedulePayments() {
                     </div>
                     <div>
                       <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider block font-sans">
-                        {g.isPartial ? 'Pending Due' : 'Total Due'}
+                        {g.isRoundWinner && !hasMultipleSeats ? 'Status' : (g.isPartial ? 'Pending Due' : 'Total Due')}
                       </span>
-                      <span className={`text-xs font-black mt-0.5 block ${g.isAllPaid ? 'text-emerald-700' : 'text-slate-900'}`}>
-                        ₹{(g.isPartial ? g.pending_due : g.total_due).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
-                      </span>
+                      {g.isRoundWinner && !hasMultipleSeats ? (
+                        <span className="text-xs font-bold text-amber-700 mt-0.5 block font-sans">
+                          Settled (₹0)
+                        </span>
+                      ) : (
+                        <span className={`text-xs font-black mt-0.5 block ${g.isAllPaid ? 'text-emerald-700' : 'text-slate-900'}`}>
+                          ₹{(g.isPartial ? g.pending_due : g.total_due).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1021,32 +1107,49 @@ export default function SchedulePayments() {
                     </div>
                     <div className="space-y-1.5">
                       {g.payments.map((p) => {
-                        const pPaid = p.payment_status === 'paid';
+                        const isWonThisSeat = g.isRoundWinner && Number(p.seat_no) === 1;
+                        const pPaid = p.payment_status === 'paid' || isWonThisSeat;
                         const isEditingP = editingPenaltyId === p.id;
                         return (
-                          <div key={p.id} className="bg-white p-2.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                          <div key={p.id} className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
+                            isWonThisSeat ? 'bg-amber-50/70 border-amber-200' : 'bg-white border-slate-200'
+                          }`}>
                             <div>
                               <span className="font-bold text-slate-800 font-mono mr-1.5">Seat #{p.seat_no}</span>
-                              <span className="text-slate-500 font-mono text-[11px]">₹{parseFloat(p.amount_paid).toLocaleString('en-IN')}</span>
-                              {parseFloat(p.penalty_amount || 0) > 0 && (
-                                <span className="text-amber-600 text-[10px] ml-1.5 font-mono">+₹{parseFloat(p.penalty_amount)} pen.</span>
+                              {isWonThisSeat ? (
+                                <span className="text-amber-800 font-semibold font-sans text-[11px]">🏆 Won (Settled in Payout)</span>
+                              ) : (
+                                <>
+                                  <span className="text-slate-500 font-mono text-[11px]">₹{parseFloat(p.amount_paid).toLocaleString('en-IN')}</span>
+                                  {parseFloat(p.penalty_amount || 0) > 0 && (
+                                    <span className="text-amber-600 text-[10px] ml-1.5 font-mono">+₹{parseFloat(p.penalty_amount)} pen.</span>
+                                  )}
+                                </>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                                pPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}>
-                                {pPaid ? 'PAID' : 'PENDING'}
-                              </span>
-                              <button
-                                onClick={() => handleTogglePayment(p.id)}
-                                disabled={isCompleted}
-                                className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition ${
-                                  pPaid ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-orange-600 text-white border-orange-600'
-                                }`}
-                              >
-                                {pPaid ? 'Pending' : 'Pay'}
-                              </button>
+                              {isWonThisSeat ? (
+                                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                                  SETTLED
+                                </span>
+                              ) : (
+                                <>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                                    pPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}>
+                                    {pPaid ? 'PAID' : 'PENDING'}
+                                  </span>
+                                  <button
+                                    onClick={() => handleTogglePayment(p.id)}
+                                    disabled={isCompleted}
+                                    className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition ${
+                                      pPaid ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-orange-600 text-white border-orange-600'
+                                    }`}
+                                  >
+                                    {pPaid ? 'Pending' : 'Pay'}
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         );
@@ -1057,57 +1160,65 @@ export default function SchedulePayments() {
 
                 {/* Mobile Bottom Action Row */}
                 <div className="p-2.5 bg-white rounded-b-2xl flex items-center gap-2">
-                  {/* Multi-seat toggle */}
-                  {hasMultipleSeats && (
-                    <button
-                      onClick={() => toggleExpand(g.member_id)}
-                      className="px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center gap-1 active:scale-95 transition"
-                      title="Toggle individual seat breakdown"
-                    >
-                      <span>Seats</span>
-                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-orange-600" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </button>
-                  )}
-
-                  {/* WhatsApp Reminder (Totals all pending seats) */}
-                  {!g.isAllPaid && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenReminder(g)}
-                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition shadow-2xs"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>WhatsApp</span>
-                      {remindedMap[g.member_id] ? (
-                        <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded-full font-bold">✓ Sent</span>
-                      ) : (
-                        <span className="text-[11px] text-emerald-600 font-mono">(₹{g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 0 })})</span>
+                  {g.isRoundWinner && !hasMultipleSeats ? (
+                    <div className="w-full py-2 px-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-2xs">
+                      🏆 Round Winner (Settled in Payout)
+                    </div>
+                  ) : (
+                    <>
+                      {/* Multi-seat toggle */}
+                      {hasMultipleSeats && (
+                        <button
+                          onClick={() => toggleExpand(g.member_id)}
+                          className="px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center gap-1 active:scale-95 transition"
+                          title="Toggle individual seat breakdown"
+                        >
+                          <span>Seats</span>
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-orange-600" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
                       )}
-                    </button>
-                  )}
 
-                  {/* Primary Toggle Action Button */}
-                  <button
-                    onClick={() => hasMultipleSeats ? handleToggleMember(g.member_id) : handleTogglePayment(singlePayment.id)}
-                    disabled={isCompleted}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition border shadow-xs flex items-center justify-center gap-1 active:scale-98 ${
-                      g.isAllPaid
-                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                        : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-orange-600/20'
-                    } disabled:opacity-40`}
-                  >
-                    {g.isAllPaid ? (
-                      <>
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{hasMultipleSeats ? 'Mark Pending' : 'Mark Pending'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>{g.isPartial ? 'Mark All Paid' : (hasMultipleSeats ? 'Mark All Paid' : 'Mark Paid')}</span>
-                      </>
-                    )}
-                  </button>
+                      {/* WhatsApp Reminder (Totals all pending seats) */}
+                      {!g.isAllPaid && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenReminder(g)}
+                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>WhatsApp</span>
+                          {remindedMap[g.member_id] ? (
+                            <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded-full font-bold">✓ Sent</span>
+                          ) : (
+                            <span className="text-[11px] text-emerald-600 font-mono">(₹{g.pending_due.toLocaleString('en-IN', { minimumFractionDigits: 0 })})</span>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Primary Toggle Action Button */}
+                      <button
+                        onClick={() => hasMultipleSeats ? handleToggleMember(g.member_id) : handleTogglePayment(singlePayment.id)}
+                        disabled={isCompleted}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition border shadow-xs flex items-center justify-center gap-1 active:scale-98 ${
+                          g.isAllPaid
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                            : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-orange-600/20'
+                        } disabled:opacity-40`}
+                      >
+                        {g.isAllPaid ? (
+                          <>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{hasMultipleSeats ? (g.isRoundWinner ? 'Mark Other Seats Pending' : 'Mark Pending') : 'Mark Pending'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>{hasMultipleSeats ? (g.isRoundWinner ? 'Mark Other Seats Paid' : 'Mark All Paid') : 'Mark Paid'}</span>
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             );
