@@ -15,6 +15,7 @@ import {
   TrendingUp, 
   CreditCard,
   BellRing,
+  ShieldCheck,
   X
 } from 'lucide-react';
 import api from '../api/client';
@@ -314,8 +315,8 @@ export default function MemberCommittee() {
 
         <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span className="hidden sm:inline">Real-Time Live Auction Active (Instant Sync)</span>
-          <span className="sm:hidden">Live Auction Active</span>
+          <span className="hidden sm:inline">Real-Time Mutual Ledger Sync (Instant Active)</span>
+          <span className="sm:hidden">Real-Time Sync Active</span>
         </div>
       </div>
 
@@ -426,7 +427,7 @@ export default function MemberCommittee() {
           }`}
         >
           <Gavel className="w-4 h-4" />
-          <span>Auction Rounds & Bids (नीलामी कक्ष)</span>
+          <span>Monthly Turn & Relief Offers (मासिक सहयोग एवं पारी कक्ष)</span>
         </button>
       </div>
 
@@ -1068,7 +1069,7 @@ export default function MemberCommittee() {
               <div className="text-[11px] text-slate-600 bg-orange-50/50 border border-orange-200/80 rounded-xl p-3 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
                 <span>
-                  <strong>Notice:</strong> Next months' installments and totals (—) will be decided during their respective monthly auction draws.
+                  <strong>Notice:</strong> Agle mahine ki bachate aur rashi sambandhit maasik paari (monthly rotation turn) ke samay nirdharit hogi.
                 </span>
               </div>
             )}
@@ -1076,12 +1077,12 @@ export default function MemberCommittee() {
         </div>
       )}
 
-      {/* ── Tab 2: Auction Rounds & Bidding Room ── */}
+      {/* ── Tab 2: Monthly Turn & Relief Offers Room ── */}
       {activeTab === 'auction' && (
         <div className="space-y-4">
           <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
             <Gavel className="w-5 h-5 text-orange-600" />
-            Auction Rounds & Draw Schedule
+            Monthly Turn & Relief Offers Schedule (मासिक सहयोग एवं पारी विवरण)
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1139,7 +1140,7 @@ export default function MemberCommittee() {
                         <span className="text-base font-black text-slate-900">Month {s.month_no}</span>
                         {dateStatus === 'today' && !isLocked && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300 animate-pulse">
-                            LIVE AUCTION TODAY
+                            ACTIVE TURN TODAY (आज की पारी)
                           </span>
                         )}
                       </div>
@@ -1157,19 +1158,19 @@ export default function MemberCommittee() {
                       </div>
 
                       <div className="flex items-center justify-between text-slate-600">
-                        <span>Current Top Bid:</span>
+                        <span>Current Top Relief Offer:</span>
                         <span className="text-orange-600 font-bold">
-                          {hBid.amount ? `₹${parseFloat(hBid.amount).toLocaleString('en-IN')} (${hBid.name})` : 'No bids placed yet'}
+                          {hBid.amount ? `₹${parseFloat(hBid.amount).toLocaleString('en-IN')} (${hBid.name})` : 'No offers submitted yet'}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between text-slate-600">
-                        <span>Net Payout to Winner:</span>
+                        <span>Net Payout to Member:</span>
                         <span className="text-slate-900 font-black">₹{parseFloat(s.net_payout).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
 
-                    {/* Status / Winner message */}
+                    {/* Status / Assignment message */}
                     {isWinnerAssigned && (() => {
                       const isMyWin = Boolean(s.is_my_win || (memberId && s.member_id && Number(s.member_id) === Number(memberId)));
                       return (
@@ -1181,27 +1182,27 @@ export default function MemberCommittee() {
                           <Award className={`w-4 h-4 ${isMyWin ? 'text-emerald-600' : 'text-slate-400'}`} />
                           <span>
                             {isMyWin
-                              ? <strong>Aapne ye round jeeta hai! (You Won this round)</strong>
-                              : <span>Draw Completed / Winner Decided</span>
+                              ? <strong>Aapko is maah ki paari prapt hui hai! (Assigned to You this round)</strong>
+                              : <span>Turn Completed / Assigned</span>
                             }
                           </span>
                         </div>
                       );
                     })()}
 
-                    {/* My Bid info if placed */}
+                    {/* My Offer info if placed */}
                     {myBid && (
                       <div className="mb-4 p-2.5 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-800 flex items-center justify-between font-medium">
-                        <span>My Submitted Bid: <strong>₹{parseFloat(myBid.bid_amount).toLocaleString('en-IN')}</strong></span>
+                        <span>My Submitted Offer: <strong>₹{parseFloat(myBid.bid_amount).toLocaleString('en-IN')}</strong></span>
                         <span className="text-[10px] uppercase font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-md">{myBid.status}</span>
                       </div>
                     )}
 
-                    {/* Recent Bids Feed */}
+                    {/* Recent Offers Feed */}
                     {roundBids.length > 0 && (
                       <div className="mb-4">
                         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                          Live Auction Room ({roundBids.length} bids placed)
+                          Member Relief Offers ({roundBids.length} submitted)
                         </div>
                         <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1">
                           {roundBids.map((b) => (
@@ -1215,7 +1216,7 @@ export default function MemberCommittee() {
                     )}
                   </div>
 
-                  {/* Bidding Button or Date Guard Message */}
+                  {/* Submission Button or Date Guard Message */}
                   <div className="pt-3 border-t border-slate-100">
                     {canBid ? (
                       <button
@@ -1223,19 +1224,19 @@ export default function MemberCommittee() {
                         className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-lg shadow-orange-600/25 transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
                       >
                         <Gavel className="w-4 h-4" />
-                        {myBid ? 'Update My Auction Bid' : 'Place Live Auction Bid'}
+                        {myBid ? 'Update Relief Offer' : 'Submit Relief Offer'}
                       </button>
                     ) : (
                       <div className="text-center text-[11px] text-slate-400 italic py-1 font-medium">
                         {isLocked 
-                          ? 'Bidding closed by organizer' 
+                          ? 'Turn closed by organizer' 
                           : dateStatus === 'before'
-                            ? `Bidding opens on ${rawDrawDate || lInfo.draw_date || 'draw date'}`
+                            ? `Turn opens on ${rawDrawDate || lInfo.draw_date || 'scheduled date'}`
                             : dateStatus === 'after'
-                              ? 'Bidding closed (past draw date)'
+                              ? 'Turn closed (past scheduled date)'
                               : alreadyWonAllSeats
-                                ? 'All your registered seats have won'
-                                : 'Bidding unavailable'}
+                                ? 'All your registered seats have been assigned'
+                                : 'Turn submission unavailable'}
                       </div>
                     )}
                   </div>
@@ -1247,13 +1248,13 @@ export default function MemberCommittee() {
         </div>
       )}
 
-      {/* Bid Submission ActionDrawer (Mobile Bottom Sheet / Desktop Slide-over Drawer) */}
+      {/* Offer Submission ActionDrawer (Mobile Bottom Sheet / Desktop Slide-over Drawer) */}
       <ActionDrawer
         isOpen={!!activeBidScheduleId}
         onClose={() => setActiveBidScheduleId(null)}
         icon={Gavel}
-        title="Place Auction Bid"
-        subtitle="Submit your deduction bid for this round"
+        title="Submit Relief Offer (सहयोग प्रस्ताव दर्ज करें)"
+        subtitle="Apni ichhanusar maasik bachat deduction darj karein"
         maxWidth="sm:max-w-md md:max-w-lg"
         onSubmit={handleBidSubmit}
         footer={
@@ -1270,7 +1271,7 @@ export default function MemberCommittee() {
               disabled={submittingBid}
               className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-600/25 transition active:scale-[0.98] disabled:opacity-50 text-center"
             >
-              {submittingBid ? 'Submitting...' : 'Confirm Bid'}
+              {submittingBid ? 'Submitting...' : 'Confirm Offer'}
             </button>
           </div>
         }
@@ -1278,7 +1279,7 @@ export default function MemberCommittee() {
         <div className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Deduction Bid Amount (₹) *
+              Deduction / Relief Offer Amount (₹) *
             </label>
             <input
               type="number"
@@ -1286,11 +1287,11 @@ export default function MemberCommittee() {
               required
               value={bidAmount}
               onChange={(e) => setBidAmount(e.target.value)}
-              placeholder="Enter bid amount"
+              placeholder="Enter amount"
               className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
             />
             <span className="text-[11px] text-slate-500 mt-1 block">
-              Rule: Your bid must be strictly higher than the current highest bid.
+              Rule: Aapka prastav purv nirdharit sabse unche prastav se adhik hona anivarya hai.
             </span>
           </div>
 
@@ -1309,7 +1310,7 @@ export default function MemberCommittee() {
         </div>
       </ActionDrawer>
 
-      {/* Real-time Live Lucky Draw Wheel Modal (Synchronized across all members with 0ms lag) */}
+      {/* Real-time Fair Turn Rotation Modal (Synchronized across all members with 0ms lag) */}
       <LiveSpinModal
         spinData={activeSpinData}
         onClose={() => {
@@ -1317,6 +1318,21 @@ export default function MemberCommittee() {
           loadInitialData();
         }}
       />
+
+      {/* Statutory Legal Disclaimer Banner */}
+      <div className="mt-8 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-500 text-[11px] leading-relaxed">
+        <div className="flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold text-slate-700">
+              वैधानिक निजी खाता-बही सूचना (Statutory Private Peer Group Savings Ledger Notice):
+            </p>
+            <p>
+              यह सॉफ्टवेयर केवल निजी मित्रों, परिवार एवं परिचित सदस्यों के बीच आपसी सहमति से संचालित मासिक बचत, किस्तों एवं लेन-देन का व्यक्तिगत डिजिटल खाता-बही (Private Record-Keeping Ledger) संधारित करने हेतु उपयोग किया जाता है। यह एप्लिकेशन किसी भी प्रकार का बैंक, एनबीएफसी, चिटफंड कंपनी (Chit Fund) अथवा पब्लिक डिपॉजिट स्कीम नहीं है और न ही जनता से कोई राशि स्वीकार करता है।
+            </p>
+          </div>
+        </div>
+      </div>
 
     </div>
   );

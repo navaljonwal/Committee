@@ -233,9 +233,9 @@ export default function CommitteeDetail() {
             }}
             disabled={isCompleted}
             className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-orange-500/25 active:scale-95 cursor-pointer disabled:opacity-50"
-            title="Launch Live Lucky Draw Wheel Spin"
+            title="Launch Fair Turn Allocation Wheel"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-spin" /> Live Spin Draw
+            <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-spin" /> Live Turn Spin
           </button>
 
           <Link
@@ -342,10 +342,10 @@ export default function CommitteeDetail() {
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-orange-500" />
-              Draw Matrix & Kisht Schedule
+              Turn Matrix & Monthly Schedule
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Review monthly payouts, manage draw winners, auction deductions, disbursements, and collection ledgers
+              Review monthly payouts, turn allocations, relief discounts, disbursements, and collection ledgers
             </p>
           </div>
         </div>

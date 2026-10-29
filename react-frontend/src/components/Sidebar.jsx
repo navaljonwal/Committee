@@ -70,10 +70,10 @@ export default function Sidebar({ mobileOpen, onCloseMobile, onOpenSearch }) {
           </div>
           <div>
             <div className="text-base font-black tracking-tight text-slate-900 leading-tight">
-              ChitFund <span className="text-orange-600">Pro</span>
+              BachatKhata <span className="text-orange-600">Pro</span>
             </div>
             <div className="text-[10px] uppercase font-mono font-semibold tracking-wider text-slate-400">
-              Kameti Management
+              Private Group Ledger
             </div>
           </div>
         </Link>
@@ -253,10 +253,10 @@ export default function Sidebar({ mobileOpen, onCloseMobile, onOpenSearch }) {
         <div className="bg-gradient-to-br from-orange-50/80 to-amber-50/50 border border-orange-100 rounded-2xl p-3.5 text-xs">
           <div className="flex items-center gap-2 font-bold text-orange-900">
             <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-            <span>Kameti Engine v2.4</span>
+            <span>Bachat Ledger v2.4</span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-            Automated interest formulas, draw auctions & instant WhatsApp ledger sync.
+            Self-managed group savings ledger & instant WhatsApp passbook sync.
           </p>
         </div>
 

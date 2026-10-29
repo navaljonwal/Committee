@@ -212,7 +212,7 @@ export default function MemberDashboard() {
     const loginUser = m.phone || m.user_email || `member${m.id}@kameti.com`;
     const loginUrl = `${window.location.origin}/login`;
 
-    const message = `Namaste ${m.name} ji! 🙏\n\nAapka Kameti / ChitFund Pro Portal Login Details:\n\n🌐 *Login Portal:* ${loginUrl}\n👤 *User ID / Mobile:* ${loginUser}\n🔑 *Password:* ${rawPass || '(Aapka set kiya hua password)'}\n\nAap is link par login karke apni sabhi active kametis, mahine ki kist aur live auction bids dekh sakte hain.\n\nDhanyawad! ✨`;
+    const message = `Namaste ${m.name} ji! 🙏\n\nAapka BachatKhata Pro (निजी समूह बचत एवं खाता-बही) Portal Login Details:\n\n🌐 *Login Portal:* ${loginUrl}\n👤 *User ID / Mobile:* ${loginUser}\n🔑 *Password:* ${rawPass || '(Aapka set kiya hua password)'}\n\nAap is link par login karke apni sabhi active bachat kist, group hisab-kitab aur monthly passbook dekh sakte hain.\n\nDhanyawad! ✨`;
 
     let phoneClean = (m.phone || '').replace(/[^0-9]/g, '');
     let waUrl = '';
@@ -885,13 +885,24 @@ export default function MemberDashboard() {
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-900">Need Help or Payment Verification?</h4>
-            <p className="text-[11px] text-slate-500">Contact your Kameti Organizer for cash receipts or payment clearance.</p>
+            <h4 className="text-xs font-bold text-slate-900">Need Help or Ledger Verification?</h4>
+            <p className="text-[11px] text-slate-500">Contact your Group Coordinator for payment clearance or mutual record updates.</p>
           </div>
         </div>
         <div className="text-[11px] font-mono text-slate-400">
-          ChitFund Pro • 100% Verified Ledger
+          BachatKhata Pro • Private Group Ledger
         </div>
+      </div>
+
+      {/* ── Statutory Legal Disclaimer Banner (Zero Regulatory Risk) ── */}
+      <div className="bg-slate-100/90 border border-slate-200/90 rounded-2xl p-4 text-[11px] text-slate-500 leading-relaxed space-y-1.5 shadow-2xs">
+        <div className="flex items-center gap-2 font-bold text-slate-700 text-xs">
+          <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>वैधानिक सूचना एवं निजी खाता-बही अस्वीकरण (Statutory Notice & Private Ledger Disclaimer)</span>
+        </div>
+        <p>
+          यह सॉफ्टवेयर केवल मित्रों, परिवारों एवं परिचित सदस्यों के आपसी <strong>निजी समूह बचत (Private Peer Group Savings & Personal Accounting Ledger)</strong> का आंतरिक हिसाब-किताब व्यवस्थित रखने हेतु एक व्यक्तिगत डिजिटल रिकॉर्ड-कीपिंग टूल है। यह सॉफ्टवेयर किसी भी प्रकार का बैंक, गैर-बैंकिंग वित्तीय संस्थान (NBFC), चिटफंड (Chit Fund), प्राइज़ चिट अथवा जनता से जमा (Public Deposits) स्वीकार करने का कार्य नहीं करता है। इसमें प्रदर्शित सभी गणनाएं केवल सदस्यों के पारस्परिक समन्वय एवं पारदर्शिता हेतु हैं।
+        </p>
       </div>
 
     </div>

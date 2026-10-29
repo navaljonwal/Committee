@@ -79,7 +79,7 @@ export default function AdminSpinModal({ isOpen, onClose, committeeId, preselect
 
       const res = await api.post(`/committees/schedules/${schedParam}/live-spin`, payload);
       if (res.data?.success) {
-        toast.success(res.data.message || 'Live Lucky Draw Spin started!');
+        toast.success(res.data.message || 'Live Turn Spin started!');
         if (onSpinLaunched) {
           onSpinLaunched(res.data.spin);
         }
@@ -99,8 +99,8 @@ export default function AdminSpinModal({ isOpen, onClose, committeeId, preselect
       isOpen={isOpen}
       onClose={onClose}
       icon={Sparkles}
-      title="Live Lucky Draw Spin"
-      subtitle="Bidding na hone par same-second live synchronized wheel spin chalayein"
+      title="Live Turn Spin (पारदर्शी चक्रीय पारी चयन)"
+      subtitle="Mutual turn allocation ke liye live synchronized wheel chalayein"
       maxWidth="sm:max-w-md"
       onSubmit={handleLaunch}
       footer={

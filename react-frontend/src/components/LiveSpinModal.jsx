@@ -310,7 +310,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
           <div className="flex-1 min-w-0 px-1 text-center truncate">
             <span className="text-xs sm:text-sm font-black text-white tracking-tight flex items-center justify-center gap-1 truncate">
               <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Month {month_no} Lucky Draw</span>
+              <span className="truncate">Month {month_no} Turn Selection</span>
             </span>
           </div>
 
@@ -490,10 +490,10 @@ export default function LiveSpinModal({ spinData, onClose }) {
               <div className="text-left min-w-0 flex-1">
                 <div className="flex items-center gap-1 text-[10px] text-amber-300 font-extrabold uppercase tracking-wider leading-none">
                   <Trophy className="w-3 h-3 text-amber-400 shrink-0" />
-                  <span className="truncate">Draw Winner</span>
+                  <span className="truncate">Turn Assigned (पारी चयनित)</span>
                 </div>
                 <div className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm mt-0.5">
-                  🏆 {winner_name || 'Member'}
+                  🎯 {winner_name || 'Member'}
                 </div>
               </div>
 
@@ -510,7 +510,7 @@ export default function LiveSpinModal({ spinData, onClose }) {
             /* Spinning State Pill */
             <div className="flex items-center justify-center gap-2 py-1.5 px-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] sm:text-xs font-bold text-amber-300">
               <div className="w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin shrink-0" />
-              <span className="truncate">Spinning {candidates.length} eligible members...</span>
+              <span className="truncate">Rotating {candidates.length} eligible members...</span>
             </div>
           )}
         </div>

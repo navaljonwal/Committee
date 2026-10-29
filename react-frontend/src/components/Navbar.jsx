@@ -69,10 +69,10 @@ export default function Navbar() {
               </div>
               <div>
                 <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 flex items-center gap-1">
-                  ChitFund <span className="text-orange-600 font-extrabold">Pro</span>
+                  BachatKhata <span className="text-orange-600 font-extrabold">Pro</span>
                 </span>
                 <span className="text-[9px] sm:text-[10px] uppercase font-mono font-semibold tracking-wider text-slate-400 block -mt-1">
-                  Kameti Management
+                  Private Group Ledger
                 </span>
               </div>
             </Link>

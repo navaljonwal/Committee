@@ -59,8 +59,8 @@ export default function PrintView() {
           <h1 className="text-2xl font-black uppercase tracking-wider">
             {committee.name}
           </h1>
-          <p className="text-xs font-medium text-gray-600 mt-1">
-            OFFICIAL CHITFUND / KAMETI REPAYMENT & PAYOUT MATRIX
+          <p className="text-xs font-semibold text-gray-600 mt-1 uppercase tracking-wide">
+            PRIVATE PEER GROUP SAVINGS & REPAYMENT RECORD (निजी समूह बचत एवं आपसी सहयोग विवरणी)
           </p>
         </div>
 
@@ -124,15 +124,22 @@ export default function PrintView() {
         </table>
 
         {/* Signatures Footer */}
-        <div className="grid grid-cols-2 gap-12 mt-16 text-center text-xs border-t pt-8">
+        <div className="grid grid-cols-2 gap-12 mt-12 text-center text-xs border-t pt-8">
           <div>
             <div className="border-t border-black w-48 mx-auto mb-1" />
-            <span>Organizer Signature</span>
+            <span className="font-semibold">Coordinator / Organizer Signature</span>
           </div>
           <div>
             <div className="border-t border-black w-48 mx-auto mb-1" />
-            <span>Member Acknowledgement</span>
+            <span className="font-semibold">Member Acknowledgement</span>
           </div>
+        </div>
+
+        {/* Statutory Private Ledger Notice */}
+        <div className="mt-8 pt-3 border-t border-gray-300 text-[9px] text-gray-500 text-center leading-relaxed">
+          <p>
+            <strong>वैधानिक सूचना एवं निजी खाता-बही घोषणा:</strong> यह विवरणी केवल मित्रों एवं परिचित सदस्यों के आपसी निजी बचत समूह (Private Peer Group Savings & Expense Ledger) का आंतरिक रिकॉर्ड रखने हेतु तैयार की गई है। यह किसी भी प्रकार की बैंकिंग, वित्तीय निवेश, चिटफंड या सार्वजनिक जमा (Public Deposit) की श्रेणी में नहीं आता है।
+          </p>
         </div>
 
       </div>

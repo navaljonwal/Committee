@@ -195,7 +195,7 @@ export default function CommitteeCreate() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                   <IndianRupee className="w-3.5 h-3.5 text-orange-500" />
-                  Total Chit Pool Value (V) *
+                  Total Pool Value (V) *
                 </label>
                 <span className="text-[11px] font-mono font-bold text-orange-600">
                   ₹{Number(totalAmount || 0).toLocaleString('en-IN')}

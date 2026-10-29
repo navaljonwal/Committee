@@ -90,9 +90,7 @@ export default function MembersList() {
     const rawPass = member.plain_password || '';
     const loginUser = member.phone || member.user_email || `member${member.id}@kameti.com`;
     const loginUrl = `${window.location.origin}/login`;
-    const cleanName = formatMemberName(member.name);
-
-    const message = `Namaste ${cleanName}! 🙏\n\nAapka Kameti / ChitFund Pro Portal Login Details:\n\n🌐 *Login Portal:* ${loginUrl}\n👤 *Login ID / Mobile:* ${loginUser}\n🔑 *Password:* ${rawPass || '(Aapka set kiya hua password)'}\n\nAap is link par login karke apni sabhi active kametis, mahine ki kist aur live auction bids dekh sakte hain.\n\nDhanyawad! ✨`;
+    const message = `Namaste ${cleanName}! 🙏\n\nAapka BachatKhata Pro (निजी समूह बचत एवं खाता-बही) Portal Login Details:\n\n🌐 *Login Portal:* ${loginUrl}\n👤 *Login ID / Mobile:* ${loginUser}\n🔑 *Password:* ${rawPass || '(Aapka set kiya hua password)'}\n\nAap is link par login karke apni sabhi active bachat kist, group hisab-kitab aur monthly passbook dekh sakte hain.\n\nDhanyawad! ✨`;
 
     let phoneClean = (member.phone || '').replace(/[^0-9]/g, '');
     let waUrl = '';

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
-import { Layers, Lock, User, ArrowRight } from 'lucide-react';
+import { Layers, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const [identity, setIdentity] = useState('');
@@ -41,15 +41,15 @@ export default function Login() {
       <div className="w-full max-w-md relative z-10">
         
         {/* Brand Header */}
-        <div className="text-center mb-8 animate-fade-in-down">
+        <div className="text-center mb-6 animate-fade-in-down">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 shadow-xl shadow-orange-500/25 mb-4 animate-float">
             <Layers className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Kameti <span className="text-orange-600">Pro</span>
+            BachatKhata <span className="text-orange-600">Pro</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-            Transparent, secure & verified Kameti ledger system
+            निजी समूह बचत एवं व्यक्तिगत खाता-बही (Private Peer Group Savings Ledger)
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function Login() {
                   required
                   value={identity}
                   onChange={(e) => setIdentity(e.target.value)}
-                  placeholder="e.g. admin@kameti.com or 9999999999"
+                  placeholder="e.g. 9999999999 or Name"
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
                 />
               </div>
@@ -102,7 +102,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-lg shadow-orange-500/25 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 btn-press shimmer-sweep"
+              className="w-full mt-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-lg shadow-orange-500/25 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 btn-press shimmer-sweep cursor-pointer"
             >
               {loading ? 'Authenticating...' : (
                 <>
@@ -112,11 +112,22 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
             <span className="text-[11px] text-slate-400">
-              Admin & Member accounts are unified. Both sign in with their respective credentials.
+              Admin & Member accounts are unified. Sign in with your registered phone or name.
             </span>
           </div>
+        </div>
+
+        {/* Statutory Legal Disclaimer Card (Zero Regulatory Risk) */}
+        <div className="mt-4 p-3.5 bg-white/90 backdrop-blur-xs border border-slate-200/90 rounded-2xl text-[10px] text-slate-500 leading-relaxed space-y-1 shadow-2xs">
+          <div className="flex items-center gap-1.5 font-bold text-slate-700 uppercase tracking-wider text-[9px]">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>वैधानिक सूचना एवं निजी खाता-बही डिस्क्लेमर</span>
+          </div>
+          <p>
+            यह पोर्टल केवल मित्रों एवं परिवारजनों के <strong>निजी समूह बचत (Private Peer Group Savings & Expense Ledger)</strong> का डिजिटल हिसाब-किताब रखने हेतु एक आंतरिक पर्सनल रिकॉर्ड-कीपिंग टूल है। यह पोर्टल किसी भी प्रकार की कमर्शियल बैंकिंग, वित्तीय निवेश, चिटफंड (Chit Fund), प्राइज़ चिट अथवा जनता से जमा (Public Deposits) स्वीकार करने का कार्य नहीं करता है।
+          </p>
         </div>
 
       </div>

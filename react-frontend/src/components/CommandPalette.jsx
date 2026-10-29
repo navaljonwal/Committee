@@ -131,7 +131,7 @@ export default function CommandPalette({ isOpen, onClose }) {
         id: 'nav-member-dash',
         type: 'action',
         title: 'Member Dashboard',
-        subtitle: 'View your enrolled kametis, dues & auction records',
+        subtitle: 'View your enrolled groups, dues & ledger records',
         icon: LayoutDashboard,
         path: '/member/dashboard'
       }
@@ -396,7 +396,7 @@ export default function CommandPalette({ isOpen, onClose }) {
             <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
-          <span className="text-slate-400 font-sans font-medium hidden sm:inline">ChitFund Pro Live Search</span>
+          <span className="text-slate-400 font-sans font-medium hidden sm:inline">BachatKhata Pro Live Search</span>
         </div>
       </div>
       </div>

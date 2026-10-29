@@ -84,7 +84,7 @@ export default function CommitteesList() {
             Committees Dashboard
           </h1>
           <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
-            Manage your ChitFund pools, scheduled draws, disbursements, and payment ledgers
+            Manage your group savings pools, monthly rotations, disbursements, and payment ledgers
           </p>
         </div>
 
@@ -168,7 +168,7 @@ export default function CommitteesList() {
             <Layers className="w-12 h-12 text-slate-400 mx-auto mb-3 animate-float" />
             <h3 className="text-base font-bold text-slate-800">No Committees Created Yet</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Get started by creating your first ChitFund committee with automated mathematical schedules and member seat distribution.
+              Get started by creating your first group savings pool with automated schedules and member seat distribution.
             </p>
             <Link
               to="/committees/create"
@@ -217,7 +217,7 @@ export default function CommitteesList() {
 
                     {/* Amount & Quick Metrics */}
                     <div className="bg-orange-50/40 rounded-2xl p-4 border border-orange-100 mb-4 transition-colors hover:bg-orange-50/70">
-                      <div className="text-xs text-slate-500 font-semibold">Chit Pool Value (V)</div>
+                      <div className="text-xs text-slate-500 font-semibold">Total Savings Pool (V)</div>
                       <div className="text-2xl font-black text-slate-900 font-mono mt-0.5">
                         ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
