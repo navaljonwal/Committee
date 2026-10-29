@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import { getTodayDateStr, getDaysDifference, addDaysToDate } from '../utils/dateUtils.js';
 import { applyAutoPenaltiesForSchedule } from '../services/penaltyService.js';
+import { cleanOrphanedPayments } from '../services/formula.js';
 
 export async function getSchedulePayments(req, res) {
   try {
@@ -54,6 +55,9 @@ export async function getSchedulePayments(req, res) {
       `, [schedule.draw_date || todayStr, scheduleId, schedule.member_id]);
     }
 
+    // Auto-clean any orphaned payments (removed members, excess seats, or duplicates)
+    await cleanOrphanedPayments(schedule.committee_id, pool);
+
     // Fetch payments for enrolled members only
     const [payments] = await pool.query(`
       SELECT 
@@ -65,6 +69,7 @@ export async function getSchedulePayments(req, res) {
       JOIN members m ON cmp.member_id = m.id
       JOIN committee_member cm ON (cm.member_id = cmp.member_id AND cm.committee_id = ?)
       WHERE cmp.schedule_id = ?
+        AND cmp.seat_no <= cm.seats
       ORDER BY m.name ASC, cmp.seat_no ASC
     `, [schedule.committee_id, scheduleId]);
 

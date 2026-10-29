@@ -3,7 +3,8 @@ import {
   calculatePreviewRows,
   generateSchedules,
   syncMemberPayments,
-  recalculateSchedules
+  recalculateSchedules,
+  cleanOrphanedPayments
 } from '../services/formula.js';
 import { 
   broadcastLiveBids, 
@@ -207,17 +208,22 @@ export async function getCommitteeDetail(req, res) {
     // All registered members for dropdown selection
     const [allMembers] = await pool.query('SELECT id, name, phone FROM members ORDER BY name ASC');
 
-    // Aggregate payment stats per schedule
+    // Auto-clean any orphaned payments (removed members, excess seats, or duplicates)
+    await cleanOrphanedPayments(id, pool);
+
+    // Aggregate payment stats per schedule for currently enrolled member seats only
     const [paymentStatsRows] = await pool.query(`
       SELECT 
-        schedule_id, 
+        cmp.schedule_id, 
         count(*) as total, 
-        SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count, 
-        SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_count
-      FROM committee_member_payments
-      WHERE schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
-      GROUP BY schedule_id
-    `, [id]);
+        SUM(CASE WHEN cmp.payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count, 
+        SUM(CASE WHEN cmp.payment_status = 'pending' THEN 1 ELSE 0 END) as pending_count
+      FROM committee_member_payments cmp
+      JOIN committee_member cm ON (cm.member_id = cmp.member_id AND cm.committee_id = ?)
+      WHERE cmp.schedule_id IN (SELECT id FROM committee_schedules WHERE committee_id = ?)
+        AND cmp.seat_no <= cm.seats
+      GROUP BY cmp.schedule_id
+    `, [id, id]);
 
     const paymentStats = {};
     for (const p of paymentStatsRows) {

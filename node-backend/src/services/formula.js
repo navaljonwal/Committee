@@ -151,9 +151,75 @@ export async function generateSchedules(committeeId, conn) {
 }
 
 /**
+ * Clean up orphaned, unenrolled, excess seats, or duplicate payment rows for a committee
+ */
+export async function cleanOrphanedPayments(committeeId, conn) {
+  try {
+    const [currentMembers] = await conn.query(
+      'SELECT m.id, cm.seats FROM members m INNER JOIN committee_member cm ON m.id = cm.member_id WHERE cm.committee_id = ?',
+      [committeeId]
+    );
+    if (!currentMembers || currentMembers.length === 0) return;
+
+    const currentMemberIds = currentMembers.map(m => m.id);
+    const memberSeatsMap = {};
+    for (const m of currentMembers) {
+      memberSeatsMap[m.id] = parseInt(m.seats || 1, 10);
+    }
+
+    const [schedules] = await conn.query(
+      'SELECT id FROM committee_schedules WHERE committee_id = ?',
+      [committeeId]
+    );
+    if (!schedules || schedules.length === 0) return;
+    const scheduleIds = schedules.map(s => s.id);
+
+    // 1. Remove payments for members who are no longer enrolled in this committee
+    await conn.query(
+      'DELETE FROM committee_member_payments WHERE schedule_id IN (?) AND member_id NOT IN (?)',
+      [scheduleIds, currentMemberIds]
+    );
+
+    // 2. Fetch existing payment rows and remove excess seat numbers or duplicate entries
+    const [existingRecords] = await conn.query(`
+      SELECT id, schedule_id, member_id, seat_no, payment_status 
+      FROM committee_member_payments 
+      WHERE schedule_id IN (?) 
+      ORDER BY CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END, id ASC
+    `, [scheduleIds]);
+
+    const existingLookup = new Set();
+    const excessIdsToDelete = [];
+
+    for (const rec of existingRecords) {
+      const key = `${rec.schedule_id}_${rec.member_id}_${rec.seat_no}`;
+      if (existingLookup.has(key)) {
+        excessIdsToDelete.push(rec.id);
+        continue;
+      }
+      existingLookup.add(key);
+
+      const maxSeats = memberSeatsMap[rec.member_id] || 1;
+      if (rec.seat_no > maxSeats) {
+        excessIdsToDelete.push(rec.id);
+      }
+    }
+
+    if (excessIdsToDelete.length > 0) {
+      await conn.query('DELETE FROM committee_member_payments WHERE id IN (?)', [excessIdsToDelete]);
+    }
+  } catch (err) {
+    console.error('cleanOrphanedPayments error:', err.message);
+  }
+}
+
+/**
  * Re-synchronize member payment rows for a committee
  */
 export async function syncMemberPayments(committeeId, conn) {
+  // First clean any existing orphans
+  await cleanOrphanedPayments(committeeId, conn);
+
   const [currentMembers] = await conn.query(
     'SELECT m.id, cm.seats FROM members m INNER JOIN committee_member cm ON m.id = cm.member_id WHERE cm.committee_id = ?',
     [committeeId]
@@ -168,47 +234,21 @@ export async function syncMemberPayments(committeeId, conn) {
   if (schedules.length === 0 || currentMemberIds.length === 0) return;
 
   const scheduleIds = schedules.map(s => s.id);
-
-  // 1. Bulk remove pending payments for members who are no longer in this committee
-  await conn.query(
-    'DELETE FROM committee_member_payments WHERE schedule_id IN (?) AND member_id NOT IN (?) AND payment_status = ?',
-    [scheduleIds, currentMemberIds, 'pending']
-  );
-
-  // 2. Fetch existing payment rows
-  const [existingRecords] = await conn.query(`
-    SELECT id, schedule_id, member_id, seat_no, payment_status 
-    FROM committee_member_payments 
-    WHERE schedule_id IN (?) 
-    ORDER BY CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END, id ASC
-  `, [scheduleIds]);
-
-  const existingLookup = new Set();
-  const excessIdsToDelete = [];
-
   const memberSeatsMap = {};
   for (const m of currentMembers) {
     memberSeatsMap[m.id] = parseInt(m.seats || 1, 10);
   }
 
+  // Fetch existing lookup after cleanup
+  const [existingRecords] = await conn.query(`
+    SELECT id, schedule_id, member_id, seat_no, payment_status 
+    FROM committee_member_payments 
+    WHERE schedule_id IN (?)
+  `, [scheduleIds]);
+
+  const existingLookup = new Set();
   for (const rec of existingRecords) {
-    const key = `${rec.schedule_id}_${rec.member_id}_${rec.seat_no}`;
-    if (existingLookup.has(key)) {
-      if (rec.payment_status === 'pending') {
-        excessIdsToDelete.push(rec.id);
-        continue;
-      }
-    }
-    existingLookup.add(key);
-
-    const maxSeats = memberSeatsMap[rec.member_id] || 1;
-    if (rec.seat_no > maxSeats && rec.payment_status === 'pending') {
-      excessIdsToDelete.push(rec.id);
-    }
-  }
-
-  if (excessIdsToDelete.length > 0) {
-    await conn.query('DELETE FROM committee_member_payments WHERE id IN (?)', [excessIdsToDelete]);
+    existingLookup.add(`${rec.schedule_id}_${rec.member_id}_${rec.seat_no}`);
   }
 
   // 3. Insert missing rows
