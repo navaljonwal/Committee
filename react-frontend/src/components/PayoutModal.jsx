@@ -9,7 +9,13 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
   if (!isOpen || !schedule) return null;
 
   const { toast } = usePopup();
-  const netPayoutTarget = parseFloat(schedule.net_payout || 0);
+  const fullPotAmount = parseFloat(schedule.net_payout || 0);
+  const winnerSettledAmount = parseFloat(
+    schedule.winner_settled_amount !== undefined
+      ? schedule.winner_settled_amount
+      : (schedule.winner_seats ? schedule.winner_seats * parseFloat(schedule.installment_per_member || 0) : 0)
+  );
+  const netPayoutTarget = Math.max(0, fullPotAmount - winnerSettledAmount);
 
   // Parse notes from schedule if available
   let initialNotes = {
@@ -114,7 +120,7 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
       onClose={onClose}
       icon={Banknote}
       title={`Disbursement Settlement — Month ${schedule.month_no}`}
-      subtitle={`Winner: ${schedule.winner_name || 'Pending Draw Assignment'} • Target: ₹${netPayoutTarget.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+      subtitle={`Winner: ${schedule.winner_name || 'Pending Draw Assignment'} • Cash to Pay: ₹${netPayoutTarget.toLocaleString('en-IN')}`}
       maxWidth="sm:max-w-xl md:max-w-2xl"
       onSubmit={handleSubmit}
       footer={
@@ -137,6 +143,17 @@ export default function PayoutModal({ isOpen, onClose, schedule, onSaveSuccess }
       }
     >
       <div className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
+        {winnerSettledAmount > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+            <div>
+              <span className="font-bold">Total Pot: ₹{fullPotAmount.toLocaleString('en-IN')}</span>
+              <span className="text-amber-700 ml-2">− Winner's Settled Installment: ₹{winnerSettledAmount.toLocaleString('en-IN')}</span>
+            </div>
+            <span className="font-black text-amber-950 font-mono text-sm">
+              Net Cash to Hand Over: ₹{netPayoutTarget.toLocaleString('en-IN')}
+            </span>
+          </div>
+        )}
           {/* Status & Date & Mode */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>

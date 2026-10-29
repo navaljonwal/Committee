@@ -18,10 +18,12 @@ export async function getSchedulePayments(req, res) {
         c.payment_grace_days,
         c.late_penalty_amount,
         m.name as winner_name,
-        m.phone as winner_phone
+        m.phone as winner_phone,
+        cm.seats as winner_seats
       FROM committee_schedules cs
       JOIN committees c ON cs.committee_id = c.id
       LEFT JOIN members m ON cs.member_id = m.id
+      LEFT JOIN committee_member cm ON (cm.member_id = cs.member_id AND cm.committee_id = cs.committee_id)
       WHERE cs.id = ?
     `, [scheduleId]);
 

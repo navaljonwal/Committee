@@ -396,15 +396,15 @@ export default function MemberDashboard() {
                   <span className="text-xs text-emerald-300 font-semibold">• {wonRounds.length} Round(s) Won</span>
                 </div>
                 <h2 className="text-base sm:text-lg font-black text-white mt-0.5">
-                  Aapke Jeete Hue Rounds (Organizer se lene hain)
+                  Aapke Jeete Hue Rounds (Organizer Payout Status)
                 </h2>
               </div>
             </div>
 
             <div className="bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/15 flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-xs text-emerald-200">Total Net Payout:</span>
+              <span className="text-xs text-emerald-200">Hath me aane wali rashi:</span>
               <span className="text-lg font-black text-emerald-300 font-mono">
-                ₹{wonRounds.reduce((acc, w) => acc + (parseFloat(w.net_payout) || 0), 0).toLocaleString('en-IN')}
+                ₹{wonRounds.reduce((acc, w) => acc + (parseFloat(w.net_cash_payout) || 0), 0).toLocaleString('en-IN')}
               </span>
             </div>
           </div>
@@ -438,27 +438,57 @@ export default function MemberDashboard() {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Net Payout to Receive</span>
+                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">Cash to Receive</span>
                     <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono block">
-                      ₹{parseFloat(w.net_payout || 0).toLocaleString('en-IN')}
+                      ₹{parseFloat(w.net_cash_payout || 0).toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block font-mono">
+                      (Pot: ₹{parseFloat(w.total_pot || w.net_payout || 0).toLocaleString('en-IN')} − Kist: ₹{parseFloat(w.total_settled_installment || 0).toLocaleString('en-IN')})
                     </span>
                   </div>
                 </div>
 
+                {/* Payout Disbursement Status */}
+                <div className="flex items-center gap-2">
+                  {w.is_payout_paid ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Organizer ne paise de diye hain {w.payout_date ? `(${formatDate(w.payout_date)})` : ''}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold animate-pulse">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Organizer se lena baki hai (Awaiting Payout)</span>
+                    </span>
+                  )}
+                </div>
+
                 {/* Settle Notice */}
-                <div className="bg-emerald-950/60 border border-emerald-500/20 rounded-xl p-2.5 text-xs text-emerald-200 flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className={`border rounded-xl p-3 text-xs flex items-start gap-2.5 ${
+                  w.is_payout_paid 
+                    ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200' 
+                    : 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+                }`}>
+                  {w.is_payout_paid ? (
+                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  )}
                   <div>
-                    <strong className="text-white block font-semibold">Payment Status: Settled in Payout (₹0 to pay)</strong>
-                    <span className="text-[11px] text-emerald-300/80">
-                      Is mahine ki aapki kist (₹{parseFloat(w.total_settled_installment || 0).toLocaleString('en-IN')}) is payout pot se pehle hi adjust ho chuki hai. Aapko koi paise nahi dene hain.
+                    <strong className="text-white block font-semibold">
+                      {w.is_payout_paid 
+                        ? `✅ Payout Received: Organizer ne ₹${parseFloat(w.net_cash_payout || 0).toLocaleString('en-IN')} de diye hain` 
+                        : `⏳ Payout Pending: Organizer se ₹${parseFloat(w.net_cash_payout || 0).toLocaleString('en-IN')} lene hain`}
+                    </strong>
+                    <span className="text-[11px] opacity-90 block mt-0.5">
+                      Kul Pot ₹{parseFloat(w.total_pot || w.net_payout || 0).toLocaleString('en-IN')} me se aapki {w.seats} seat(s) ki kist (₹{parseFloat(w.total_settled_installment || 0).toLocaleString('en-IN')}) cut ho chuki hai, isliye aapko koi payment nahi deni hai.
                     </span>
                   </div>
                 </div>
 
                 <div className="pt-1 flex items-center justify-between border-t border-white/10">
                   <span className="text-[11px] text-slate-400">
-                    Organizer se ye amount receive karein
+                    {w.is_payout_paid ? 'Disbursed by Organizer' : 'Awaiting payment from Organizer'}
                   </span>
                   <Link
                     to={`/member/committees/${encodeId(w.committee_id)}${user?.role === 'admin' && member?.id ? `?memberId=${member.id}` : ''}`}

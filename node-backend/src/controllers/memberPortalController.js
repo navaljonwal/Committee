@@ -183,6 +183,10 @@ export async function getMemberDashboard(req, res) {
           cs.net_payout,
           cs.installment_per_member,
           cs.deduction_amount,
+          cs.payout_status,
+          cs.payout_date,
+          cs.payout_mode,
+          cs.payout_remarks,
           c.id as committee_id,
           c.name as committee_name,
           c.total_amount,
@@ -198,10 +202,16 @@ export async function getMemberDashboard(req, res) {
         const seats = parseInt(w.seats || 1, 10);
         const installment = parseFloat(w.installment_per_member || 0);
         const totalSettledInstallment = installment * seats;
+        const totalPot = parseFloat(w.net_payout || 0);
+        const netCashPayout = Math.max(0, totalPot - totalSettledInstallment);
+        const isPayoutPaid = w.payout_status === 'paid';
         return {
           ...w,
           seats,
-          total_settled_installment: totalSettledInstallment
+          total_pot: totalPot,
+          total_settled_installment: totalSettledInstallment,
+          net_cash_payout: netCashPayout,
+          is_payout_paid: isPayoutPaid
         };
       });
     } catch (wonErr) {

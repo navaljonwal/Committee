@@ -180,10 +180,12 @@ export async function getCommitteeDetail(req, res) {
         c.payment_grace_days,
         c.late_penalty_amount,
         m.name as winner_name,
-        m.phone as winner_phone
+        m.phone as winner_phone,
+        cm.seats as winner_seats
       FROM committee_schedules cs
       JOIN committees c ON cs.committee_id = c.id
       LEFT JOIN members m ON cs.member_id = m.id
+      LEFT JOIN committee_member cm ON (cm.member_id = cs.member_id AND cm.committee_id = cs.committee_id)
       WHERE cs.committee_id = ?
       ORDER BY cs.month_no ASC
     `, [id]);
@@ -259,8 +261,12 @@ export async function getCommitteeDetail(req, res) {
       const formulaDeduction = (s.index_n === specialIndex) ? 0.0 : (s.index_n * baseUnit);
       const graceDays = parseInt(s.payment_grace_days !== undefined && s.payment_grace_days !== null ? s.payment_grace_days : commGraceDays, 10);
       const penaltyAmt = parseFloat(s.late_penalty_amount !== undefined && s.late_penalty_amount !== null ? s.late_penalty_amount : commPenalty);
+      const winnerSeats = parseInt(s.winner_seats || 1, 10);
+      const winnerSettledAmount = s.member_id ? (winnerSeats * parseFloat(s.installment_per_member || 0)) : 0;
       return {
         ...s,
+        winner_seats: winnerSeats,
+        winner_settled_amount: winnerSettledAmount,
         payment_grace_days: graceDays,
         late_penalty_amount: penaltyAmt,
         due_date: s.draw_date ? addDaysToDate(s.draw_date, graceDays) : null,

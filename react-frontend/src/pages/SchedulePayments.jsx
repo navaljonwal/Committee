@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   RotateCcw,
   X,
-  Sparkles
+  Sparkles,
+  Banknote
 } from 'lucide-react';
 import api from '../api/client';
 import { encodeId } from '../utils/hashids';
@@ -27,6 +28,7 @@ import { makeWhatsAppPaymentReminder } from '../utils/whatsapp';
 import { usePopup } from '../context/PopupContext';
 import { useAuth } from '../context/AuthContext';
 import WhatsAppModal from '../components/WhatsAppModal';
+import PayoutModal from '../components/PayoutModal';
 
 export default function SchedulePayments() {
   const { scheduleId } = useParams();
@@ -39,6 +41,7 @@ export default function SchedulePayments() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedMembers, setExpandedMembers] = useState({});
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   // Penalty edit states
   const [editingPenaltyId, setEditingPenaltyId] = useState(null);
@@ -446,6 +449,71 @@ export default function SchedulePayments() {
                 Rule: Bidding ke {schedule.payment_grace_days || 5} din baad tak payment na aane par ₹{schedule.late_penalty_amount || 100} per seat penalty lagti hai.
               </span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Winner Payout Disburse Card */}
+      {schedule?.member_id && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 border border-amber-300/70 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-fade-in-up">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center shrink-0 text-amber-700">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full">
+                  Round Winner
+                </span>
+                <span className="text-base sm:text-lg font-black text-slate-900">
+                  {schedule.winner_name || 'Declared Winner'}
+                </span>
+                {schedule.winner_phone && (
+                  <span className="text-xs text-slate-500 font-mono">
+                    ({schedule.winner_phone})
+                  </span>
+                )}
+                {schedule.payout_status === 'paid' ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    Organizer Ne Paise De Diye (Paid)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    Paise Dena Baki Hai (Unpaid)
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                Take-Home Cash to Pay: <strong className="text-slate-900 font-black text-sm">₹{Math.max(0, (parseFloat(schedule.net_payout || 0) || parseFloat(schedule.total_amount || 0)) - (displayStats.winner_settled_amount || 0)).toLocaleString('en-IN')}</strong>
+                {displayStats.winner_settled_amount > 0 && (
+                  <span className="text-slate-500 ml-1">
+                    (Pot: ₹{(parseFloat(schedule.net_payout || 0) || parseFloat(schedule.total_amount || 0)).toLocaleString('en-IN')} − Kist: ₹{(displayStats.winner_settled_amount || 0).toLocaleString('en-IN')})
+                  </span>
+                )}
+                {schedule.payout_status === 'paid' && schedule.payout_date && (
+                  <span className="text-emerald-700 font-semibold ml-2">
+                    · Paid on {new Date(schedule.payout_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {schedule.payout_mode ? ` via ${schedule.payout_mode.toUpperCase()}` : ''}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+            <button
+              onClick={() => setIsPayoutModalOpen(true)}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center gap-1.5 active:scale-98 ${
+                schedule.payout_status === 'paid'
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+              }`}
+            >
+              <Banknote className="w-4 h-4" />
+              {schedule.payout_status === 'paid' ? 'View / Edit Payout' : 'Disburse Payout (Paise Do)'}
+            </button>
           </div>
         </div>
       )}
@@ -1303,6 +1371,21 @@ export default function SchedulePayments() {
         data={activeReminderData}
         onClose={() => setActiveReminderData(null)}
         onSent={handleMarkReminded}
+      />
+
+      {/* Payout Disburse Modal */}
+      <PayoutModal
+        isOpen={isPayoutModalOpen}
+        onClose={() => setIsPayoutModalOpen(false)}
+        schedule={schedule ? {
+          ...schedule,
+          winner_settled_amount: displayStats.winner_settled_amount,
+          winner_seats: displayStats.winner_settled_seats
+        } : null}
+        onSaveSuccess={(msg) => {
+          toast.success(msg || 'Payout status updated successfully');
+          loadPayments();
+        }}
       />
 
     </div>

@@ -432,43 +432,71 @@ export default function MemberCommittee() {
           {/* Winner Payout Celebration & Settlement Banner */}
           {myWonSchedules.length > 0 && (
             <div className="space-y-3">
-              {myWonSchedules.map((s) => (
-                <div
-                  key={s.id}
-                  className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-emerald-500/40 shadow-xl relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-                  
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-start gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/30 shrink-0 mt-0.5">
-                        <Award className="w-7 h-7 text-slate-950" />
-                      </div>
-                      <div>
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold mb-1">
-                          <span>🏆 Aapne Month {s.month_no} jeeta hai!</span>
-                        </div>
-                        <h3 className="text-base sm:text-lg font-black text-white">
-                          Organizer se lene hain: <span className="text-emerald-400 font-mono">₹{parseFloat(s.net_payout).toLocaleString('en-IN')}</span> (Net Payout)
-                        </h3>
-                        <p className="text-xs text-emerald-200/90 mt-1">
-                          Is mahine ki aapki kist (₹{(parseFloat(s.installment_per_member || 0) * (totalSeats || 1)).toLocaleString('en-IN')}) aapke payout me se adjust ho chuki hai. <strong className="text-white underline">Aapko is mahine koi payment nahi deni hai (₹0 Cash to Pay).</strong>
-                        </p>
-                      </div>
-                    </div>
+              {myWonSchedules.map((s) => {
+                const seats = parseInt(totalSeats || 1, 10);
+                const installment = parseFloat(s.installment_per_member || 0);
+                const winnerInstallment = installment * seats;
+                const totalPot = parseFloat(s.net_payout || 0);
+                const netCashPayout = Math.max(0, totalPot - winnerInstallment);
+                const isPayoutPaid = s.payout_status === 'paid';
 
-                    <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/15 text-left md:text-right shrink-0">
-                      <span className="text-[10px] text-emerald-300 uppercase font-bold tracking-wider block">
-                        Payment Status
-                      </span>
-                      <span className="text-sm sm:text-base font-black text-emerald-300 font-mono flex items-center md:justify-end gap-1 mt-0.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Settled in Payout
-                      </span>
-                      <span className="text-[10px] text-slate-300 block mt-0.5">Zero payment required</span>
+                return (
+                  <div
+                    key={s.id}
+                    className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-emerald-500/40 shadow-xl relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/30 shrink-0 mt-0.5">
+                          <Award className="w-7 h-7 text-slate-950" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold">
+                              <span>🏆 Aapne Month {s.month_no} jeeta hai!</span>
+                            </span>
+                            {isPayoutPaid ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 text-[10px] font-extrabold">
+                                <CheckCircle className="w-3 h-3 text-emerald-400" /> Organizer ne paise de diye hain
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/40 text-[10px] font-extrabold animate-pulse">
+                                <Clock className="w-3 h-3 text-amber-400" /> Organizer se lena baki hai
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-base sm:text-lg font-black text-white">
+                            {isPayoutPaid ? 'Organizer se prapt rashi:' : 'Organizer se lene hain:'}{' '}
+                            <span className="text-emerald-400 font-mono">₹{netCashPayout.toLocaleString('en-IN')}</span>{' '}
+                            <span className="text-xs text-slate-300 font-normal">(Net Cash Payout)</span>
+                          </h3>
+                          <p className="text-xs text-emerald-200/90 mt-1">
+                            Kul Pot ₹{totalPot.toLocaleString('en-IN')} me se aapki {seats} seat(s) ki kist (₹{winnerInstallment.toLocaleString('en-IN')}) cut ho chuki hai. <strong className="text-white underline">Aapko is mahine koi payment nahi deni hai (₹0 Cash to Pay).</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/15 text-left md:text-right shrink-0 space-y-1">
+                        <span className="text-[10px] text-emerald-300 uppercase font-bold tracking-wider block">
+                          Payout Disbursement
+                        </span>
+                        <span className="text-sm font-black text-emerald-300 font-mono flex items-center md:justify-end gap-1">
+                          {isPayoutPaid ? (
+                            <><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Paid {s.payout_date ? `(${formatDate(s.payout_date)})` : ''}</>
+                          ) : (
+                            <><Clock className="w-4 h-4 text-amber-400" /> Pending Collection</>
+                          )}
+                        </span>
+                        <span className="text-[10px] text-slate-300 block">
+                          {isPayoutPaid ? `Mode: ${s.payout_mode || 'Cash'}` : 'Organizer will disburse cash'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -689,8 +717,15 @@ export default function MemberCommittee() {
                                 <span>Aapne jeeta (You Won)</span>
                               </span>
                               <div className="text-[11px] font-bold text-emerald-700 font-mono">
-                                Net Payout: ₹{parseFloat(s.net_payout).toLocaleString('en-IN')}
+                                Cash Payout: ₹{Math.max(0, parseFloat(s.net_payout || 0) - (parseFloat(s.installment_per_member || 0) * seatsCount)).toLocaleString('en-IN')}
                               </div>
+                              <span className="text-[10px] font-semibold block">
+                                {s.payout_status === 'paid' ? (
+                                  <span className="text-emerald-700 font-bold">✅ Organizer ne de diye</span>
+                                ) : (
+                                  <span className="text-amber-700 font-bold">⏳ Organizer se lene hain</span>
+                                )}
+                              </span>
                             </div>
                           ) : (s.is_winner_assigned || s.member_id || s.winner_name) ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 font-medium text-xs">
@@ -911,10 +946,10 @@ export default function MemberCommittee() {
                           <div className="font-bold text-emerald-700 space-y-0.5">
                             <span className="flex items-center gap-1">
                               <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              Aapne jeeta! Net Payout: ₹{parseFloat(s.net_payout).toLocaleString('en-IN')}
+                              Aapne jeeta! Cash: ₹{Math.max(0, parseFloat(s.net_payout || 0) - (parseFloat(s.installment_per_member || 0) * seatsCount)).toLocaleString('en-IN')}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-normal block">
-                              Organizer se ye rashi receive karein
+                            <span className="text-[10px] font-semibold block">
+                              {s.payout_status === 'paid' ? '✅ Organizer ne paise de diye hain' : '⏳ Organizer se lena baki hai'}
                             </span>
                           </div>
                         ) : (s.is_winner_assigned || s.member_id || s.winner_name) ? (
