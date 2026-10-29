@@ -19,6 +19,7 @@ import MemberCommittee from './pages/MemberCommittee';
 import PrintView from './pages/PrintView';
 import ProfileSettings from './pages/ProfileSettings';
 import Reminders from './pages/Reminders';
+import NotFound from './pages/NotFound';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Route Component
@@ -40,10 +41,12 @@ function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" replace />;
   }
 
+  // Member Portal is disabled — members are served 404 Page Not Found
+  if (user.role === 'member') {
+    return <NotFound />;
+  }
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    if (user.role === 'member') {
-      return <Navigate to="/member/dashboard" replace />;
-    }
     return <Navigate to="/" replace />;
   }
 
@@ -80,6 +83,11 @@ function AppLayout() {
     );
   }
 
+  // If logged in as member, render 404 Page Not Found
+  if (user?.role === 'member') {
+    return <NotFound />;
+  }
+
   const isLoginPage = location.pathname === '/login';
   const isPrintPage = location.pathname.includes('/print');
 
@@ -89,8 +97,10 @@ function AppLayout() {
         <Routes>
           <Route 
             path="/login" 
-            element={user ? <Navigate to={user.role === 'member' ? "/member/dashboard" : "/"} replace /> : <Login />} 
+            element={user ? (user.role === 'member' ? <NotFound /> : <Navigate to="/" replace />) : <Login />} 
           />
+          <Route path="/member/*" element={<NotFound />} />
+          <Route path="/not-found" element={<NotFound />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
@@ -146,7 +156,7 @@ function AppLayout() {
               } />
 
               <Route path="/committees/:id/print" element={
-                <ProtectedRoute allowedRoles={['admin', 'member']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <PrintView />
                 </ProtectedRoute>
               } />
@@ -175,18 +185,9 @@ function AppLayout() {
                 </ProtectedRoute>
               } />
 
-              {/* Member Portal Routes — Accessible by Member and Admin (for Preview) */}
-              <Route path="/member/dashboard" element={
-                <ProtectedRoute allowedRoles={['member', 'admin']}>
-                  <MemberDashboard />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/member/committees/:id" element={
-                <ProtectedRoute allowedRoles={['member', 'admin']}>
-                  <MemberCommittee />
-                </ProtectedRoute>
-              } />
+              {/* Member Portal Disabled — Always returns 404 Page Not Found */}
+              <Route path="/member/*" element={<NotFound />} />
+              <Route path="/not-found" element={<NotFound />} />
 
               {/* Catch-all */}
               <Route path="*" element={<Navigate to="/" replace />} />

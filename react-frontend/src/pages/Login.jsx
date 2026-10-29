@@ -23,7 +23,7 @@ export default function Login() {
       if (res.user.role === 'admin') {
         navigate('/');
       } else {
-        navigate('/member/dashboard');
+        navigate('/not-found');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed. Check your credentials.');

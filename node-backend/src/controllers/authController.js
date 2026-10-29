@@ -56,6 +56,14 @@ export async function login(req, res) {
       });
     }
 
+    // Member portal disabled on live — return 404
+    if (user.role === 'member') {
+      return res.status(404).json({
+        success: false,
+        message: 'Page not found'
+      });
+    }
+
     // Generate JWT
     const payload = {
       id: user.id,

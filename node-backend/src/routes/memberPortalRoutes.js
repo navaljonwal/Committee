@@ -19,9 +19,9 @@ router.get('/committees/:committeeId/live-bids', decodeHash('committeeId'), getL
 // Real-time SSE Live Stream (Instant push updates to all members without page refresh)
 router.get('/committees/:committeeId/live-stream', decodeHash('committeeId'), subscribeLiveBids);
 
-// Member-specific routes
-router.get('/dashboard', requireMember, getMemberDashboard);
-router.get('/committees/:committeeId', decodeHash('committeeId'), requireMember, getMemberCommittee);
-router.post('/schedules/:scheduleId/bid', decodeHash('scheduleId'), requireMember, submitBid);
+// Member-specific routes disabled — always return 404 Page Not Found
+router.get('/dashboard', (req, res) => res.status(404).json({ success: false, message: 'Page not found' }));
+router.get('/committees/:committeeId', (req, res) => res.status(404).json({ success: false, message: 'Page not found' }));
+router.post('/schedules/:scheduleId/bid', (req, res) => res.status(404).json({ success: false, message: 'Page not found' }));
 
 export default router;
